@@ -1,0 +1,59 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 243,
+  "status": "AUTHORIZED_EXACT_SUCCESSOR",
+  "authorization": "USER_20261117_FULL_TEX_MEASUREMENT_AND_ISOLATED_DEPENDENCY_MAINTENANCE",
+  "officialUrl": "https://plusmen.shop/tex",
+  "backendCommit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+  "parentDeviceFreezeSha256": "f9ff2f16858f1771330ac38920798b7c8c705184ed0e9ff64fa0cde691456014",
+  "parentLinkedFreezeSha256": "f520fcf8f9df5c52067d2c135f4c11d06824f7fb8eae4d7e0af0c397926458d8",
+  "productKey": "tex_ultra_ec",
+  "pixelId": "1100892582698669",
+  "phone": "553171862958",
+  "player": "6aafe87d665f0c5b457748ad",
+  "ctaStartSeconds": 2257,
+  "turbo": 1.2,
+  "changes": {
+    "/etc/nginx/sites-available/plusmen.shop": {
+      "beforeSha256": "42e556b09df29a5cb8df8ea99e58c469a65be9e1cae45a1aad203d781c60c3c0",
+      "sha256": "32ac47547925f1f6e509543b48a4b3193deb4bbcbd06a46f229f840fba391196",
+      "candidateFile": "plusmen.shop.nginx",
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/index.html": {
+      "beforeSha256": "d48259ac5ebc1b4c4df3b4eee281f06b04f2aa11a3ad5de2ddcb1558f54fad03",
+      "sha256": "abd3ed04ffb8257862dbfb8d0180f77e0f0214fe6b553871d65354fdc06b73b5",
+      "candidateFile": "index.html",
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js": {
+      "beforeSha256": "d02e78f17cbf6207df1b783d40df2619ca1fedadaa25e4ca2930753589a2234b",
+      "sha256": "e5a2c9b4816c46883acd4db5d8bb1ee0218748ed9fb0d58bafc81d5c8dfbdb0b",
+      "candidateFile": "chat-tex-ultra.js",
+      "mode": 420
+    }
+  },
+  "newFiles": {
+    "/var/www/plusmen-tex-vsl-v1/assets/meta-tex-ultra.js": {
+      "sha256": "b4b78bd34e4787788cb836b4c9e223bb30e33215e9788d42f921bc726db4a959",
+      "candidateFile": "meta-tex-ultra.js",
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js": {
+      "sha256": "86278207e6135ccf65a45f172457c88f551ce352ec44b4cd771c26ef23355fb3",
+      "candidateFile": "whatsapp.js",
+      "baselineSha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+      "mode": 420
+    }
+  },
+  "inverse": {
+    "nginxAdditionBase64": "ICAgICMgQkVHSU4gVEVYIE1FQVNVUkVNRU5UIFYyNDMKICAgIGxvY2F0aW9uID0gL2FwaS9wdWJsaWMvdGV4LW1lYXN1cmVtZW50IHsKICAgICAgICBpbmNsdWRlIC9ldGMvbmdpbngvc25pcHBldHMvcGx1c21lbi1sb2NhbC1wcm94eS5jb25mOwogICAgfQogICAgbG9jYXRpb24gPSAvYXBpL3ByaXZhdGUvdGV4LW1lYXN1cmVtZW50LXByb29mIHsKICAgICAgICBpbmNsdWRlIC9ldGMvbmdpbngvc25pcHBldHMvcGx1c21lbi1sb2NhbC1wcm94eS5jb25mOwogICAgfQogICAgIyBFTkQgVEVYIE1FQVNVUkVNRU5UIFYyNDMKCg==",
+    "whatsappAdditionBase64": "ICAgIC8vIEFuIG9wYXF1ZSB2aXNpdCByZWZlcmVuY2UgbGlua3MgdGhlIGN1c3RvbWVyJ3Mgb3duIGluYm91bmQ7IHRoZSBkZXN0aW5hdGlvbiBpcyB1bmNoYW5nZWQuCiAgICB2YXIgc2VsZWN0ZWRNZXNzYWdlID0gbWVzc2FnZTsKICAgIHRyeSB7IHZhciByZWZlcmVuY2UgPSB3aW5kb3cuVGV4VWx0cmFNZWFzdXJlbWVudFYyNDMgJiYgd2luZG93LlRleFVsdHJhTWVhc3VyZW1lbnRWMjQzLnJlZmVyZW5jZSgpOwogICAgICBpZiAoL15UWDI0My1bYS1mMC05XXs2NH0kLy50ZXN0KHJlZmVyZW5jZSB8fCAnJykpIHNlbGVjdGVkTWVzc2FnZSArPSAnXG5SZWZlcmVuY2lhOiAnICsgcmVmZXJlbmNlOwogICAgfSBjYXRjaCAoXykge30KICAgIHZhciBzZWxlY3RlZFRleHQgPSBlbmNvZGVVUklDb21wb25lbnQoc2VsZWN0ZWRNZXNzYWdlKTsKICAgIHZhciBzZWxlY3RlZEFwcFVybCA9ICd3aGF0c2FwcDovL3NlbmQ/cGhvbmU9JyArIHBob25lICsgJyZ0ZXh0PScgKyBzZWxlY3RlZFRleHQ7CiAgICB2YXIgc2VsZWN0ZWRGYWxsYmFja1VybCA9ICdodHRwczovL3dhLm1lLycgKyBwaG9uZSArICc/dGV4dD0nICsgc2VsZWN0ZWRUZXh0Owo=",
+    "chatAddition": " measurementRef: window.TexUltraMeasurementV243?.reference?.() || '',"
+  },
+  "baseMessagePreserved": true,
+  "onlyOpaqueAttributionSuffixAdded": true,
+  "desktopAndDeviceRulesUnchanged": true,
+  "nativePlayerAndCtaTimingUnchanged": true,
+  "rollback": "disable V243 measurement, restore these four site files, retain compatible bot and all measurement/link journals"
+}

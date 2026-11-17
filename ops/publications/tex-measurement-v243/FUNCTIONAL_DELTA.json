@@ -1,0 +1,75 @@
+{
+  "project": "VITALISMEN_EC",
+  "backend": [
+    {
+      "path": "src/services/agentRouter.js",
+      "before": "b0482515e93ff2d710fbf06a0ebc42ff16050fdc6d20c8eb4c0b7339dc2a349c",
+      "after": "d62d43dd8d081cf08dd5a9d938299792009072cbdf201b75dd844fe13319eec1",
+      "prefix": "import { observeTexMeasurementV243, texMeasurementReferenceV243 } from './texUltraMeasurementV243Service.js';\n",
+      "inverse": [
+        {
+          "from": "    await observeTexMeasurementV243({ state, inboundText: body, sourceMessageId: messageId, sessionId, recovered: payload.recovered === true });\n    if (texLinkV242.handled) { await state.save(); return { handled: true, verificationOnly: true }; }\n    if (texMeasurementReferenceV243(body)) body = 'Hola, quiero el tratamiento Tex Ultra.';",
+          "to": "    if (texLinkV242.handled) { await state.save(); return { handled: true, verificationOnly: true }; }"
+        },
+        {
+          "from": "    let body = String(payload.body || '');",
+          "to": "    const body = String(payload.body || '');"
+        }
+      ],
+      "originalLineEndingsPreserved": true
+    },
+    {
+      "path": "src/services/vitPowerWebChatV220Application.js",
+      "before": "0b1456e0d78db8f9d3a14fc7a202b3b5007fc14ca11053d6758a839929f7c9ba",
+      "after": "9d2b0800686aa80887dfff2427d8d7d79c8d88df883718dbff7dd38a0dd4fbe7",
+      "prefix": "import { bindTexMeasurementCodeV243 } from './texUltraMeasurementV243Service.js';\n",
+      "inverse": [
+        {
+          "from": "const issued = await links.issue({ sessionId, requestId: body.requestId, firstName, phone: body.phone.replace(/^\\+/, '') });\n          return res.json(await bindTexMeasurementCodeV243(issued, body.measurementRef));",
+          "to": "return res.json(await links.issue({ sessionId, requestId: body.requestId, firstName, phone: body.phone.replace(/^\\+/, '') }));"
+        },
+        {
+          "from": "['action', 'requestId', 'message', 'accessToken', 'firstName', 'phone', 'measurementRef']",
+          "to": "['action', 'requestId', 'message', 'accessToken', 'firstName', 'phone']"
+        }
+      ],
+      "originalLineEndingsPreserved": true
+    },
+    {
+      "path": "src/services/texUltraFunnelService.js",
+      "before": "f67a406481c10d4ac70859d7d0a711a6b4f399750c6dd59cbfaf4c32d39fd8b3",
+      "after": "ac1aa3d542fc12ae11404dd8ed5e96e5f3847b42d98bad96ef4ec93212c00152",
+      "prefix": "import { bindTexMeasurementOrderV243 } from './texUltraMeasurementV243Service.js';\n",
+      "inverse": [
+        {
+          "from": "        if (order.tracking?.measurementVersion !== 243) await enrichOrderWithMetaAttribution(order).catch(() => null);",
+          "to": "        await enrichOrderWithMetaAttribution(order).catch(() => null);"
+        },
+        {
+          "from": "    else order = new Order({ ...payload, entryAt: new Date(), draftCreatedAt: new Date() });\r\n    await bindTexMeasurementOrderV243(order, state);\r\n    await order.save();",
+          "to": "    else order = new Order({ ...payload, entryAt: new Date(), draftCreatedAt: new Date() });\r\n    await order.save();"
+        }
+      ],
+      "originalLineEndingsPreserved": true
+    },
+    {
+      "path": "src/services/metaConversionsService.js",
+      "before": "62347574aa41dc8f317f4b92065f010bc9539207c8a6f1f4a48266dca54494c7",
+      "after": "2239e50af5836a38a2a5069a49d760d597a74d3ea99dc28ef0df01c4f7da954e",
+      "prefix": "import { sendTexMeasurementPurchaseV243 } from './texUltraMeasurementV243Service.js';\r\n",
+      "inverse": [
+        {
+          "from": "    if(isGiraOrder(order))return {ok:true,skipped:true,reason:\"GIRA21X_OWNS_PURCHASE\"};\r\n    const texReceiptV243 = await sendTexMeasurementPurchaseV243(order, options);\r\n    if (texReceiptV243) return texReceiptV243;",
+          "to": "    if(isGiraOrder(order))return {ok:true,skipped:true,reason:\"GIRA21X_OWNS_PURCHASE\"};"
+        },
+        {
+          "from": "export const getMetaConfigForOrder = (order = {}, env = process.env) => {\r\n    if (order?.tracking?.measurementVersion === 243 && order.tracking.attributionSource === 'tex_verified_first_touch_v243' && order.tracking.productKey === 'tex_ultra_ec') {\r\n        return { pixelId: '1100892582698669', browserPixelId: '1100892582698669', accessToken: null, route: 'plusmen_tex_v243_private_relay' };\r\n    }",
+          "to": "export const getMetaConfigForOrder = (order = {}, env = process.env) => {"
+        }
+      ],
+      "originalLineEndingsPreserved": true
+    }
+  ],
+  "productionChanged": false,
+  "sourceParent": "d35d58c5a74fb4314d7c3548e614501453ab3ed6"
+}

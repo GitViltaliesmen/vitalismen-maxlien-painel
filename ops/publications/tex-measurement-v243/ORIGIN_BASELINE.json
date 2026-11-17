@@ -1,0 +1,25 @@
+{
+  "processes": [
+    {
+      "name": "cloaker",
+      "pid": 1110116,
+      "cwd": "/opt/cloaker",
+      "exec": "/opt/cloaker/server.js",
+      "status": "online"
+    }
+  ],
+  "node": "v20.20.2",
+  "npm": "10.8.2",
+  "freeBytes": 193777160192,
+  "hasGit": false,
+  "at": "2026-11-17T20:54:00.133889+00:00",
+  "hashes": {
+    "package.json": "b264b6d86e33b26219017e5dbc71e78d9bb31ea5aa14206603453d1d488ddc53",
+    "package-lock.json": "49721e30416e347caba4806a8d1c974bd79ed6db069d214563ffe2ea893d86be",
+    "server.js": "8e748bf80e6898baee53064f08f0a2eaf842fd077fc2b47077257eaed3ec93cd",
+    "config/security-predeploy-policy.json": "d66173796d010ea4c887693a7efe158ccfa90420aab9bdf14ad50d15ee5284d9",
+    "scripts/guard-security-predeploy.mjs": "a7daa0be5725197e43045421eb866b92d3f8cc920cdb754d997cac738ae1bd40",
+    "scripts/guard-protocolo-g-freeze.mjs": "27c2b71bb500edbc5e261d1518af56c954ed1f58e0f89bb606a8a6d5382b1666",
+    "scripts/audit-meta-ec-protocolo-g-scope.mjs": "4e36506eb7d7c71df391747aee32ec12707bf6c3791fc8905e7c9c43c10d48af"
+  }
+}

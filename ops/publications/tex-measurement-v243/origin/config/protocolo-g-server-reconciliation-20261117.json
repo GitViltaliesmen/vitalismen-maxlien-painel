@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "freezeId": "PROTOCOLO_G_SERVER_BASELINE_RECONCILIATION_20261117",
+  "scope": "SERVER_BASELINE_RECONCILIATION_ONLY",
+  "parentFreezeFile": "config/protocolo-g-stage-install-url-version-20260928-freeze.json",
+  "parentFreeze": "FREEZE_PROTOCOLO_G_STAGE_INSTALL_URL_VERSION_20260928",
+  "parentFreezeSha256": "0bbe20cd838b4833e3f9239cb36f180a8f1f3e85d19e0d7cda8927a2a5e05f37",
+  "parentServerSha256": "f9e36221afbe7a22b95d2a62869492f554a441c09045e3e3a5d0ca027fc57121",
+  "historicalServerSnapshot": ".backups/FREEZE_PROTOCOLO_G_PRE_25AGO_VITPOWERS_20260902/opt/cloaker/server.js",
+  "protectedCoreSha256": "72e3253249ebd7efb89afbb48cab2ab3f14b6e515ef2a59d5d07212569a8398d",
+  "serverScopeSha256": "f326bacfdf96c32b93605a036cd71f77d8b603d523faf1a53b816a1c62beca04",
+  "authorizedBy": "Operator approved audit and baseline reconciliation in this chat on 2026-11-17",
+  "productionServerCodeChanged": false,
+  "historicalFreezesChanged": false,
+  "protectedFiles": {
+    "server.js": "8e748bf80e6898baee53064f08f0a2eaf842fd077fc2b47077257eaed3ec93cd",
+    "scripts/lib/protocolo-g-baseline-reconciliation-20261117.cjs": "f0925a755ff94027d28f4ba745e57466e5c159ea08df9c592721087d9583acbc",
+    "scripts/guard-protocolo-g-freeze.mjs": "39219adc53754fe5b2300aceb67b861739a6a6e06ca8538c57aa7c8a2f9b4ddd",
+    "scripts/audit-meta-ec-protocolo-g-scope.mjs": "6c630cfe184bfccd263302b07d26309081109190e7802780910e15a24af63f88",
+    "tests/meta-funnel-v148.test.js": "46ed82fd0516d4e155643f992be809367ad3280ac06ad722e1188f4397b96b36",
+    "tests/protocolo-g-certification-successor.test.js": "cd7c09e81c63d2be24bbc09a6ee5df9b2cab291dd63d3dfba5ccbae2f058d57e",
+    "tests/protocolo-g-baseline-reconciliation-20261117.test.js": "2b733f064f14d35d3ec59e42e8d4045c656e25c483615c59ad6533b86763a989"
+  }
+}

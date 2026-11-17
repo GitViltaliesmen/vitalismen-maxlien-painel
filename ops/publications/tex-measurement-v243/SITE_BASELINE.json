@@ -1,0 +1,38 @@
+{
+  "/etc/nginx/sites-available/plusmen.shop": {
+    "sha256": "42e556b09df29a5cb8df8ea99e58c469a65be9e1cae45a1aad203d781c60c3c0",
+    "uid": 0,
+    "gid": 0,
+    "mode": 420
+  },
+  "/etc/nginx/snippets/plusmen-tex-mobile-v1.conf": {
+    "sha256": "7f63ffee9c57af31e01beb0348da3d6489acf439cd9dc6dd6b48d6262e196f78",
+    "uid": 0,
+    "gid": 0,
+    "mode": 420
+  },
+  "/var/www/plusmen-tex-vsl-v1/index.html": {
+    "sha256": "d48259ac5ebc1b4c4df3b4eee281f06b04f2aa11a3ad5de2ddcb1558f54fad03",
+    "uid": 0,
+    "gid": 0,
+    "mode": 420
+  },
+  "/var/www/plusmen-tex-vsl-v1/assets/whatsapp.js": {
+    "sha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+    "uid": 0,
+    "gid": 0,
+    "mode": 420
+  },
+  "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js": {
+    "sha256": "d02e78f17cbf6207df1b783d40df2619ca1fedadaa25e4ca2930753589a2234b",
+    "uid": 0,
+    "gid": 0,
+    "mode": 420
+  },
+  "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.css": {
+    "sha256": "91a48cfeb0a525f0a38757bf31519eea44a5400fc17dc99883257760f8596b48",
+    "uid": 0,
+    "gid": 0,
+    "mode": 420
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "policy_id": "vilaliemen-predeploy-security-clean-v2",
+  "classification": "SECURITY CLEAN",
+  "review_required": false,
+  "expiration_condition": "none",
+  "expected_counts": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "max_high": 0,
+  "advisory_ids": [],
+  "dependency_edges": [
+    {
+      "from": "$root",
+      "to": "whatsapp-web.js",
+      "requirement": "1.34.6"
+    },
+    {
+      "from": "$root",
+      "to": "puppeteer",
+      "requirement": "25.18.1"
+    },
+    {
+      "from": "$root",
+      "to": "sharp",
+      "requirement": "0.35.5"
+    },
+    {
+      "from": "whatsapp-web.js",
+      "to": "puppeteer",
+      "requirement": "^24.31.0"
+    },
+    {
+      "from": "puppeteer",
+      "to": "puppeteer-core",
+      "requirement": "25.18.1"
+    },
+    {
+      "from": "puppeteer",
+      "to": "@puppeteer/browsers",
+      "requirement": "3.2.7"
+    },
+    {
+      "from": "body-parser",
+      "to": "qs",
+      "requirement": "~6.16.0"
+    },
+    {
+      "from": "express",
+      "to": "qs",
+      "requirement": "~6.16.0"
+    }
+  ],
+  "required_versions": {
+    "@puppeteer/browsers": "3.2.7",
+    "body-parser": "1.20.9",
+    "express": "4.22.3",
+    "puppeteer": "25.18.1",
+    "puppeteer-core": "25.18.1",
+    "qs": "6.17.1",
+    "sharp": "0.35.5",
+    "whatsapp-web.js": "1.34.6",
+    "compression": "1.8.2",
+    "mongoose": "8.24.10",
+    "openai": "6.49.0",
+    "proxy-addr": "2.0.8",
+    "ip-address": "10.7.6",
+    "brace-expansion": "1.1.21",
+    "lilconfig": "3.1.5"
+  },
+  "allowed_highs": {}
+}

@@ -1,0 +1,32 @@
+{
+  "project": "VITALISMEN_EC",
+  "commit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+  "tree": "c0da29835a547280cc7de3d52f753306eb516032",
+  "release": "/opt/vitalismen-automacao/releases/20261117T231233Z_production-20261117-d27cc7c",
+  "parentRelease": "/opt/vitalismen-automacao/releases/20261117T205344Z_production-20261117-d35d58c",
+  "parentCommit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+  "sourceRef": "refs/heads/codex/tex-meta-attribution-v243-20261117-r5",
+  "hashes": {
+    "docs/freeze/tex-measurement-v243-contract.json": "3442ba0d1a7464a294028feed4ad1d017cb3311b722efe15d9ebdeb085998b07",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "4b1db49eb1c23bde9a17ee04ecbb29e032698396a1a8ba05d7cdb9a18d38627e",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "73165559c2c54720d8afa5c800515ae7570e43433328865ad03dc868a6c61f7f",
+    "src/services/agentRouter.js": "d62d43dd8d081cf08dd5a9d938299792009072cbdf201b75dd844fe13319eec1",
+    "src/services/metaConversionsService.js": "2239e50af5836a38a2a5069a49d760d597a74d3ea99dc28ef0df01c4f7da954e",
+    "src/services/texMeasurementJournalV243.cjs": "44972f0fdbf7529724a49df8d3d3ed2e34b7e4307b1b41547b6f1c787338c905",
+    "src/services/texUltraFunnelService.js": "ac1aa3d542fc12ae11404dd8ed5e96e5f3847b42d98bad96ef4ec93212c00152",
+    "src/services/texUltraMeasurementV243Service.js": "d7385772b4e09f06567189f15c25fb0fc1e32b7e0d81d8d67aff3da288880ca0",
+    "src/services/vitPowerWebChatV220Application.js": "9d2b0800686aa80887dfff2427d8d7d79c8d88df883718dbff7dd38a0dd4fbe7",
+    "tests/tex-measurement-purchase-routing-v243.test.mjs": "a3ce30326c15460173a10f1074307294a481330e5bd5b80f0ee6599352cab3db",
+    "tests/tex-measurement-runtime-readiness-v243.test.mjs": "ec696e0eb597c1ba610a79b70425a9cc64aaf3d2e14ec4d6538d0001c1a2d223",
+    "tests/tex-measurement-v243.test.mjs": "da344b5b10135d9524cbd667195ac5b73ead438cc73863d298fb3ff59692d6b5"
+  },
+  "engine": "/usr/local/lib/vitalismen-deploy/ec-tex-measurement-sealed-v243-r5.mjs",
+  "helper": "/usr/local/lib/vitalismen-deploy/ec-tex-measurement-profile-v243-r5.mjs",
+  "stateDirectory": "/var/lib/vitalismen-deploy/ec-tex-measurement-v243-r5",
+  "approvalSha256": "bd24216960b834e2e8d19c1690231fea92614606c27ce773e6ddd7b0c00fa216",
+  "seal": "8e366d2d15771077405724db4914f7a81cf557d7fa3136700ed8c71618218a07",
+  "parentPid": 3857145,
+  "freeMiB": 441,
+  "runtimeAllowed": false,
+  "productionChanged": false
+}
