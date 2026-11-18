@@ -1,0 +1,117 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PUBLISHED_VERIFIED",
+  "authorization": "USER_20261118_TEX_ENTRY_RECOGNITION_AND_NO_VITPOWER_INVITES_TO_TEX",
+  "activatedAt": "2026-11-18T17:04:34.293Z",
+  "commit": "d8c8b0dd697e712bf2d7442ae90cb6aa6576fcc8",
+  "tree": "4bb34d98bb8a070a083637c75d7b9328f3e73f0b",
+  "sourceRef": "refs/heads/codex/tex-entry-invites-v246-r2-20261118",
+  "publicationTag": "production-20261118-d8c8b0d",
+  "parentCommit": "322c98a652c71d9a9714a523d83e91093bbbfe18",
+  "parentRelease": "/opt/vitalismen-automacao/releases/20261118T010247Z_production-20261118-322c98a",
+  "release": "/opt/vitalismen-automacao/releases/20261118T154334Z_production-20261118-d8c8b0d",
+  "allowedDelta": {
+    "docs/freeze/tex-entry-invites-v246-contract.json": "f3a63615193f788e207e9c8b4ffc3a84985c3a510ebb527eb8851d8058c47d44",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "732f6d77eb7a47f7054a1c75db46f43fef99487498ea1f0130a1aabcd820f19a",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "2b1697ca507150ee77a2539e076d3035a7d0a8d4ca9a6e68219f6145cb12895e",
+    "src/routes/zapi.js": "2ad93aab8ceb700bab0816a146246e0c4db3f6252e2e3056db81a2e382ad3836",
+    "src/services/customerInvitesV232Service.js": "e7119298b814600cfa62e98104780967f116d644764cdd5ce7cdf1117592374b",
+    "src/services/texUltraEntryClassificationV246Service.js": "ba22e56cfcf82bc23411135ce38cb2ddd806d51211da8a21f103ce7b5902afe9",
+    "tests/tex-entry-invites-v246.test.mjs": "e985ce69349de8df988d032ee87ade049dcbe24d85c0a7da39a7eb0ca58e67d6"
+  },
+  "runtime": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "candidateCommit": "d8c8b0dd697e712bf2d7442ae90cb6aa6576fcc8",
+    "release": "/opt/vitalismen-automacao/releases/20261118T154334Z_production-20261118-d8c8b0d",
+    "at": "2026-11-18T17:05:23.175416+00:00",
+    "pid": 3955827,
+    "pm2Online": true,
+    "actualCwdMatches": true,
+    "pmCwdMatches": true,
+    "pmExecPathMatches": true,
+    "botProfilePreserved": true,
+    "parentFeatureFlagsAndDatesPreserved": true,
+    "zapiConnected": true,
+    "inboundQueue": 0,
+    "postSaleTimerUnchanged": true,
+    "protectedFilesUnchanged": 35,
+    "sourceIdentityVerified": true,
+    "dataMigrations": 0,
+    "manualReplays": 0,
+    "realQaSends": 0,
+    "globalDatabaseBackupClaimed": false
+  },
+  "preservation": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "contactCount": 3,
+    "firstInboundRecordsPreserved": true,
+    "sentInvitationRecordsPreserved": 3,
+    "leadIdsPreserved": true,
+    "routingFieldsUnchanged": true,
+    "allThreeStillInReview": true,
+    "readOnlyQueries": true,
+    "manualReplays": 0,
+    "dataMigrations": 0
+  },
+  "tests": {
+    "completeSenior": {
+      "pass": true,
+      "tests": 547
+    },
+    "focused": {
+      "pass": true,
+      "tests": 412
+    },
+    "targeted": {
+      "pass": true,
+      "tests": 53
+    },
+    "nativeHttpMongoSqlite": {
+      "pass": true,
+      "checks": 65,
+      "externalWhatsAppSends": 0,
+      "externalDropiOrders": 0,
+      "externalMetaEvents": 0
+    },
+    "operations": {
+      "pass": true,
+      "checks": 48
+    },
+    "additional": {
+      "pass": true,
+      "checks": 15
+    },
+    "freezeAfter": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "exitCode": 0,
+      "result": "PLUSMEN TEX FREEZE: PASS; baseline de 6 arquivos preservado; player e telefone intactos; chat autorizado conferido quando publicado; somente leitura"
+    },
+    "publicUrls": {
+      "pass": true,
+      "hostsChecked": 2
+    }
+  },
+  "backup": {
+    "scope": "CODE_CONFIG_ONLY_NOT_GLOBAL_MONGODB",
+    "windowsEvidenceDirectory": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\TEX_ENTRY_INVITES_V246_R2\\20261118",
+    "serverEvidenceDirectory": "/opt/vitalismen-automacao/backups/tex-entry-invites-v246-r2-20261118",
+    "beforeRecovery": "PASS_CODE_CONFIG_RECOVERY_ONLY",
+    "afterRecovery": "PASS_CODE_CONFIG_RECOVERY_ONLY",
+    "verifiedAfterArtifacts": [
+      "BOOT_AFTER_V246_R2.vbe",
+      "SITE_AFTER_V246_R2.vbe",
+      "RUNTIME_CONFIG_AFTER.vbe"
+    ],
+    "privateKeyUploaded": false,
+    "globalDatabaseBackup": false
+  },
+  "rollbackController": "/opt/vitalismen-automacao/backups/tex-entry-invites-v246-r2-20261118/operations-controller.py",
+  "limits": [
+    "No forced replay, reset, release or reclassification of the three audited customers.",
+    "Next real Ecuador customer journey after publication remains to be observed; simulations are not a real WhatsApp or Meta conversion.",
+    "Existing V244/V245 freezes and all older manifests remain intact."
+  ]
+}
