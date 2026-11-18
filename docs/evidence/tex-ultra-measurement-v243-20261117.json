@@ -1,0 +1,916 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PUBLIC_VERIFIED",
+  "backendCommit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+  "backendParent": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+  "assetsSourceCommit": "7298c09c7d2c2ba219aabf7145e7742cb2993e2f",
+  "runtime": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "commit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+    "release": "/opt/vitalismen-automacao/releases/20261117T231233Z_production-20261117-d27cc7c",
+    "pid": 3896107,
+    "pmCwd": "/opt/vitalismen-automacao/current",
+    "pmExecPath": "/opt/vitalismen-automacao/current/src/index.js",
+    "actualProcessCwd": "/opt/vitalismen-automacao/releases/20261117T231233Z_production-20261117-d27cc7c",
+    "health": "online",
+    "zapiConnected": true,
+    "queuePending": 0,
+    "measurementPublic": true,
+    "inheritedLinkedEntryPublic": true,
+    "registeredCapabilityConfiguration": {
+      "measurementRegisteredConfigurationCurrent": true,
+      "inheritedLinkedPublicConfigurationCurrent": true,
+      "actualProcessGlobalIntrospectionClaimed": false
+    },
+    "unsupportedNodeEvalLauncherNotUsed": true,
+    "parentMutableStatePreserved": true,
+    "postSaleTimerCurrent": true,
+    "postSaleDryRun": {
+      "status": "PASS_DRY_RUN",
+      "sendCount": 0,
+      "physicalOutboundCount": 0
+    },
+    "fullSeniorReturncode": 0,
+    "fullTapCounts": {
+      "tests": 547,
+      "pass": 547,
+      "fail": 0,
+      "skipped": 0
+    },
+    "databaseMigrations": 0,
+    "globalMongoBackupPass": false
+  },
+  "extraDiagnosticRejected": {
+    "project": "VITALISMEN_EC",
+    "pass": false,
+    "status": "UNSUPPORTED_DIAGNOSTIC_LAUNCHER_REJECTED",
+    "productionStateChanged": false,
+    "networkAndMountIsolated": true,
+    "diagnostic": "The extra node -e probe is not a registered launcher and was refused by sealed guard. No guard was changed. Final verification reads exact registered profile/activation/proof and public API; no direct process-global introspection claimed."
+  },
+  "origin": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "pid": 1314328,
+    "nodeVersion": "v22.23.5",
+    "interpreter": "/opt/cloaker/.runtime/node-v22.23.5-linux-x64/bin/node",
+    "activeSourceHashesVerified": 24,
+    "frozenNativeHashesVerified": 5,
+    "measurementEnabled": true,
+    "globalNodeUnchanged": true
+  },
+  "originPublicationFirstAttempt": {
+    "project": "VITALISMEN_EC",
+    "pass": false,
+    "status": "ATTEMPT1_BLOCKED_BY_WRONG_PROBE_BASELINE",
+    "baselineRestoredVerified": true,
+    "publicDesktopUnchanged": true,
+    "siteFilesUnchanged": true,
+    "allApplicationAndPrivateConfigOriginalHashesVerified": true,
+    "measurementEnabled": false,
+    "restoredPid": 1313705,
+    "restoredInterpreter": "/opt/cloaker/.runtime/node-v22.19.0-linux-x64/bin/node",
+    "responses": {
+      "application": {
+        "sha256": "1dfb64db6829b657849337120a1feed1de87a90396b2925200091cc6b454a541",
+        "bytes": 2581
+      },
+      "public": {
+        "sha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+        "bytes": 4309
+      }
+    },
+    "qaMetaEvents": 0,
+    "at": "2026-11-18T00:36:13.601482+00:00"
+  },
+  "initialPublicProbeFailures": [
+    {
+      "project": "VITALISMEN_EC",
+      "pass": false,
+      "stage": "public_panel_default_python_user_agent",
+      "httpStatus": 403,
+      "beforeLaterChatAndMetaChecks": true
+    },
+    {
+      "project": "VITALISMEN_EC",
+      "pass": false,
+      "stage": "cross_host_negative_proof",
+      "statuses": [
+        403,
+        403
+      ],
+      "noValidReferenceOrMetaEvent": true,
+      "edgeErrorCode": 1010,
+      "reason": "Cloudflare rejected default Python User-Agent before application; matching Node transport User-Agent reached signature validation without changing edge rules"
+    }
+  ],
+  "public": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "backendCommit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+    "checks": [
+      {
+        "device": "desktop",
+        "path": "/tex",
+        "pass": true,
+        "onlyTwoAuthorizedScriptReferencesChanged": false,
+        "frozenPresentationRecovered": true,
+        "responseSha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d"
+      },
+      {
+        "device": "desktop",
+        "path": "/tex/",
+        "pass": true,
+        "onlyTwoAuthorizedScriptReferencesChanged": false,
+        "frozenPresentationRecovered": true,
+        "responseSha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d"
+      },
+      {
+        "device": "ipad",
+        "path": "/tex",
+        "pass": true,
+        "onlyTwoAuthorizedScriptReferencesChanged": false,
+        "frozenPresentationRecovered": true,
+        "responseSha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d"
+      },
+      {
+        "device": "ipad",
+        "path": "/tex/",
+        "pass": true,
+        "onlyTwoAuthorizedScriptReferencesChanged": false,
+        "frozenPresentationRecovered": true,
+        "responseSha256": "8cfb789716e56fce37015c50d843eb569d4a1a72cb7db2ac8c37213fca1b2f3d"
+      },
+      {
+        "device": "iphone",
+        "path": "/tex",
+        "pass": true,
+        "onlyTwoAuthorizedScriptReferencesChanged": true,
+        "frozenPresentationRecovered": true,
+        "responseSha256": "23797266578ecbabea56fcea9224700614a6d505798ef5544458eaeb3998ae04"
+      },
+      {
+        "device": "iphone",
+        "path": "/tex/",
+        "pass": true,
+        "onlyTwoAuthorizedScriptReferencesChanged": true,
+        "frozenPresentationRecovered": true,
+        "responseSha256": "23797266578ecbabea56fcea9224700614a6d505798ef5544458eaeb3998ae04"
+      },
+      {
+        "device": "android",
+        "path": "/tex",
+        "pass": true,
+        "onlyTwoAuthorizedScriptReferencesChanged": true,
+        "frozenPresentationRecovered": true,
+        "responseSha256": "23797266578ecbabea56fcea9224700614a6d505798ef5544458eaeb3998ae04"
+      },
+      {
+        "device": "android",
+        "path": "/tex/",
+        "pass": true,
+        "onlyTwoAuthorizedScriptReferencesChanged": true,
+        "frozenPresentationRecovered": true,
+        "responseSha256": "23797266578ecbabea56fcea9224700614a6d505798ef5544458eaeb3998ae04"
+      },
+      {
+        "asset": "chat-tex-ultra.js",
+        "sha256": "e5a2c9b4816c46883acd4db5d8bb1ee0218748ed9fb0d58bafc81d5c8dfbdb0b",
+        "pass": true
+      },
+      {
+        "asset": "meta-tex-ultra.js",
+        "sha256": "b4b78bd34e4787788cb836b4c9e223bb30e33215e9788d42f921bc726db4a959",
+        "pass": true
+      },
+      {
+        "asset": "whatsapp-tex-v243.js",
+        "sha256": "86278207e6135ccf65a45f172457c88f551ce352ec44b4cd771c26ef23355fb3",
+        "pass": true
+      },
+      {
+        "panelUnchanged": true,
+        "pass": true,
+        "sourceSha256": "e2dcc2343466f69a9850fae787b4ea8c29a7cdfac2e8734ed0ac1951fab2e3a3"
+      },
+      {
+        "publicChatProductAndVersionCorrect": true,
+        "unverifiedEntryDenied": true,
+        "availabilitySessionCleared": true,
+        "whatsappChallengeIssued": false,
+        "modelAndVoiceCalls": 0,
+        "pass": true
+      },
+      {
+        "publicForgedConversionAndMalformedReferenceRejected": true,
+        "validReferenceIssuedByQa": false,
+        "pass": true
+      },
+      {
+        "pass": true,
+        "requestSentFromOfficialBackendHost": true,
+        "transportUserAgent": "node",
+        "hmacWrongSignatureStatus": 403,
+        "hmacValidButInvalidSchemaStatus": 400,
+        "validReferenceUsed": false,
+        "syntheticMetaEvents": 0
+      },
+      {
+        "playerCta2257Turbo1_2NativeButtonAndHlsAvailable": true,
+        "playerSourceSha256": "a8faa92ba106afd2ee521bff450966288aeb9de4059fc3bf59e31248fdf89264",
+        "boundedPlaylistRead": true,
+        "videoPlaybackExecuted": false,
+        "pass": true
+      }
+    ],
+    "physicalMobilePlaybackObserved": false,
+    "realWhatsAppConfirmationObserved": false,
+    "realAdJourneyObserved": false,
+    "whatsappSends": 0,
+    "ordersCreated": 0,
+    "metaEvents": 0,
+    "at": "2026-11-18T00:43:09.581809+00:00"
+  },
+  "gates": {
+    "FULL_QUALIFICATION": {
+      "commit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+      "results": [
+        {
+          "name": "senior_full",
+          "returncode": 0,
+          "seconds": 4710.1,
+          "log": "/opt/vitalismen-automacao/backups/tex-meta-attribution-v243-r5-20261117/FULL_senior_full.log"
+        }
+      ],
+      "pass": true
+    },
+    "FOCUSED_QUALIFICATION_attempt1": {
+      "commit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+      "results": [
+        {
+          "name": "senior_guard",
+          "returncode": 0,
+          "seconds": 211.6,
+          "log": "/opt/vitalismen-automacao/backups/tex-meta-attribution-v243-r5-20261117/FOCUSED_senior_guard_attempt1.log"
+        },
+        {
+          "name": "product_guard",
+          "returncode": 0,
+          "seconds": 179.9,
+          "log": "/opt/vitalismen-automacao/backups/tex-meta-attribution-v243-r5-20261117/FOCUSED_product_guard_attempt1.log"
+        },
+        {
+          "name": "tex_tests",
+          "returncode": 0,
+          "seconds": 1014.2,
+          "log": "/opt/vitalismen-automacao/backups/tex-meta-attribution-v243-r5-20261117/FOCUSED_tex_tests_attempt1.log"
+        },
+        {
+          "name": "web_regression",
+          "returncode": 0,
+          "seconds": 306.3,
+          "log": "/opt/vitalismen-automacao/backups/tex-meta-attribution-v243-r5-20261117/FOCUSED_web_regression_attempt1.log"
+        }
+      ],
+      "pass": true
+    },
+    "PRESERVATION": {
+      "project": "VITALISMEN_EC",
+      "commit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+      "parentCommit": "d35d58c5a74fb4314d7c3548e614501453ab3ed6",
+      "pass": true,
+      "protectedFiles": [
+        {
+          "path": "src/index.js",
+          "sha256": "28dcd4789442e0678584f1b4e9ceaa93592287f31b7351dab630b7195f8d9177",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/conversationEngine.js",
+          "sha256": "cc45e937669e42ce0e71a756fe246088986a852426a024cc5b1f580bdcf6caca",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/agentProfiles.js",
+          "sha256": "e3c5d69d18adb5920c41a2b5ca44c356d278fec7e742db7810161d96138c2391",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/initialFunnelTriggers.js",
+          "sha256": "fbbbbe2b1df17eec0019cf5d2e072742ef31245dbadfaec0136edff94f9d77f2",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/vslProductAssignmentService.js",
+          "sha256": "64963da53740a4de4d861f30b48559324c6c88e452a1cce0caf84d0b3c108d58",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/ecuadorProductService.js",
+          "sha256": "74690d7cff998ac5d52aab0568029f03d834f00680598e1107b6b1c78d467f13",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/ecProductIngredientsService.js",
+          "sha256": "aec27f81d366e7269a5c0d1e6d89a1e6a210dac44330ced068db3c40848af243",
+          "unchanged": true
+        },
+        {
+          "path": "src/models/ContactState.js",
+          "sha256": "5d6bbc7fafa54ea71f7ff434c357131014e2f38fcdb6f4438161ced6c8589e9c",
+          "unchanged": true
+        },
+        {
+          "path": "src/models/Order.js",
+          "sha256": "cbca2b39212d4c7f834d040b05e3578c5ea1a2a8a89d5b167a8092464933bdbf",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/zapiClient.js",
+          "sha256": "e158f1b6cf46489621439a2c2b2b006509d8553ce2374f73ab354c08312f175f",
+          "unchanged": true
+        },
+        {
+          "path": "src/routes/zapi.js",
+          "sha256": "ca3e99fe83714eb5b38344866a4c48c32030e1be9fe6e150b574b771d0aacbc8",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/vitPowerWebVoiceStatusV231Service.js",
+          "sha256": "6e4659d2b114ebccabf20d91a466621a6b28548722fa66e9b6d8a17d82e3c04a",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/vitPowerWebAgentV220Service.js",
+          "sha256": "bf1b81bad2f6d5530442e03932469beec67401c1a211b75f032ffc9f29902bc8",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/principalSdrQaIngressV212Service.js",
+          "sha256": "14a3a4864f37ede46b40eb9443ecfb3cd651dbfce6c62cf3189cc0dd4a1919d4",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/freeflowQuestionPriorityV219Service.js",
+          "sha256": "5766ed2763466b93af352aaf0e295b55680fc25510d2d3e09be6eed833d11f65",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/shipmentMessageService.js",
+          "sha256": "fb6218cec03c09e2838732207beeb5dada5aeb26fc87321ca66075cea9e624e6",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/principalSdrFreeflowRuntimeService.js",
+          "sha256": "3a8be4c16edfa53c287061b85b7a64c32c6ae4b158f136b8114c9fb09d5c1420",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/droppiEcuadorBrowserService.js",
+          "sha256": "1c33db3286dcb7638fb598dcdd39896c2011970f8624f67a871ef1d319e5b9b4",
+          "unchanged": true
+        },
+        {
+          "path": "package.json",
+          "sha256": "2ddc7db1607fe90d631b84a4f4238cb32537fde782f3c7c119f19713629c08f3",
+          "unchanged": true
+        },
+        {
+          "path": "package-lock.json",
+          "sha256": "df8defe860ebc47e150fd16845359bb68190bf606276400feb6092d16449e4b1",
+          "unchanged": true
+        },
+        {
+          "path": "public/qr.html",
+          "sha256": "f61686c080cf1c5d3e07c3d2edd8600049356422af5e7612b0d9c7c12a02cb08",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/texUltraEntryBlockV242Service.js",
+          "sha256": "7bdeadbbd4254bd3ed8cfd3a460714bc94bc94f736835801bfa531b6dd3a646f",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/texUltraLinkedEntryV242Service.js",
+          "sha256": "fff753305f4015159a1c149392fbe97bc4f47b1b2c5ef25d856752ea97762735",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/texUltraLinkedRuntimeV242Service.js",
+          "sha256": "8047428850e7346c0d47077d6e65821a42d46a38cc253d93da8599b24fd1348f",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/vitPowerWebStoreV220Service.js",
+          "sha256": "69d0f780b93e1ac90b2dc20e2b59aba00fbd6ed01c6e14efb4261865088d233d",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/texUltraInitialLayerService.js",
+          "sha256": "3f4bfb40565213fb7494d81f6af08842f9edb3deefe0f78960b39855a57949d0",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/vitPowerB01CoreV216Service.js",
+          "sha256": "8bb055782cddfcd954936fc6fc82db97f58e673d21b0ce85fd71fb044dcb1c75",
+          "unchanged": true
+        },
+        {
+          "path": "src/services/vitPowerScopedQuestionHistoryV243Service.js",
+          "sha256": "a8260feaec2c1087c95b02cdd108fb162df9410925862be0d7b9375de808b6e7",
+          "unchanged": true
+        }
+      ],
+      "changedPaths": [
+        "docs/freeze/tex-measurement-v243-contract.json",
+        "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+        "scripts/lib/sealed-successor-preload-v1.mjs",
+        "src/services/agentRouter.js",
+        "src/services/metaConversionsService.js",
+        "src/services/texMeasurementJournalV243.cjs",
+        "src/services/texUltraFunnelService.js",
+        "src/services/texUltraMeasurementV243Service.js",
+        "src/services/vitPowerWebChatV220Application.js",
+        "tests/tex-measurement-purchase-routing-v243.test.mjs",
+        "tests/tex-measurement-runtime-readiness-v243.test.mjs",
+        "tests/tex-measurement-v243.test.mjs"
+      ],
+      "baseEnvUnchanged": true,
+      "inheritedQaProofSha256": "1d98d777e1594e819d189b97b3bbcbc57971ab45788cb46f2c93288ca8d41209",
+      "productionChanges": 0
+    },
+    "PRIVATE_HTTP_QA_attempt2": {
+      "project": "VITALISMEN_EC",
+      "commit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+      "pass": true,
+      "returncode": 0,
+      "seconds": 440.0,
+      "actualHttpHandlerAndStores": true,
+      "officialInboundAdapterRealWithFixtureLookup": true,
+      "realWhatsAppInboundClaimed": false,
+      "productionRestarts": 0,
+      "externalOutbound": 0,
+      "networkAndMountNamespacesIsolated": true
+    },
+    "CONTROL_PLANE_QUALIFICATION": {
+      "project": "VITALISMEN_EC",
+      "commit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+      "pass": true,
+      "results": [
+        {
+          "name": "positive_exact_registered_release",
+          "returncode": 0,
+          "pass": true,
+          "fakeProviderRestarts": 1,
+          "productionRestarts": 0
+        },
+        {
+          "name": "foreign_process_name",
+          "returncode": 1,
+          "pass": true,
+          "fakeProviderRestarts": 0,
+          "productionRestarts": 0
+        },
+        {
+          "name": "wrong_node_options",
+          "returncode": 1,
+          "pass": true,
+          "fakeProviderRestarts": 0,
+          "productionRestarts": 0
+        },
+        {
+          "name": "controller_inherited_node_options",
+          "returncode": 1,
+          "pass": true,
+          "fakeProviderRestarts": 0,
+          "productionRestarts": 0
+        },
+        {
+          "name": "wrong_current_release",
+          "returncode": 1,
+          "pass": true,
+          "fakeProviderRestarts": 0,
+          "productionRestarts": 0
+        },
+        {
+          "name": "changed_payload",
+          "returncode": 1,
+          "pass": true,
+          "fakeProviderRestarts": 0,
+          "productionRestarts": 0
+        },
+        {
+          "name": "wrong_pm2_version",
+          "returncode": 1,
+          "pass": true,
+          "fakeProviderRestarts": 0,
+          "productionRestarts": 0
+        },
+        {
+          "name": "wrong_provider_identity",
+          "returncode": 1,
+          "pass": true,
+          "fakeProviderRestarts": 1,
+          "productionRestarts": 0
+        }
+      ],
+      "realSealedVerifierUsed": true,
+      "mountAndNetworkNamespaceIsolated": true,
+      "productionRestarts": 0,
+      "productionWrites": 0,
+      "fakeProviderOnly": true,
+      "allGuardsEnabled": true
+    },
+    "CONTROLLER_TESTS": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "checks": [
+        "canonical_records",
+        "systemd_actual_newlines",
+        "deny_kind",
+        "deny_commit",
+        "deny_officialInboundGuardVerified",
+        "deny_firstChannelAndRestartDedupeVerified",
+        "deny_hmacAndPrivacyVerified",
+        "deny_otherProductsPreserved",
+        "deny_noProductionSyntheticEvents",
+        "deny_pass",
+        "deny_realWhatsAppInboundClaimed",
+        "deny_whatsappSends",
+        "deny_ordersCreated",
+        "deny_metaEvents",
+        "public_changes_only_new_capability",
+        "compatible_rollback_preserves_runtime_and_memory",
+        "old_code_rollback_denied_after_web_entry",
+        "parent_mutable_fields_preserved",
+        "deny_parent_drift_b01Allowed",
+        "deny_parent_drift_webAllowed",
+        "deny_parent_drift_webAudience",
+        "deny_parent_drift_burstActivatedAt",
+        "deny_parent_drift_linkedEntryAllowed",
+        "deny_parent_drift_linkedEntryAudience",
+        "deny_parent_drift_linkedEntryActivatedAt",
+        "nested_pass_cannot_hide_failure",
+        "ambiguous_postsale_denied",
+        "ambiguous_postsale_denied"
+      ],
+      "controllerSha256": "76b590c9a0c0f818f218996d3037335473f45e09d026704aba8c4ef0257d543f",
+      "productionReads": false,
+      "productionWrites": false
+    },
+    "FRONTEND_TESTS": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "tests": 13,
+      "returncode": 0,
+      "productionEvents": 0,
+      "files": {
+        "chat-tex-ultra.js": "e5a2c9b4816c46883acd4db5d8bb1ee0218748ed9fb0d58bafc81d5c8dfbdb0b",
+        "index.html": "abd3ed04ffb8257862dbfb8d0180f77e0f0214fe6b553871d65354fdc06b73b5",
+        "meta-tex-ultra.js": "b4b78bd34e4787788cb836b4c9e223bb30e33215e9788d42f921bc726db4a959",
+        "plusmen.shop.nginx": "32ac47547925f1f6e509543b48a4b3193deb4bbcbd06a46f229f840fba391196",
+        "whatsapp.js": "86278207e6135ccf65a45f172457c88f551ce352ec44b4cd771c26ef23355fb3"
+      }
+    },
+    "ORIGIN_FULL_QUALIFICATION": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "networkIsolated": true,
+      "mountNamespaceIsolated": true,
+      "productionChanged": false,
+      "results": [
+        {
+          "command": [
+            "npm",
+            "test"
+          ],
+          "exit": 0,
+          "seconds": 2.36,
+          "tail": ": 'test'\n  ...\n# Subtest: Purchase requires existing confirmed origin and exact order proof; new orders dedupe independently\nok 93 - Purchase requires existing confirmed origin and exact order proof; new orders dedupe independently\n  ---\n  duration_ms: 187.431718\n  type: 'test'\n  ...\n# Subtest: real HTTP path rejects forged conversion, keeps receipt no-store, never leaks key\nok 94 - real HTTP path rejects forged conversion, keeps receipt no-store, never leaks key\n  ---\n  duration_ms: 528.524579\n  type: 'test'\n  ...\n# Subtest: V152 mantém o player e devolve o checkout à VTurb\nok 95 - V152 mantém o player e devolve o checkout à VTurb\n  ---\n  duration_ms: 1.707186\n  type: 'test'\n  ...\n# Subtest: V153 congela o CTA nativo 35:37 para WhatsApp 2958 sem remover o A/B\nok 96 - V153 congela o CTA nativo 35:37 para WhatsApp 2958 sem remover o A/B\n  ---\n  duration_ms: 1.031392\n  type: 'test'\n  ...\n# Subtest: V153 mantém a VSL local e o smoke é estritamente read-only\nok 97 - V153 mantém a VSL local e o smoke é estritamente read-only\n  ---\n  duration_ms: 0.779483\n  type: 'test'\n  ...\n# Subtest: V151-R2 changes only the active Protocolo G WhatsApp destination\nok 98 - V151-R2 changes only the active Protocolo G WhatsApp destination\n  ---\n  duration_ms: 3.782106\n  type: 'test'\n  ...\n# Subtest: V150-R5 tracking profile remains byte-identical\nok 99 - V150-R5 tracking profile remains byte-identical\n  ---\n  duration_ms: 0.935707\n  type: 'test'\n  ...\n# Subtest: V152 keeps the V151 assets available but no longer loads their checkout overrides\nok 100 - V152 keeps the V151 assets available but no longer loads their checkout overrides\n  ---\n  duration_ms: 0.581415\n  type: 'test'\n  ...\n1..100\n# tests 100\n# suites 0\n# pass 100\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 2105.287903\n\n"
+        },
+        {
+          "command": [
+            "npm",
+            "run",
+            "guard:protocolo-g-freeze"
+          ],
+          "exit": 0,
+          "seconds": 0.31,
+          "tail": "\n> cloaker-backend@1.0.0 guard:protocolo-g-freeze\n> node scripts/guard-protocolo-g-freeze.mjs\n\nGUARD PROTOCOLO G FREEZE: PASS\n- successor chain: V148 -> V150-R5 -> V151-R2 -> V152 -> V153 -> CERTIFICATION -> MOBILE_LAYOUT -> MOBILE_TWO_STEP -> MOBILE_CTA_COPY -> VSL_STAGE_INSTALL -> STAGE_URL_VERSION\n- checkout owner: VTURB_NATIVE\n- VTurb CTA: 35:37 -> WhatsApp 2958; A/B preservado em 100% TexUltra\n- tracking profile: META_EC_PRIMARY_V2@150.0.0\n- browser pixel: 920532663934291\n- smartphone: vsl-mobile\n- desktop/tablet/unknown: informativa-desktop\n- arquivos congelados: 46\n- contrato server.js: f326bacfdf96c32b93605a036cd71f77d8b603d523faf1a53b816a1c62beca04\n\n"
+        },
+        {
+          "command": [
+            "npm",
+            "run",
+            "guard:meta-ec-protocolo-g"
+          ],
+          "exit": 0,
+          "seconds": 0.28,
+          "tail": "\n> cloaker-backend@1.0.0 guard:meta-ec-protocolo-g\n> node scripts/audit-meta-ec-protocolo-g-scope.mjs\n\nGUARD PROTOCOLO G CERTIFICATION: OK\nPROTOCOLO_G -> META_EC_PRIMARY_V2@150.0.0 -> 920532663934291\nSUCCESSOR CHAIN: V148 -> V150-R5 -> V151-R2 -> V152 -> V153 -> CERTIFICATION -> MOBILE_LAYOUT -> MOBILE_TWO_STEP -> MOBILE_CTA_COPY -> VSL_STAGE_INSTALL -> STAGE_URL_VERSION\nPIXEL/PLAYER VTURB/A-B: INTACTOS; CTA 35:37 -> WHATSAPP 2958; CHECKOUT OWNER: VTURB_NATIVE\nCOLÔMBIA/TELEDONE/Z-API/WHATSAPP/PAYMENTS/DROPI: INTACTOS\n\n"
+        },
+        {
+          "command": [
+            "node",
+            "scripts/guard-security-predeploy.mjs",
+            "--audit-json",
+            "/root/tex-meta-attribution-v243-20261117-r5/dependency-audit.stdout"
+          ],
+          "exit": 0,
+          "seconds": 0.07,
+          "tail": "SECURITY POLICY: PASS\ncritical=0\nnew HIGH=0\nHIGH outside allowlist=0\nunexpected advisory=0\nunexpected version=0\nmoderate=0\n\n"
+        }
+      ]
+    },
+    "CROSS_CHANNEL_HTTP": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "checks": [
+        "visit_issues_reference_without_conversion",
+        "public_forged_lead_rejected",
+        "signed_official_fixture_inbound_correlates_original_ad_to_lead",
+        "cross_channel_persistent_identity_prevents_repeat",
+        "browser_receipt_uses_same_capi_id",
+        "qualified_new_tex_order_purchase_uses_original_ad_and_dedupes",
+        "manual_product_switch_preserves_other_product_transport"
+      ],
+      "actualLoopbackHttp": true,
+      "originMetaTransportMocked": true,
+      "officialInboundLookupMocked": true,
+      "networkNamespaceIsolated": true,
+      "noProductionEvents": true,
+      "realWhatsappSends": 0,
+      "realOrdersCreated": 0,
+      "realMetaEvents": 0,
+      "simulatedMetaCalls": 2
+    },
+    "SITE_FREEZE_QUALIFICATION": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "actualRemoteFreezeVerifier": true,
+      "exactInverseValidated": true,
+      "wrongPhoneRejectedDespiteHashAcknowledgment": true,
+      "nginxSyntax": "PASS",
+      "mountNamespaceIsolated": true,
+      "productionNginxReloads": 0,
+      "productionRestarts": 0,
+      "whatsappSends": 0,
+      "metaEvents": 0
+    },
+    "ORIGIN_CONTROLLER_TESTS": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "checks": [
+        "application_denies_failed_backend_before_mutation",
+        "feature_rollback_retains_safe_dependencies_and_memory",
+        "published_cohort_requires_compatible_rollback",
+        "site_denies_disabled_backend_before_mutation",
+        "restart_checks_both_exact_baselines",
+        "restart_rejects_application_changed",
+        "restart_rejects_public_changed"
+      ],
+      "controllerSha256": "af9c180376730d844530e66cb70f639801a484e45e255b1967b053d04775482e",
+      "productionMutations": 0
+    },
+    "SOURCE_REVIEW": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "sourceCommit": "7298c09c7d2c2ba219aabf7145e7742cb2993e2f",
+      "publishedFilesReviewed": 45,
+      "sourceAndSnapshotHashesMatch": true,
+      "privatePathsOrCredentialLiteralsFound": 0,
+      "publicSnapshotsDecoded": 4,
+      "userIndexChanged": false,
+      "additionalChangedFilesReviewed": 3,
+      "controllerHealthRegressionChecks": 7,
+      "priorSourceReviewRetained": true
+    },
+    "GIT_PUBLICATION": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "backendCommit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+      "staticCommit": "7298c09c7d2c2ba219aabf7145e7742cb2993e2f",
+      "productionTag": "production-20261117-d27cc7c",
+      "productionBranchChanged": false,
+      "productionBranchBefore": "e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9",
+      "productionBranchAfter": "e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9",
+      "remoteRefsVerified": true,
+      "at": "2026-11-18T00:38:03.040365+00:00"
+    },
+    "CODE_CONFIG_RECOVERY": {
+      "pass": true,
+      "project": "VITALISMEN_EC",
+      "status": "PASS_CODE_CONFIG_RECOVERY_ONLY",
+      "results": [
+        {
+          "artifact": "CODE_BEFORE.vbe",
+          "decrypt": "PASS",
+          "plaintextHash": "PASS",
+          "plaintextWrittenToDisk": false,
+          "filesAndMetadata": "12/ PASS",
+          "tamperRejected": true
+        },
+        {
+          "artifact": "RUNTIME_CONFIG_BEFORE.vbe",
+          "decrypt": "PASS",
+          "plaintextHash": "PASS",
+          "plaintextWrittenToDisk": false,
+          "requiredConfiguration": "PASS",
+          "tamperRejected": true
+        },
+        {
+          "artifact": "TEX_MEASUREMENT_PRIVATE.vbe",
+          "decrypt": "PASS",
+          "plaintextHash": "PASS",
+          "plaintextWrittenToDisk": false,
+          "requiredConfiguration": "PASS",
+          "tamperRejected": true
+        }
+      ],
+      "privateKeyUploaded": false,
+      "productionRestoration": false,
+      "globalDataBackupPass": false
+    },
+    "ORIGIN_RECOVERY_BEFORE": {
+      "pass": true,
+      "project": "VITALISMEN_EC",
+      "status": "PASS_CODE_CONFIG_RECOVERY_ONLY",
+      "results": [
+        {
+          "artifact": "ORIGIN_BEFORE.vbe",
+          "decrypt": "PASS",
+          "plaintextHash": "PASS",
+          "plaintextWrittenToDisk": false,
+          "filesAndMetadata": "18/ PASS",
+          "tamperRejected": true
+        }
+      ],
+      "privateKeyUploaded": false,
+      "productionRestoration": false,
+      "globalDataBackupPass": false
+    },
+    "CODE_CONFIG_RECOVERY_AFTER": {
+      "pass": true,
+      "project": "VITALISMEN_EC",
+      "status": "PASS_CODE_CONFIG_RECOVERY_ONLY",
+      "results": [
+        {
+          "artifact": "CODE_AFTER.vbe",
+          "decrypt": "PASS",
+          "plaintextHash": "PASS",
+          "plaintextWrittenToDisk": false,
+          "filesAndMetadata": "38/ PASS",
+          "tamperRejected": true
+        },
+        {
+          "artifact": "RUNTIME_CONFIG_AFTER.vbe",
+          "decrypt": "PASS",
+          "plaintextHash": "PASS",
+          "plaintextWrittenToDisk": false,
+          "requiredConfiguration": "PASS",
+          "tamperRejected": true
+        },
+        {
+          "artifact": "ORIGIN_AFTER.vbe",
+          "decrypt": "PASS",
+          "plaintextHash": "PASS",
+          "plaintextWrittenToDisk": false,
+          "filesAndMetadata": "43/ PASS",
+          "tamperRejected": true
+        }
+      ],
+      "privateKeyUploaded": false,
+      "productionRestoration": false,
+      "globalDataBackupPass": false
+    },
+    "CLOSED_ERROR_LOG_ARCHIVED": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "status": "CLOSED_LOG_ARCHIVED_WITH_VERIFIED_OFFSERVER_RECOVERY",
+      "original": "/root/.pm2/logs/vitalismen-automation-error.log",
+      "originalBytes": 39053934592,
+      "originalSha256": "3340cc277cb9a69f16382004c323b971b7027c69a1ef5b1c94dd91c2332a89a0",
+      "encryptedArchive": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\TEX_MEASUREMENT_V243_R5\\20261117\\CLOSED_ERROR_LOG.vbe",
+      "ciphertextSha256": "12a738060ed563376a55621148d7825a8ab52ad33df7de2a99b61187fa7509d9",
+      "independentDecryptOriginalHashAndTamperPassed": true,
+      "currentLogFilesTouched": false,
+      "processRestarts": 0,
+      "mongoOrCustomerHistoryChanged": false,
+      "freeMiBBefore": 430,
+      "freeMiBAfter": 37675,
+      "at": "2026-11-18T00:13:44.802258+00:00"
+    },
+    "CLOSED_ERROR_LOG_RECOVERY": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "status": "PASS_CLOSED_LOG_RECOVERY_ONLY",
+      "decrypt": "PASS",
+      "compressedPlaintextHash": "PASS",
+      "originalLogHash": "PASS",
+      "originalBytes": 39053934592,
+      "metadataRecorded": true,
+      "tamperRejected": true,
+      "plaintextWrittenLocally": false,
+      "privateKeyUploaded": false,
+      "globalMongoBackupPass": false
+    },
+    "META_UI_REVIEW": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "readOnlyUi": true,
+      "accountId": "1088255310505694",
+      "businessId": "1104902089381854",
+      "campaignId": "52540540369345",
+      "campaignName": "TESTE CHEGA CLIENTE-plusmen_tex_ultra_micael",
+      "adsetId": "52540540369545",
+      "adId": "52540540369745",
+      "destinationType": "Site",
+      "websiteUrl": "https://plusmen.shop/tex",
+      "locationInclusion": "Equador",
+      "optimizationEvent": "Comprar",
+      "selectedPixelName": "MANUELA_SANTOS_LATAM_CO",
+      "datasetIdObservedEarlierInEventsManager": "1100892582698669",
+      "numericPixelIdDirectlyShownInAdset": false,
+      "campaignStatusObserved": "Campanha desativada",
+      "adAndAdsetSwitchEnabledWithinDisabledCampaign": true,
+      "metaWarning": "No activity for selected purchase conversion ever or in more than 14 days",
+      "advertisingApiAdsReadPermissionAvailable": false,
+      "fieldsEdited": 0,
+      "saveOrPublishClicks": 0,
+      "activationAndBudgetChanges": 0,
+      "whatsappProfileInAd": "Usar a Página do Facebook; no numeric phone exposed",
+      "personalFacebookLoginPhoneConfirmed": false,
+      "atUtc": "2026-11-17T23:51:57.191815+00:00"
+    },
+    "CLOCK_ALIGNMENT": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "readonly": true,
+      "rows": [
+        {
+          "server": "maxlien-vps",
+          "roundTripSeconds": 1.076,
+          "clockOffsetEstimateSeconds": 0.754
+        },
+        {
+          "server": "vilaliemen-protocolo-g",
+          "roundTripSeconds": 3.434,
+          "clockOffsetEstimateSeconds": 1.843
+        }
+      ]
+    }
+  },
+  "gateBindings": {
+    "project": "VITALISMEN_EC",
+    "controllerSha256": "76b590c9a0c0f818f218996d3037335473f45e09d026704aba8c4ef0257d543f",
+    "approvalSha256": "bd24216960b834e2e8d19c1690231fea92614606c27ce773e6ddd7b0c00fa216",
+    "gates": {
+      "FOCUSED_QUALIFICATION_attempt1": "63723ff56a81a99efdc89d7b0c6f5d575074ee2250ede8459e869e541158c53c",
+      "FULL_QUALIFICATION": "d3a027ea6b7e41ed909c5b37ef42bbcbb4ab612da0853793bba7f0d08095b85a",
+      "PRIVATE_HTTP_QA_attempt2": "ec1229d15db8c1b190baecbe2546f2f0c517987858984a8ab110658c940d28ee",
+      "CONTROL_PLANE_QUALIFICATION": "b57b92f39fce584d831ad1822d44bf8ba7dfb1d3522a267acfb2afe6dd77dce3",
+      "PRESERVATION": "33f9c76f0088c813dcbbc6570790ec80cf621f0817367df277a866cc47ae7a18",
+      "CODE_CONFIG_RECOVERY": "6cc3df22732a9265e2e675ac698417207d1d7745c92125caf1c477b2dd3661ea",
+      "CONTROLLER_TESTS": "af02004bb9481e464f4999c8dded1f54e9d5d8e02765d203b691c7326d6e7a3f",
+      "FRONTEND_TESTS": "f9f4b292f55adec5aa2eb6d637728841841e5abd7c7879bfd42b3e2ddf5acb27",
+      "ORIGIN_FULL_QUALIFICATION": "0b0f7c139737cd6ab8a515b087901de6911095507ea28b4a04e7d03cc58c4135",
+      "CROSS_CHANNEL_HTTP": "b11fff97bc5f790adaec197d43f9f727404bb76fe8425b3bd0fe4ea644be0385"
+    },
+    "publicBaselineSha256": "812beeea2332f3ae2114bb392c51fb5d8b0eb44e6e49ffd35cd164ead48b8449"
+  },
+  "originGateBindings": {
+    "project": "VITALISMEN_EC",
+    "controllerSha256": "af9c180376730d844530e66cb70f639801a484e45e255b1967b053d04775482e",
+    "manifestSha256": "077863718aeeb0aae0556a2d56c9544f797bd362e9b1e8b5b161e028b1293767",
+    "gates": {
+      "ORIGIN_FULL_QUALIFICATION": "0b0f7c139737cd6ab8a515b087901de6911095507ea28b4a04e7d03cc58c4135",
+      "CROSS_CHANNEL_HTTP": "b11fff97bc5f790adaec197d43f9f727404bb76fe8425b3bd0fe4ea644be0385",
+      "FUNCTIONAL_TESTS": "9d8b2bcc5000ddefe6e5f1b62da464d7695ad7b0d1316dfa6078e8d1eaa26cd7",
+      "SITE_FREEZE_QUALIFICATION": "1ce0c26f7eaf3234148c303be4a072c6ad877ad842ac6a5787a585ec0bf3158f",
+      "ORIGIN_CONTROLLER_TESTS": "82e90d666470747ef24d9409bf343ff3b930a054e57ccfdc738ed855456efe6e",
+      "FRONTEND_TESTS": "f9f4b292f55adec5aa2eb6d637728841841e5abd7c7879bfd42b3e2ddf5acb27",
+      "ORIGIN_RECOVERY_BEFORE": "46750ae2a2a24f0a293ebf8bf75c2f37b30006e61228f5c7d118a863f5494240",
+      "FULL_QUALIFICATION": "87a4454e2451dbad4116f6390b90b82fa0916dab20e4d5d13f537c928ae76688"
+    },
+    "zeroAuditSha256": "846ea8e36a32b7469701e258781007bd5ca67f9a31d0b9c41adbdc7cdf045b84",
+    "publicationAttempt": 2,
+    "supersedesBindingSha256": "c13a85e5e6f76ba2cd87abf6a453521a4d2b5460dc869c042482b67508da12db",
+    "sourceCommit": "7298c09c7d2c2ba219aabf7145e7742cb2993e2f",
+    "reason": "Separate exact internal and public response baselines; original frozen public hash retained"
+  },
+  "freezeGuardLogSha256": "ae04844c817d432e0b7c5ee7a84d9ae479f8365ad4719421db587e2e67ff16da",
+  "backupDirectory": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\TEX_MEASUREMENT_V243_R5\\20261117",
+  "limits": {
+    "realWhatsAppConfirmationObserved": false,
+    "physicalMobilePlaybackObserved": false,
+    "realAdJourneyObserved": false,
+    "realLeadOrPurchaseAcceptanceObserved": false,
+    "metaApiAdsReadAvailable": false,
+    "campaignsObservedOff": 5,
+    "globalMongoBackupPass": false,
+    "qaWhatsAppSends": 0,
+    "qaOrdersCreated": 0,
+    "qaMetaEvents": 0
+  },
+  "at": "2026-11-18T00:44:28.571673+00:00"
+}
