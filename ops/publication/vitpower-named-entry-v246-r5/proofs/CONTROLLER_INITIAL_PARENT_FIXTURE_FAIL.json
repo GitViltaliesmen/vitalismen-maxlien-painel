@@ -1,0 +1,7 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": false,
+  "reason": "controller test expected old D27 parent state; actual preserved predecessor is R8",
+  "controllerChanged": false,
+  "productionChanges": 0
+}

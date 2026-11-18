@@ -1,0 +1,38 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-18T18:24:43.099177+00:00",
+  "release": "/opt/vitalismen-automacao/releases/20261118T170557Z_production-20261118-1b356e3",
+  "commit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+  "pid": 3970878,
+  "actualCwd": "/opt/vitalismen-automacao/releases/20261118T170557Z_production-20261118-1b356e3",
+  "pmCwd": "/opt/vitalismen-automacao/current",
+  "pmExecPath": "/opt/vitalismen-automacao/current/src/index.js",
+  "exactProfilePreserved": true,
+  "protectedCommercialFiles": 35,
+  "activationSettingsAndDatesPreserved": true,
+  "timerActive": true,
+  "executorCorrect": true,
+  "panelAndNginxUnchanged": true,
+  "online": true,
+  "zapiConnected": true,
+  "qa": {
+    "qaSuffix": "8637",
+    "qaWindowClosed": true,
+    "qaManual": true,
+    "qaIdentityPreserved": true,
+    "pending": 0,
+    "burst": "idle",
+    "orders": 0,
+    "deployedRecognizerSyntheticPermitPass": true,
+    "productionWrites": 0
+  },
+  "globalMongoBackupPass": false,
+  "realWhatsAppTestPerformed": false,
+  "publicChatPolicyAudit": {
+    "texAndVitPublicPoliciesPass": true,
+    "texMeasurementCurrent": true,
+    "externalRequests": 0,
+    "credentialValuesPrinted": false
+  }
+}

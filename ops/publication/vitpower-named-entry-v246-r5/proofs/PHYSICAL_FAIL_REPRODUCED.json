@@ -1,0 +1,28 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PHYSICAL_TEST_FAIL_B01_NOT_STARTED",
+  "inputAt": "2026-11-18T16:26:41.554Z",
+  "inputId": "3EB0FA7B990F69F663AFC4",
+  "inputSha256": "b71533ca7a502861df38d26999daf524d745e722b3c9ad60986f9ee902b6cfc6",
+  "flattenedInput": true,
+  "containsNameSuffix": true,
+  "parserActual": {
+    "generic": false,
+    "nameCaptured": false
+  },
+  "parserMultilineControl": {
+    "generic": true,
+    "nameCaptured": true
+  },
+  "firstInboundEqualsNewInput": false,
+  "vslEntryEqualsNewInput": false,
+  "earlierFirstInboundIsHola": true,
+  "b01": "not_started",
+  "burst": "idle",
+  "automaticReplyProviderId": "EAE618A9CCC0AEDB9F5B",
+  "qaStatus": "contained",
+  "humanMode": "manual",
+  "orders": 0,
+  "messagesReplayed": 0,
+  "productionCodeChanged": false
+}

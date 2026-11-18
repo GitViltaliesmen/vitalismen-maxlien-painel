@@ -1,0 +1,21 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "commit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+  "sourceRef": "refs/heads/codex/vitpower-named-entry-v246-r5-20261118",
+  "allowedDelta": [
+    "docs/freeze/vitpower-named-entry-v246-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/routes/zapi.js",
+    "src/services/vitPowerB01CoreV216Service.js",
+    "src/services/vitPowerBurstRuntimeV228Service.js",
+    "src/services/vitPowerEntryContextV246Service.js",
+    "tests/b01-named-entry-v246.test.mjs"
+  ],
+  "defaultIndexUnchanged": true,
+  "workingBranchUnchanged": true,
+  "diffCheckPass": true,
+  "lfOnly": true,
+  "uniqueAllowedDelta": true
+}

@@ -1,0 +1,78 @@
+[
+  {
+    "name": "_id_",
+    "key": {
+      "_id": 1
+    }
+  },
+  {
+    "name": "key_1",
+    "key": {
+      "key": 1
+    },
+    "unique": true
+  },
+  {
+    "name": "phoneDigits_1",
+    "key": {
+      "phoneDigits": 1
+    }
+  },
+  {
+    "name": "jid_1",
+    "key": {
+      "jid": 1
+    }
+  },
+  {
+    "name": "kind_1",
+    "key": {
+      "kind": 1
+    }
+  },
+  {
+    "name": "fingerprint_1",
+    "key": {
+      "fingerprint": 1
+    }
+  },
+  {
+    "name": "status_1",
+    "key": {
+      "status": 1
+    }
+  },
+  {
+    "name": "phoneDigits_1_kind_1_fingerprint_1",
+    "key": {
+      "phoneDigits": 1,
+      "kind": 1,
+      "fingerprint": 1
+    },
+    "unique": true
+  },
+  {
+    "name": "logicalMessageId_1",
+    "key": {
+      "logicalMessageId": 1
+    }
+  },
+  {
+    "name": "channelId_1",
+    "key": {
+      "channelId": 1
+    }
+  },
+  {
+    "name": "provider_1",
+    "key": {
+      "provider": 1
+    }
+  },
+  {
+    "name": "providerMessageId_1",
+    "key": {
+      "providerMessageId": 1
+    }
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "sourceRouteOnlyPublishedVitPredicateChanged": true,
+  "allTexChangesInheritedByteExactly": true,
+  "parentRouteSha256": "2ad93aab8ceb700bab0816a146246e0c4db3f6252e2e3056db81a2e382ad3836",
+  "candidateRouteSha256": "b961791a50725edb7909dfc622476f4548783b15c1ea4308231b36ffbaa279e0",
+  "noUnknownProductGuardChanges": true,
+  "noAttributionFabrication": true
+}

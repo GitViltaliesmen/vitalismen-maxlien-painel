@@ -1,0 +1,820 @@
+{
+  "pass": false,
+  "error": "TIMEOUT greeting ull,\"returnState\":{\"applicable\":true,\"allowed\":true,\"persistenceAllowed\":true,\"automationAllowed\":true,\"reason\":\"qa_context_claimed\",\"phase\":\"initial\"}}\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[ROUTER] produto selecionado -> vit_power_ec | chat=5515998038637@s.whatsapp.net\n[LOG_HANDLER_ENTER] 🚀 Processando mensagem... produto=vit_power_ec\n[BOT] ✅ Trabalhando no Chat: 5515998038637@s.whatsapp.net | agente=vit_power_ec\n[ZAPI-WEBHOOK] inbound | recorded=true | phone=5515998038637 | type=chat | id=SIM_IN_00005\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FINALIZE_ENTER\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FILTER_APPLIED\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"finalize\",\"filterApplied\":true,\"filterFields\":[\"metadata.qaTestContextV78.routingMessageId\",\"metadata.qaTestContextV78.status\",\"phoneDigits\"],\"filterSha256\":\"a3b1aeca932558748835ea1e87ded387cc02ceefe9d4cdb39b83d000ec81438c\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"finalize\",\"executed\":true,\"matchedCount\":1,\"modifiedCount\":1}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FINALIZE_RESULT\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"changed\":true}\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Texto enfileirado na Z-API -> 5515998038637 | Tamanho: 223 chars | messageId=SIM_OUT_00008\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Audio enfileirado na Z-API -> 5515998038637 | Arquivo: /opt/vitalismen-automacao/releases/20261118T164735Z_production-20261118-dd2fd90/public/media/templates/EC/01_B_Buenos_dias.ogg | messageId=SIM_OUT_00009\n[GIRA21X] cycle requires review\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Imagem enfileirada na Z-API -> 5515998038637 | Arquivo: /opt/vitalismen-automacao/releases/20261118T164735Z_production-20261118-dd2fd90/public/media/sales/shared/social_01.jpeg | messageId=SIM_OUT_00010\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Imagem enfileirada na Z-API -> 5515998038637 | Arquivo: /opt/vitalismen-automacao/releases/20261118T164735Z_production-20261118-dd2fd90/public/media/sales/ec/vit_power.jpeg | messageId=SIM_OUT_00011\n[GIRA21X] cycle requires review\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Texto enfileirado na Z-API -> 5515998038637 | Tamanho: 162 chars | messageId=SIM_OUT_00012\n2026-11-18T16:56:18.549Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00008\n2026-11-18T16:56:18.571Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00009\n2026-11-18T16:56:18.585Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00010\n2026-11-18T16:56:18.597Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00011\n2026-11-18T16:56:18.609Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00012\n2026-11-18T16:56:19.036Z | POST /api/zapi/webhook/received\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ENTER\",\"requestId\":\"4f0b9e5d-f646-4125-912e-3a8839d48809\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"path\":\"/api/zapi/webhook/received\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ALLOWED\",\"requestId\":\"4f0b9e5d-f646-4125-912e-3a8839d48809\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"writeContext\":true}\n[ZAPI-WEBHOOK] inbound | recorded=true | phone=5515998038637 | type=chat | id=SIM_IN_00005\n2026-11-18T16:56:19.759Z | POST /api/zapi/webhook/received\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[ROUTER] produto desconhecido; contato enviado para revisao sem resposta automatica | chat=593980000071@c.us\n[ZAPI-WEBHOOK] inbound | recorded=true | phone=593980000071 | type=chat | id=SIM_IN_00006\n[GIRA21X] cycle requires review\n",
+  "checks": [
+    "real_mongo_history_accepts_proven_receipts_and_rejects_foreign_or_unproven_rows",
+    "production_unique_compound_index_reproduced",
+    "qa_named_entry_persisted_and_accepted",
+    "qa_named_entry_greeting_5_to_30_seconds",
+    "qa_optional_name_personalizes_greeting",
+    "qa_duplicate_entry_no_second_greeting",
+    "qa_price_and_ingredients_one_ordered_reply",
+    "qa_one_composed_answer",
+    "qa_no_order_after_questions",
+    "qa_questions_do_not_force_or_repeat_b01_media",
+    "qa_window_still_valid_after_grouped_response",
+    "qa_reset_has_no_pending_batch_1",
+    "qa_complete_five_steps_1",
+    "qa_job_bound_to_native_server_permit_1",
+    "qa_one_period_audio_1",
+    "qa_final_price_table_1",
+    "qa_all_old_ledgers_preserved_1",
+    "qa_duplicate_callback_no_new_presentation_1",
+    "qa_cycle_never_creates_order_1",
+    "qa_reset_has_no_pending_batch_2",
+    "qa_complete_five_steps_2",
+    "qa_job_bound_to_native_server_permit_2",
+    "qa_one_period_audio_2",
+    "qa_final_price_table_2",
+    "qa_all_old_ledgers_preserved_2",
+    "qa_duplicate_callback_no_new_presentation_2",
+    "qa_cycle_never_creates_order_2",
+    "two_new_native_qa_permits_complete_without_deleting_legacy_ledgers"
+  ],
+  "stages": [],
+  "ingress": [
+    {
+      "id": "SIM_IN_00001",
+      "text": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00001",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00001",
+          "body": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+          "bodyLength": 161,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": false,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": true,
+          "contactStateId": "6afdd780517546fe4ab8ec88",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": false,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00002",
+      "text": "Precio",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00002",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00002",
+          "body": "Precio",
+          "bodyLength": 6,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": false,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": false,
+          "contactStateId": "6afdd780517546fe4ab8ec88",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": false,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00003",
+      "text": "¿Qué contiene Vit Power?",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00003",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00003",
+          "body": "¿Qué contiene Vit Power?",
+          "bodyLength": 24,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": false,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": true,
+          "contactStateId": "6afdd780517546fe4ab8ec88",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": false,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00004",
+      "text": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00004",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00004",
+          "body": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+          "bodyLength": 161,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": false,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": true,
+          "contactStateId": "6afdd780517546fe4ab8ec88",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": false,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00005",
+      "text": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00005",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00005",
+          "body": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+          "bodyLength": 161,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": false,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": true,
+          "contactStateId": "6afdd780517546fe4ab8ec88",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": false,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00006",
+      "text": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Carlos Prueba",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00006",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00006",
+          "body": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Carlos Prueba",
+          "bodyLength": 168,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": false,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": true,
+          "contactStateId": "6afdd8b3de3272d7f1b8bf60",
+          "conversationBucket": "orders",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "orders",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "support_intent"
+            ],
+            "hardExclusions": [
+              "support_intent",
+              "commercial_intent"
+            ],
+            "currentInboundKind": "question",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 1,
+              "logicalMessages": 1,
+              "inboundMessages": 1,
+              "outboundMessages": 0,
+              "recentInboundMessages": 1,
+              "recentOutboundMessages": 0,
+              "activeDays": 1,
+              "questions": 1,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 1,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": true,
+              "commercialIntent": true,
+              "contextualFunnelReply": false,
+              "activeCommercialStage": "",
+              "strongPurchase": true,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    }
+  ],
+  "contactDiagnostic": {
+    "_id": "6afdd8b3de3272d7f1b8bf60",
+    "chatId": "593980000071@c.us",
+    "phoneDigits": "593980000071",
+    "countryCode": "EC",
+    "assignedAgent": null,
+    "tags": [
+      "ZAPI_INBOUND_CAPTURED",
+      "conversation:orders",
+      "PRODUCT_REVIEW_REQUIRED",
+      "ASKS_PRICE",
+      "ASKS_PROOF",
+      "HAS_ORDER_DATA"
+    ],
+    "human": {
+      "mode": "auto",
+      "assignedTo": "",
+      "assignedName": "Consulta direta de produto",
+      "pausedUntil": null,
+      "lastManualAt": "2026-11-18T16:56:19.763Z",
+      "lastManualBy": "ec_direct_product_inquiry",
+      "note": "Cliente pediu diretamente um produto EC; microcamada informativa liberada."
+    },
+    "conversationBucket": {
+      "value": "review",
+      "previousValue": "attendance",
+      "source": "product_router",
+      "confidence": "high",
+      "score": 100,
+      "reasons": [
+        "unknown_product_requires_review"
+      ],
+      "classifiedAt": "2026-11-18T16:56:19.973Z",
+      "manualSelectedBy": "",
+      "commercialInterruptedAt": "2026-11-18T16:56:19.824Z",
+      "history": [
+        {
+          "from": "attendance",
+          "to": "orders",
+          "source": "zapi_inbound_rule_v40",
+          "reason": "support_intent",
+          "score": 100,
+          "by": "",
+          "at": "2026-11-18T16:56:19.824Z"
+        }
+      ]
+    },
+    "engagementAutomation": {
+      "approvedBy": "",
+      "approvalSource": "",
+      "blockedReason": "",
+      "lastEvaluatedAt": "2026-11-18T16:56:19.824Z",
+      "lastDecision": "orders:support_intent",
+      "lastInboundMessageId": "SIM_IN_00006",
+      "replyLockedForMessageId": "",
+      "lastReplyTemplateKey": "",
+      "lastReplyProviderMessageId": "",
+      "lastFailure": "",
+      "dailyKey": "",
+      "dailyReplyCount": 0,
+      "passiveInboundCount": 0,
+      "passiveReplyTarget": 2,
+      "passiveReplyCycle": 0,
+      "passiveLastCountedMessageId": "",
+      "localDecisionCount": 1,
+      "modelCallCount": 0,
+      "estimatedCostUsd": 0,
+      "replyHistory": []
+    },
+    "firstInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Carlos Prueba",
+    "lastInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Carlos Prueba",
+    "buyLaterReminder": {
+      "active": false,
+      "desiredOrderDate": "",
+      "productKey": "",
+      "productName": "",
+      "customerName": "",
+      "providerMessageId": "",
+      "attemptCount": 0,
+      "lastError": "",
+      "awaitingReply": false
+    },
+    "productHistory": [],
+    "agentHistory": [],
+    "customerDataResolution": {
+      "version": 28,
+      "country": "",
+      "conflicts": [],
+      "qualityScore": 0,
+      "orderDataReady": false,
+      "blockedReasons": [],
+      "nextRequiredField": ""
+    },
+    "metadata": {
+      "lastProvider": "zapi",
+      "lastProviderMessageId": "SIM_IN_00006",
+      "lastProviderZaapId": "",
+      "lastSessionId": "zapi",
+      "zapiInboundAt": "2026-11-18T16:56:19.763Z",
+      "zapiCapturedContact": true,
+      "zapiCapturedAt": "2026-11-18T16:56:19.763Z",
+      "zapiCapturedCountry": "EC",
+      "zapiCapturedSource": "connected_phone_inbound",
+      "publicVslLeadEntry": false,
+      "profileName": "Carlos Prueba",
+      "customerDraft": {
+        "name": "Carlos Prueba",
+        "nameSource": "provider_profile_name",
+        "updatedAt": "2026-11-18T16:56:19.763Z",
+        "phone": "+593980000071",
+        "country": "EC"
+      },
+      "warmup": {
+        "allowed": false,
+        "blocked": false,
+        "risk": false,
+        "manualOnly": false,
+        "category": "returned_to_operation",
+        "updatedAt": "2026-11-18T16:56:19.824Z",
+        "updatedBy": "classificador_v40",
+        "source": "zapi_inbound_rule_v40"
+      },
+      "linkedChatIds": [
+        "593980000071@c.us"
+      ],
+      "lastActiveChatId": "593980000071@c.us",
+      "sessionContinuity": {
+        "lastInboundAt": "2026-11-18T16:56:19.869Z",
+        "lastInboundSessionId": "zapi",
+        "lastInboundChatId": "593980000071@c.us",
+        "history": [
+          {
+            "at": "2026-11-18T16:56:19.869Z",
+            "direction": "inbound",
+            "chatId": "593980000071@c.us",
+            "sessionId": "zapi",
+            "senderPn": "593980000071",
+            "phoneDigits": "593980000071"
+          }
+        ]
+      },
+      "lastSenderPn": "593980000071",
+      "customerPhoneDigits": "593980000071",
+      "adminPanelLeadId": 1,
+      "adminPanelInboundGuardAt": "2026-11-18T16:56:19.957Z",
+      "processedInboundMessageIds": [
+        "SIM_IN_00006"
+      ],
+      "lastProcessedInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Carlos Prueba",
+      "lastProcessedInboundAt": "2026-11-18T16:56:19.958Z",
+      "lastRouterDecisionAt": "2026-11-18T16:56:19.974Z",
+      "lastRouterDecisionText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Carlos Prueba",
+      "lastRouterDecisionProductKey": "",
+      "lastRouterDecisionReason": "unknown_product_requires_review",
+      "lastDetectedSignals": {
+        "wantsConsultation": false,
+        "showsPurchaseIntent": true,
+        "asksPrice": true,
+        "asksProductQuestion": false,
+        "asksProof": true,
+        "asksComposition": false,
+        "asksLiquid": false,
+        "asksGuide": false,
+        "asksPickup": false,
+        "mentionsAddress": true,
+        "priceResistance": false,
+        "closing": false,
+        "postSale": false,
+        "requestsQuantity": false,
+        "mentionsProducts": true,
+        "mentionsVitPower": true,
+        "explicitWarmupExit": false,
+        "funnelBucket": "06_FECHAMENTO",
+        "buyerScore": 100
+      },
+      "lastKnownFunnelBucket": "06_FECHAMENTO",
+      "buyerScore": 100
+    },
+    "lastInboundAt": "2026-11-18T16:56:19.964Z",
+    "firstInboundAt": "2026-11-18T16:56:19.763Z",
+    "createdAt": "2026-11-18T16:56:19.798Z",
+    "updatedAt": "2026-11-18T16:56:19.976Z",
+    "__v": 2
+  },
+  "qaDiagnostic": {
+    "_id": "6afdd780517546fe4ab8ec88",
+    "phoneDigits": "5515998038637",
+    "chatId": "5515998038637@c.us",
+    "countryCode": "EC",
+    "assignedAgent": "vit_power_ec",
+    "createdAt": "2026-11-18T16:52:23.331Z",
+    "updatedAt": "2026-11-18T16:56:18.483Z",
+    "human": {
+      "mode": "auto",
+      "assignedTo": "",
+      "assignedName": "Teste 8637",
+      "pausedUntil": null,
+      "lastManualBy": "",
+      "note": "TESTE 8637: prioridade fixa no painel com bot liberado."
+    },
+    "tags": [
+      "TESTE_8637_PRIORIDADE",
+      "TESTE_FIXO_NAO_MEXER",
+      "BOT_TESTE_LIBERADO",
+      "ZAPI_INBOUND_CAPTURED",
+      "AUTHORIZED_VSL_TEST_RECIPIENT",
+      "BR_CAPTURADO_CELULAR",
+      "COMMERCIAL_READY",
+      "VIT_POWER_EC",
+      "ASKS_PRICE",
+      "HAS_ORDER_DATA"
+    ],
+    "metadata": {
+      "testOnly": true,
+      "botTestEnabled": true,
+      "fullFunnelTestEnabled": true,
+      "noDropiEver": true,
+      "productKey": "vit_power_ec",
+      "productName": "Vit Power Ecuador",
+      "vslProductKey": "vit_power_ec",
+      "customerDraft": {
+        "productKey": "vit_power_ec",
+        "name": "Carlos Prueba",
+        "nameSource": "provider_profile_name",
+        "updatedAt": "2026-11-18T16:54:23.199Z",
+        "phone": "+5515998038637",
+        "country": "EC",
+        "firstName": "Gerson"
+      },
+      "processedInboundMessageIds": [
+        "SIM_IN_00001",
+        "SIM_IN_00002",
+        "SIM_IN_00003",
+        "SIM_IN_00004",
+        "SIM_IN_00005"
+      ],
+      "qaTestContextV78": {
+        "version": 78,
+        "context": "EC_V78_OFFICIAL_VSL_QA",
+        "phone": "5515998038637",
+        "permitId": "ecqa-v78-8eef9e1531f9192c6493f5df7fa56f35",
+        "status": "consumed",
+        "armedAt": "2026-11-18T16:54:23.174Z",
+        "expiresAt": "2026-11-18T17:04:23.173Z",
+        "previousHumanMode": "manual",
+        "previousPausedUntil": "2036-01-01T00:00:00.000Z",
+        "messageCount": 1,
+        "processedMessageIds": [
+          "SIM_IN_00005"
+        ],
+        "auditAction": "temporary_human_hold_release_for_exact_qa",
+        "routingAt": "2026-11-18T16:54:23.286Z",
+        "routingMessageId": "SIM_IN_00005",
+        "routingPhase": "initial",
+        "routingSignature": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?",
+        "consumedAt": "2026-11-18T16:54:23.499Z",
+        "consumedMessageId": "SIM_IN_00005",
+        "httpStatus": 200,
+        "lastProcessedAt": "2026-11-18T16:54:23.499Z",
+        "lastProcessedPhase": "initial"
+      },
+      "lastProvider": "zapi",
+      "lastProviderMessageId": "SIM_IN_00005",
+      "lastProviderZaapId": "",
+      "lastSessionId": "zapi",
+      "zapiInboundAt": "2026-11-18T16:54:23.199Z",
+      "zapiCapturedContact": true,
+      "zapiCapturedAt": "2026-11-18T16:54:23.199Z",
+      "zapiCapturedCountry": "BR",
+      "zapiCapturedSource": "connected_phone_inbound",
+      "publicVslLeadEntry": false,
+      "profileName": "Carlos Prueba",
+      "linkedChatIds": [
+        "5515998038637@c.us"
+      ],
+      "lastActiveChatId": "5515998038637@c.us",
+      "sessionContinuity": {
+        "lastInboundAt": "2026-11-18T16:54:23.360Z",
+        "lastInboundSessionId": "zapi",
+        "lastInboundChatId": "5515998038637@c.us",
+        "history": [
+          {
+            "at": "2026-11-18T16:54:23.360Z",
+            "direction": "inbound",
+            "chatId": "5515998038637@c.us",
+            "sessionId": "zapi",
+            "senderPn": "5515998038637",
+            "phoneDigits": "5515998038637"
+          }
+        ]
+      },
+      "lastSenderPn": "5515998038637",
+      "customerPhoneDigits": "5515998038637",
+      "lastProcessedInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+      "lastProcessedInboundAt": "2026-11-18T16:54:23.360Z",
+      "outboundTestOnly": true,
+      "priorityFrozen": true,
+      "priorityFrozenReason": "NUMERO_8637_TESTE_PERMANENTE_NAO_MEXER",
+      "lastHumanHoldReason": "",
+      "lastRouterDecisionAt": "2026-11-18T16:54:23.387Z",
+      "lastRouterDecisionText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+      "lastRouterDecisionProductKey": "vit_power_ec",
+      "lastRouterDecisionReason": "current_negotiation_product",
+      "lastDetectedSignals": {
+        "wantsConsultation": false,
+        "showsPurchaseIntent": true,
+        "asksPrice": true,
+        "asksProductQuestion": false,
+        "asksProof": false,
+        "asksComposition": false,
+        "asksLiquid": false,
+        "asksGuide": false,
+        "asksPickup": false,
+        "mentionsAddress": true,
+        "priceResistance": false,
+        "closing": false,
+        "postSale": false,
+        "requestsQuantity": false,
+        "mentionsProducts": true,
+        "mentionsVitPower": true,
+        "explicitWarmupExit": false,
+        "funnelBucket": "06_FECHAMENTO",
+        "buyerScore": 100
+      },
+      "lastKnownFunnelBucket": "06_FECHAMENTO",
+      "buyerScore": 100,
+      "perAgentMemory": {
+        "vit_power_ec": {
+          "lastInboundAt": "2026-11-18T16:54:23.387Z",
+          "lastInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+          "lastReason": "current_negotiation_product",
+          "lastFunnelBucket": "06_FECHAMENTO",
+          "buyerScore": 100
+        }
+      }
+    },
+    "__v": 2,
+    "agentHistory": [],
+    "buyLaterReminder": {
+      "active": false,
+      "attemptCount": 0,
+      "awaitingReply": false,
+      "customerName": "",
+      "desiredOrderDate": "",
+      "lastError": "",
+      "productKey": "",
+      "productName": "",
+      "providerMessageId": ""
+    },
+    "conversationBucket": {
+      "confidence": "low",
+      "history": [],
+      "manualSelectedBy": "",
+      "previousValue": "",
+      "reasons": [],
+      "score": 0,
+      "source": "default",
+      "value": "attendance"
+    },
+    "customerDataResolution": {
+      "version": 28,
+      "country": "",
+      "conflicts": [],
+      "qualityScore": 0,
+      "orderDataReady": false,
+      "blockedReasons": [],
+      "nextRequiredField": ""
+    },
+    "engagementAutomation": {
+      "approvalSource": "",
+      "approvedBy": "",
+      "blockedReason": "",
+      "dailyKey": "",
+      "dailyReplyCount": 0,
+      "estimatedCostUsd": 0,
+      "lastDecision": "",
+      "lastFailure": "",
+      "lastInboundMessageId": "",
+      "lastReplyProviderMessageId": "",
+      "lastReplyTemplateKey": "",
+      "localDecisionCount": 0,
+      "modelCallCount": 0,
+      "passiveInboundCount": 0,
+      "passiveLastCountedMessageId": "",
+      "passiveReplyCycle": 0,
+      "passiveReplyTarget": 2,
+      "replyHistory": [],
+      "replyLockedForMessageId": ""
+    },
+    "firstInboundAt": "2026-11-18T16:54:23.199Z",
+    "firstInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+    "lastInboundAt": "2026-11-18T16:54:23.367Z",
+    "lastInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+    "productHistory": [
+      {
+        "productKey": "vit_power_ec",
+        "reason": "current_negotiation_product",
+        "at": "2026-11-18T16:54:23.384Z",
+        "_id": "6afdd83fde3272d7f1b8bcf0"
+      }
+    ],
+    "vitPowerB01": {
+      "version": "vit-power-b01-v216",
+      "status": "done",
+      "origin": "automatic",
+      "phone": "5515998038637",
+      "chatId": "5515998038637@s.whatsapp.net",
+      "sessionId": "zapi",
+      "inboundId": "SIM_IN_00005",
+      "qaPermitId": "ecqa-v78-8eef9e1531f9192c6493f5df7fa56f35",
+      "startedAt": "2026-11-18T16:54:23.469Z",
+      "nextAt": null,
+      "cursor": 5,
+      "manualStamp": "auto:::",
+      "customerName": "Gerson",
+      "steps": [
+        {
+          "kind": "text",
+          "label": "Saudacao personalizada",
+          "text": "¡Hola! Buenos días, Gerson! Soy Ana Lopez, del equipo de la Dra. María Fernandes. Gracias por tu interés en Vit Power. Estoy aquí para ayudarte y aclarar tus dudas. Te comparto una breve presentación y seguimos conversando.",
+          "status": "accepted",
+          "attemptedAt": "2026-11-18T16:54:43.374Z",
+          "ledgerKey": "b01-v216:cc89d6f7ba526e95e64fe235f5e07306d4d6b33fe4d97e60d465e84ad7f6846a",
+          "acceptedAt": "2026-11-18T16:54:43.457Z",
+          "providerMessageId": "SIM_OUT_00008"
+        },
+        {
+          "kind": "audio",
+          "label": "Inicio universal 01",
+          "asset": "/media/templates/EC/01_B_Buenos_dias.ogg",
+          "status": "accepted",
+          "attemptedAt": "2026-11-18T16:55:06.400Z",
+          "ledgerKey": "b01-v216:338586d732048b96810ed5422cfd481212fc17c7018f3b2a562e42af2419106d",
+          "acceptedAt": "2026-11-18T16:55:06.476Z",
+          "providerMessageId": "SIM_OUT_00009"
+        },
+        {
+          "kind": "image",
+          "label": "Prova 1",
+          "asset": "/media/sales/shared/social_01.jpeg",
+          "status": "accepted",
+          "attemptedAt": "2026-11-18T16:55:31.439Z",
+          "ledgerKey": "b01-v216:1815025165c3167afe93a44f14b7f59e630bbf5779c9771c1e61d6f6ca2ed606",
+          "acceptedAt": "2026-11-18T16:55:31.537Z",
+          "providerMessageId": "SIM_OUT_00010"
+        },
+        {
+          "kind": "image",
+          "label": "Frasco Vit Power",
+          "asset": "/media/sales/ec/vit_power.jpeg",
+          "status": "accepted",
+          "attemptedAt": "2026-11-18T16:55:50.458Z",
+          "ledgerKey": "b01-v216:83df520acbf94a0fae3a2eceacb8a34a98a8ca2fcefabf8e605a68665901433a",
+          "acceptedAt": "2026-11-18T16:55:50.582Z",
+          "providerMessageId": "SIM_OUT_00011"
+        },
+        {
+          "kind": "text",
+          "label": "Valores oficiais Vit Power",
+          "text": "Estos son los valores normales de Vit Power:\n\n• 1 frasco: USD 39.99\n• 2 frascos: USD 70.00\n• 3 frascos: USD 95.99\n• 6 frascos: USD 167.99\n\n¿Cuántos frascos desea?",
+          "status": "accepted",
+          "attemptedAt": "2026-11-18T16:56:18.408Z",
+          "ledgerKey": "b01-v216:46b30814b93d67d81a7830618be11beb01e5fc7d381fd3bdbf4d047ad8f5db15",
+          "acceptedAt": "2026-11-18T16:56:18.479Z",
+          "providerMessageId": "SIM_OUT_00012"
+        }
+      ],
+      "lockToken": "b897d03e-c7e0-43a2-b041-489bb23e3715",
+      "lockedUntil": null
+    }
+  },
+  "qaLedgerDifferences": [],
+  "providerRequests": [],
+  "log": "-18T16:54:21.909Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00006\n2026-11-18T16:54:21.958Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00007\n2026-11-18T16:54:22.421Z | POST /api/zapi/webhook/received\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ENTER\",\"requestId\":\"27fd51d1-0aa8-4815-95cc-684f9cccf1de\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"path\":\"/api/zapi/webhook/received\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ALLOWED\",\"requestId\":\"27fd51d1-0aa8-4815-95cc-684f9cccf1de\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"writeContext\":true}\n[ZAPI-WEBHOOK] inbound | recorded=true | phone=5515998038637 | type=chat | id=SIM_IN_00004\n2026-11-18T16:54:23.192Z | POST /api/zapi/webhook/received\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ENTER\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"path\":\"/api/zapi/webhook/received\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ALLOWED\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"writeContext\":true}\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_CLAIM_ENTER\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FILTER_APPLIED\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"initial\",\"filterApplied\":true,\"filterFields\":[\"chatId\",\"human.mode\",\"metadata.botTestEnabled\",\"metadata.fullFunnelTestEnabled\",\"metadata.qaTestContextV78.context\",\"metadata.qaTestContextV78.expiresAt\",\"metadata.qaTestContextV78.phone\",\"metadata.qaTestContextV78.routingMessageId\",\"metadata.qaTestContextV78.status\",\"metadata.qaTestContextV78.version\",\"metadata.testOnly\",\"phoneDigits\",\"tags\"],\"filterSha256\":\"2ba3947058673ff8183d1b832c83bae33762920f961a1e63cd7b53ccb80bb394\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"initial\",\"executed\":true,\"matchedCount\":1,\"modifiedCount\":1}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"followup\",\"executed\":false,\"matchedCount\":null,\"modifiedCount\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_CLAIM_RETURN\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"returnState\":{\"applicable\":true,\"allowed\":true,\"persistenceAllowed\":true,\"automationAllowed\":true,\"reason\":\"qa_context_claimed\",\"phase\":\"initial\"}}\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[ROUTER] produto selecionado -> vit_power_ec | chat=5515998038637@s.whatsapp.net\n[LOG_HANDLER_ENTER] 🚀 Processando mensagem... produto=vit_power_ec\n[BOT] ✅ Trabalhando no Chat: 5515998038637@s.whatsapp.net | agente=vit_power_ec\n[ZAPI-WEBHOOK] inbound | recorded=true | phone=5515998038637 | type=chat | id=SIM_IN_00005\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FINALIZE_ENTER\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FILTER_APPLIED\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"finalize\",\"filterApplied\":true,\"filterFields\":[\"metadata.qaTestContextV78.routingMessageId\",\"metadata.qaTestContextV78.status\",\"phoneDigits\"],\"filterSha256\":\"a3b1aeca932558748835ea1e87ded387cc02ceefe9d4cdb39b83d000ec81438c\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"finalize\",\"executed\":true,\"matchedCount\":1,\"modifiedCount\":1}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FINALIZE_RESULT\",\"requestId\":\"3b785388-a226-4357-bc26-c19eb3409b59\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"changed\":true}\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Texto enfileirado na Z-API -> 5515998038637 | Tamanho: 223 chars | messageId=SIM_OUT_00008\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Audio enfileirado na Z-API -> 5515998038637 | Arquivo: /opt/vitalismen-automacao/releases/20261118T164735Z_production-20261118-dd2fd90/public/media/templates/EC/01_B_Buenos_dias.ogg | messageId=SIM_OUT_00009\n[GIRA21X] cycle requires review\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Imagem enfileirada na Z-API -> 5515998038637 | Arquivo: /opt/vitalismen-automacao/releases/20261118T164735Z_production-20261118-dd2fd90/public/media/sales/shared/social_01.jpeg | messageId=SIM_OUT_00010\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Imagem enfileirada na Z-API -> 5515998038637 | Arquivo: /opt/vitalismen-automacao/releases/20261118T164735Z_production-20261118-dd2fd90/public/media/sales/ec/vit_power.jpeg | messageId=SIM_OUT_00011\n[GIRA21X] cycle requires review\n[SESSION-ROUTER] falha ao gravar carteira do contato 5515998038637@s.whatsapp.net: b01_scoped_mongo_write_denied\n[LOG_SEND_USING_ZAPI] Texto enfileirado na Z-API -> 5515998038637 | Tamanho: 162 chars | messageId=SIM_OUT_00012\n2026-11-18T16:56:18.549Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00008\n2026-11-18T16:56:18.571Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00009\n2026-11-18T16:56:18.585Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00010\n2026-11-18T16:56:18.597Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00011\n2026-11-18T16:56:18.609Z | POST /api/zapi/webhook/delivery\n[ZAPI-WEBHOOK] delivery | matched=true | method=provider_id | phone=5515998038637 | status=read | id=SIM_OUT_00012\n2026-11-18T16:56:19.036Z | POST /api/zapi/webhook/received\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ENTER\",\"requestId\":\"4f0b9e5d-f646-4125-912e-3a8839d48809\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"path\":\"/api/zapi/webhook/received\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ALLOWED\",\"requestId\":\"4f0b9e5d-f646-4125-912e-3a8839d48809\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"writeContext\":true}\n[ZAPI-WEBHOOK] inbound | recorded=true | phone=5515998038637 | type=chat | id=SIM_IN_00005\n2026-11-18T16:56:19.759Z | POST /api/zapi/webhook/received\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[ROUTER] produto desconhecido; contato enviado para revisao sem resposta automatica | chat=593980000071@c.us\n[ZAPI-WEBHOOK] inbound | recorded=true | phone=593980000071 | type=chat | id=SIM_IN_00006\n[GIRA21X] cycle requires review\n",
+  "processExit": 1,
+  "qaTwoCyclesVerified": true,
+  "scopedHistoryMongoVerified": true,
+  "providerIdsGloballyUniqueVerified": false,
+  "periodAudioVerified": false,
+  "finalPriceTableVerified": false,
+  "qaNaturalEntryVerified": true,
+  "qaGreetingVerified": true,
+  "qaMixedQuestionsVerified": true,
+  "candidateCommit": "dd2fd90d68f30c8cb8f4ba9dbe9f99842bbd4f04",
+  "unpunctuatedPriceVerified": false,
+  "confirmedOrderVerified": false,
+  "thankYouVerified": false,
+  "at": "2026-11-18T16:58:01.001921+00:00",
+  "productionUnchanged": true,
+  "baselinePid": 3910112,
+  "candidateIntegrationBeforeFullSuite": true,
+  "launcherExit": 0
+}

@@ -1,0 +1,23 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PASS",
+  "candidateCommit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+  "results": [
+    {
+      "name": "named_and_tex_targeted",
+      "pass": true,
+      "seconds": 154.2,
+      "exitCode": 0,
+      "timedOut": false,
+      "tapSummary": [
+        "# tests 67",
+        "# pass 67",
+        "# fail 0"
+      ]
+    }
+  ],
+  "productionUnchanged": true,
+  "networkIsolated": true,
+  "messagesSent": 0,
+  "databaseProductionWrites": 0
+}

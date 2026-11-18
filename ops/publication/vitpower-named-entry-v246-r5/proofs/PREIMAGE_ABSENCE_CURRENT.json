@@ -1,0 +1,10 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "parentCommit": "d8c8b0dd697e712bf2d7442ae90cb6aa6576fcc8",
+  "parentRelease": "/opt/vitalismen-automacao/releases/20261118T154334Z_production-20261118-d8c8b0d",
+  "newFile": "src/services/vitPowerEntryContextV246Service.js",
+  "filesystemAbsent": true,
+  "parentGitTreeAbsent": true,
+  "candidateHash": "c125b764e6e9da8af62c126814a0479af91f10db10e51427c69dc9a9b865532b"
+}

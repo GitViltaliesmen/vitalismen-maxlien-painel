@@ -1,0 +1,17 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "panelSha256": "e2dcc2343466f69a9850fae787b4ea8c29a7cdfac2e8734ed0ac1951fab2e3a3",
+  "panelCandidateSha256": "e2dcc2343466f69a9850fae787b4ea8c29a7cdfac2e8734ed0ac1951fab2e3a3",
+  "nginxSha256": "1f3e1156302110e76b2d15d5f074d81360736daa9a6cdd63b2cabc700857c9b1",
+  "siteHashes": {
+    "index.html": "4e9c625d94119e4513883ce63849ea07792ac39354ee5c2c943d32d179a5a635",
+    "desktop.html": "4ce50254af837fb8e67a74b92da2389403ac2858752899073475d3cf488f052b",
+    "assets/cta.js": "27521630fe45d877df3a61e40d62185382ac897b94a8c752523168889c6d7e62",
+    "assets/chat-v220.js": "54f8149d19cd1e1eb8fc2fcc2805b6d9108515d74998c3a542d559bb5371f71f",
+    "assets/chat-v220.css": "e09004aa52ce37f92dd6e5cb3c230a822ddc2491847b8cfeb9a015f1dbef5407",
+    "assets/acesso-pedido.html": "6b83b4bd5c1b4864c19d5e96f5227a7d0faa657c9cdabb3041ad8ae5f5c6ca63",
+    "assets/acesso-pedido-v238.js": "47f6bf0a25700684567c45fe9dafd363c943a7753576396e9ea7a9ada6ced487"
+  },
+  "newSitePaths": []
+}

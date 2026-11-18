@@ -1,0 +1,10 @@
+{
+  "project": "VITALISMEN_EC",
+  "parent": "/opt/vitalismen-automacao/releases/20261118T010247Z_production-20261118-322c98a",
+  "absentPreimages": [
+    "src/services/vitPowerEntryContextV246Service.js",
+    "tests/b01-named-entry-v246.test.mjs",
+    "docs/freeze/vitpower-named-entry-v246-contract.json"
+  ],
+  "pass": true
+}

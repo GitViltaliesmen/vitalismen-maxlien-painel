@@ -1,0 +1,357 @@
+[
+  {
+    "path": "docs/VIT_POWER_ENTRADA_NOME_FUNIL_V246_20261118.md",
+    "originalSha256": "eb61f8bf5de67f49707c300633ecf5406f1dddbb279e2e1a097620ccfe142ec4",
+    "publishedSha256": "eb61f8bf5de67f49707c300633ecf5406f1dddbb279e2e1a097620ccfe142ec4"
+  },
+  {
+    "path": "docs/freeze/vitpower-named-entry-v246-r5-20261118.json",
+    "originalSha256": "0d82f92c6cb2b53e39af0adb9f981d7e358a3de001cb20adbc60a705bdba06c6",
+    "publishedSha256": "0d82f92c6cb2b53e39af0adb9f981d7e358a3de001cb20adbc60a705bdba06c6"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PREPARED.json",
+    "originalSha256": "7ee7544e4584d90e4aa8dbd31f606e29b26763d158ccd64117c2a2eb4086a324",
+    "publishedSha256": "e7bb49bf2199c98cc933b32294c9191adf2007826f50e16e2daa0e59ae3e6609"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/SOURCE_REVIEW.json",
+    "originalSha256": "e918a656049ec24b3ed4510ac048031c42c6a74590952c577a969fc6088ae783",
+    "publishedSha256": "6b8174aa5addb6a99d4ccdcceab2da715bca57d416333b4c2d6879a551a8377b"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/STARTUP_SMOKE.json",
+    "originalSha256": "f4fbeed3dfcd45d2ad94ab93780fef1b3dc12e666fad8cf5bdb5279d8652dd8f",
+    "publishedSha256": "d1e01fe2a070881cb3e80da769196373ed647d759c1e37f27a134758442c0af8"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/QUALIFICATION.json",
+    "originalSha256": "62dfca35cda2fcee2e7de27471119710cb4478055fa80ef4b43dd4c191dd45cf",
+    "publishedSha256": "acfa49a7d74a459b1466cfa4d9b273b40345769e81be00dc2364e7780acf32f7"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/QUALIFICATION_INITIAL_BUSY_TIMEOUT.json",
+    "originalSha256": "48218e77dd11ac56f0200784d2981e45b0e6d078b593cdaeb2b249f0b62afc58",
+    "publishedSha256": "497a921242bed4526770f9821e3136388b302a517cc044a5bb21f900b00a9ff4"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/EXTRA_QUALIFICATION.json",
+    "originalSha256": "6f492e436ee70706cb4e1f6ed691b6804ddc74de6f2c24389a21ffcc1bc43178",
+    "publishedSha256": "6f492e436ee70706cb4e1f6ed691b6804ddc74de6f2c24389a21ffcc1bc43178"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/HTTP_SALE_TEST.json",
+    "originalSha256": "c0f757b9cc9ac6128d9b5de68fb83c47f0760ae8a8e599668d71b37682221168",
+    "publishedSha256": "f1b357d2e44464811c7736e59c39c2f522741a073070487cd6e93abc0944ce5a"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/OPERATIONS_TEST.json",
+    "originalSha256": "5bd1d45c0df65d3f6b62a71356475403f7e8a648555558ea991bed612502f66c",
+    "publishedSha256": "3fdda483375efafe08c51a4e461f3fe0d3d7e45b7b91233677c5c37436136ec1"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/NATIVE_INDEX_PROOF.json",
+    "originalSha256": "a40e967b0a3aabeb875847de51ed1c96d048585148b86846253f37fcdcb1be64",
+    "publishedSha256": "8a8782fd08d9bc66b33736385e8331e8cc5e1a9ed344314a761f86963c24c648"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/INDEX_METADATA_CURRENT_VERIFIED.json",
+    "originalSha256": "70ccaf9772939057081a7ed651853c02ff770a57e5f742f3b62e61bb5160b484",
+    "publishedSha256": "4dd8131ab3d8ce63ce7c08890466fbf0c8b1a0fb69c352477891ada64b605c77"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PRODUCTION_DEDUPE_INDEXES.json",
+    "originalSha256": "2e8f3aae690c10cdba6121cee579f888061e8747fb401fc6409c5eb473fdf145",
+    "publishedSha256": "2e8f3aae690c10cdba6121cee579f888061e8747fb401fc6409c5eb473fdf145"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PRODUCTION_INDEXES_RAW.json",
+    "originalSha256": "ae2ce6ac7cb1bf4754cca6c1771a23b42b8256003f1efac34f1a319be1af4680",
+    "publishedSha256": "ae2ce6ac7cb1bf4754cca6c1771a23b42b8256003f1efac34f1a319be1af4680"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/INHERITED_REGRESSION.json",
+    "originalSha256": "72793860103ecfa91a968011c347a2e121c00317d9fe901eaac8f13a9de5d27f",
+    "publishedSha256": "5769d1d57e2d3e542348918ab94501ba233cd779c69610f3bac8fc30210abe34"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/INHERITED_CONTROL.json",
+    "originalSha256": "31fbae51924d21c443009afea7f7b1657365a87ab0bd9ca5e9f8c59271b29660",
+    "publishedSha256": "ca489955ce1b813114d2dbda9166c8fad014bf5f211f20f9e5f0714455ca9ff0"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PUBLIC_BASELINE.json",
+    "originalSha256": "0e706f425987e53efb99802b3d71bf500cebdaf5fd909f84544b96a1f90c2c5f",
+    "publishedSha256": "676cbc44b0e19e3b0becec89acdec65fc158823881ed9be02f6f2bf606cbee80"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PUBLIC_CHECKS.json",
+    "originalSha256": "43a1f85e8563ce9dd429fc2dc9d8d307d6cd0b32b4e3b666854382eed39913a5",
+    "publishedSha256": "56982381a6228053b0548d5271dfe2636da4c7210fab4e021c12ab188f7f288b"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/LIVE_AUDIT.json",
+    "originalSha256": "dd24129ade0456c1cba3e2281eb90d00f1301a65f4a00fea728c850a9ca0e018",
+    "publishedSha256": "25b89618f73184f7d350d9113fc597f4925a293b84b4bd22071b3f9ed4a021e9"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/TIMER_BASELINE.json",
+    "originalSha256": "832d5a898ebfe51f38c6e3b293fe2b1fc415bb83de971675d7c5a176d098a825",
+    "publishedSha256": "bafa857bbdb01e8e71fd9d2c02014233420917e2aae09fe5a860cbdeb8628819"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PUBLISH.json",
+    "originalSha256": "a5e42b986fdad2f068a5d4d889ed7c023d1213456e8d58d70ca1ccc8a63e823f",
+    "publishedSha256": "bab76b4ad177de0ab61662f126ef549a3b9d13d33850885764551cc4280bef02"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/ACTIVATE.json",
+    "originalSha256": "85a62b81554c244e0d97d49a73e1cc64876a2f142c40a4e148860db9742209bd",
+    "publishedSha256": "72cdcf73eff33a3c180dfd28e8a85b930cfb8fcf1ffe82c4c5f57f0472957894"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/BINDINGS.json",
+    "originalSha256": "0c5d900d0b23b7b2a30315aea5d47c524cb2b23715e77493520740cae41cef4b",
+    "publishedSha256": "a371e7d9b8b838d6b12386f2811726957505ab41ba3571aa620c23fcbfe34c3c"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/QA_RESET_SIMULATION.json",
+    "originalSha256": "8a7621b38bf344cf9ea1f0ba17035380df3b5be4ea805d14fa385f091001cb1c",
+    "publishedSha256": "8a7621b38bf344cf9ea1f0ba17035380df3b5be4ea805d14fa385f091001cb1c"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/QUALIFICATION_TRANSPORT_INTERRUPTION.json",
+    "originalSha256": "6255870be7a57a6e2ac06bcfd0168f3353f260d4f99d54ef76e2c564ecb107ca",
+    "publishedSha256": "a4b0932f44c26981b0f9842af735f014f0f6cd1c00c1a0395e9561b7344d6cfc"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/STAGE_OWNER_TRANSPORT_RESILIENCE.json",
+    "originalSha256": "1c4f50c8ab6f40b5c763bf953a090a64ffb2e0ad82942a9919aa00a4cf58c14b",
+    "publishedSha256": "b90369c0408d7f36e6d440fd90f0f0f0d5a514885a1221e72f3ea1276d307837"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PREBIND_REVIEW.json",
+    "originalSha256": "16373a94e3ba151a32802478a747aa1c65fcf97772bb30b94b27ae94412edcde",
+    "publishedSha256": "b38ade0206a9128df6866410efd7c802cbf1d2d322cd7dd818ca0482991b5ca2"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/MICRO_LAYER_REVIEW.json",
+    "originalSha256": "787b2f46edc9a11ff6efcc17dcaaabcb3e7c19d88dc1b954473877ec71852d3c",
+    "publishedSha256": "097341592f35596014cf9e44451a942d28f1bc30e818ee03d081700ee7d827bc"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/TARGETED.json",
+    "originalSha256": "37c4c2776ad0562b5352ec059286881f5af950216985583022acfd111bef901c",
+    "publishedSha256": "fff00c0d5e9b18134b7d8249cfa07d555d5bbab08773d4f5274945da61c93df2"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PHYSICAL_FAIL_REPRODUCED.json",
+    "originalSha256": "6371d4c590f72bb8dc511cc609409d349a53a090c904820c86020c0084d7dd40",
+    "publishedSha256": "6371d4c590f72bb8dc511cc609409d349a53a090c904820c86020c0084d7dd40"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/R2_HTTP_SALE_TEST.json",
+    "originalSha256": "348be4de4f49ac1fea004f116509b206d827c705a57467da6f6fa8253194550d",
+    "publishedSha256": "348be4de4f49ac1fea004f116509b206d827c705a57467da6f6fa8253194550d"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/R1_HTTP_SALE_TEST.json",
+    "originalSha256": "0f077d50d6dc802c0cf416fa112bdfce6ff8e915e7cb734bc41dc7a3d1d77ba9",
+    "publishedSha256": "4c8171056e4450d08d3a5f783c997d0bb81844fc4b64882fe2c1e760be0802c8"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/HTTP_HARNESS_INITIAL_SCOPE_FAIL.json",
+    "originalSha256": "1a9cc2f5213750c225f6e8ecfef9e56189afc68fc8a8a289a0cb9f5748f9da86",
+    "publishedSha256": "bf7e56dd45c5e01436032cf27f5f6745695a614d944aff2744a08eb7fc875b7d"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/CONTROLLER_INITIAL_PARENT_FIXTURE_FAIL.json",
+    "originalSha256": "1f337a8d19f1af966292940f294c209214c258f60f3c4fddaaad939522a22264",
+    "publishedSha256": "99fc399115b6a72c1a0ed30c01d03ed13af5f7493fa8a1753b5035eaf0fda89b"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PREIMAGE_CAPTURE_INITIAL_FAIL.json",
+    "originalSha256": "19011884f49fafb728948a91389ecc8d9092f5245c74a8c300191cb66c8f42b0",
+    "publishedSha256": "7a7bad5095167984b44ff6aec863eb0fe272a9e6dcb247263fe5310edde611e2"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PREIMAGE_ABSENCE.json",
+    "originalSha256": "cd7407a5fbccd814b5530e53617144f4d5a9a7bef5ec3c83d0c27057804d0c9c",
+    "publishedSha256": "75552029ad48d063774b112daaf2764ab262974b7a2af97fe65e884c823f0b9f"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/PREIMAGE_ABSENCE_CURRENT.json",
+    "originalSha256": "df5af0670209d658065ebf4e90369b29b792d847c1f333054d6fdad641485e83",
+    "publishedSha256": "7a196aed75507b21d6a8fdf70bfd209b427c5daacc3fef68bb24dd00c4da3d09"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/proofs/RECOVERY_INITIAL_TARGET_AND_TAR_FAIL.json",
+    "originalSha256": "5510fd433f1ed9501180ecf393dcb49779fdd54e67f6fcef6ca1da12fcb29de3",
+    "publishedSha256": "073783d627f7c39a838f45b241b46ccdfd332d783a24a04a4c8424d54518efe6"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/capture_before_boot_dedup.py",
+    "originalSha256": "959b60a4e165e416812a0a1e4963c08e073b08e1c36ecae59e6bd0df8719d6c2",
+    "publishedSha256": "959b60a4e165e416812a0a1e4963c08e073b08e1c36ecae59e6bd0df8719d6c2"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/prebind_review.py",
+    "originalSha256": "f62e791b8c7e79cfe4e48e1bc550f24ce4252e677a757ecf03afc5033e5e0377",
+    "publishedSha256": "f62e791b8c7e79cfe4e48e1bc550f24ce4252e677a757ecf03afc5033e5e0377"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/detach_stage_owner.py",
+    "originalSha256": "48e0faaa64d89f8e4ce465734177aa3422c893fd4b1bdd21bbed611475c95c72",
+    "publishedSha256": "48e0faaa64d89f8e4ce465734177aa3422c893fd4b1bdd21bbed611475c95c72"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/collect_owner.py",
+    "originalSha256": "1ecfe11a6a0078d0298ed51bc3a198eb5776c4487231831ee0d1b91d5b1d8893",
+    "publishedSha256": "1ecfe11a6a0078d0298ed51bc3a198eb5776c4487231831ee0d1b91d5b1d8893"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/recover_qualification.py",
+    "originalSha256": "d35a120dd20b002032a1492af28bd33a637ddcd57d4bba77fdb690b71e2d11e7",
+    "publishedSha256": "d35a120dd20b002032a1492af28bd33a637ddcd57d4bba77fdb690b71e2d11e7"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/build_core.py",
+    "originalSha256": "d52fe25ef1654cbe217160132de253d7a8831d3653528ac63923202c9ee2dfd2",
+    "publishedSha256": "d52fe25ef1654cbe217160132de253d7a8831d3653528ac63923202c9ee2dfd2"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/operations-controller.py",
+    "originalSha256": "56fb37be1483b6eaabf07b5e21d105d96bfbdc78545ee9c742c55bcc397004ae",
+    "publishedSha256": "56fb37be1483b6eaabf07b5e21d105d96bfbdc78545ee9c742c55bcc397004ae"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/stage-owner.py",
+    "originalSha256": "ba37dcea4f2d937f9356c120e6a60385864641578d3ee0509e0b89d1e83879a1",
+    "publishedSha256": "ba37dcea4f2d937f9356c120e6a60385864641578d3ee0509e0b89d1e83879a1"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/test_controller.py",
+    "originalSha256": "84eddfbc1c4de7299822d2daaba01a8c49e72f43a02b3d1717222d5563f29530",
+    "publishedSha256": "84eddfbc1c4de7299822d2daaba01a8c49e72f43a02b3d1717222d5563f29530"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/qualify.py",
+    "originalSha256": "e59a62a8f986fc9e45902fd1e698eaacaaca27a99eeb2baaf8bc37f70b61b065",
+    "publishedSha256": "e59a62a8f986fc9e45902fd1e698eaacaaca27a99eeb2baaf8bc37f70b61b065"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/qualify_additional.py",
+    "originalSha256": "47d9438cb3911a5cace04b0d86e108ebeea5c79645386771cd8f2ac854b0ab8f",
+    "publishedSha256": "47d9438cb3911a5cace04b0d86e108ebeea5c79645386771cd8f2ac854b0ab8f"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/startup_smoke.py",
+    "originalSha256": "fc6ef656119290d58fcb770619e6f99c9928d1964d4554fe6ebdfa68099d08fe",
+    "publishedSha256": "fc6ef656119290d58fcb770619e6f99c9928d1964d4554fe6ebdfa68099d08fe"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/http_sale_probe.py",
+    "originalSha256": "3dab2b939a2eb7d87e410e52067065f1238e7e33a0e986781f67f5b35b332fa9",
+    "publishedSha256": "3dab2b939a2eb7d87e410e52067065f1238e7e33a0e986781f67f5b35b332fa9"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/http-sale.mjs",
+    "originalSha256": "d9c7db2e311c6b305c3fedca183dd400d9fdc860446bd981e42b62cdce0661cf",
+    "publishedSha256": "d9c7db2e311c6b305c3fedca183dd400d9fdc860446bd981e42b62cdce0661cf"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/sale-model-shim.cjs",
+    "originalSha256": "ce933cf71022adcf8b277bc5bab812f8abf07ffb5dde47b402c888a9b4c1b468",
+    "publishedSha256": "ce933cf71022adcf8b277bc5bab812f8abf07ffb5dde47b402c888a9b4c1b468"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/linked_http_qualification.py",
+    "originalSha256": "934d764981ec1fcf47edcaabe92ce1cfbe3e448d0a9e61679b73cad4116c0354",
+    "publishedSha256": "934d764981ec1fcf47edcaabe92ce1cfbe3e448d0a9e61679b73cad4116c0354"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/extend_linked_qualification.py",
+    "originalSha256": "c56ef3c99cb11253706edb3b6c0b2e65c5fc020c5ebda5125654138856da4067",
+    "publishedSha256": "c56ef3c99cb11253706edb3b6c0b2e65c5fc020c5ebda5125654138856da4067"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/audit_live.py",
+    "originalSha256": "2ba0076a388e4a085ddcdfcbd6b66dc63c0913025e6ed19743265154e6771392",
+    "publishedSha256": "2ba0076a388e4a085ddcdfcbd6b66dc63c0913025e6ed19743265154e6771392"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/capture_before.py",
+    "originalSha256": "95dac6bbcf264a8253f4f8b80523055de4dc13c8c122d5edf353bb467d100808",
+    "publishedSha256": "95dac6bbcf264a8253f4f8b80523055de4dc13c8c122d5edf353bb467d100808"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/capture_after.py",
+    "originalSha256": "d8e144ed94fd7652ef2a8e66321c30e612d750e52e961d81e5fa518b3b00c385",
+    "publishedSha256": "d8e144ed94fd7652ef2a8e66321c30e612d750e52e961d81e5fa518b3b00c385"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/capture_common.py",
+    "originalSha256": "97e6324a1bf35abb472d73a1dac359b2578578e6e21aa33949e4ace8a714d091",
+    "publishedSha256": "6db6d156a51f3f91b36e8e336b58f9c1a046e986eb307246200ad1748b972161"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/capture_runtime_after.py",
+    "originalSha256": "9c41a3406825d8993cd128148a257c6506ef4c6f3ab4a967b1becd2f033960bf",
+    "publishedSha256": "9c41a3406825d8993cd128148a257c6506ef4c6f3ab4a967b1becd2f033960bf"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/verify-recovery.ps1",
+    "originalSha256": "2c31dead42606e9eb048da0eaff3b0db78dcfd731449f0c881e6ebcbd757261e",
+    "publishedSha256": "2c31dead42606e9eb048da0eaff3b0db78dcfd731449f0c881e6ebcbd757261e"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/verify-recovery-after.ps1",
+    "originalSha256": "635e0a19818905688a4a018e5b5efe0586f64f307b330f8e1fd7a1fe8f0a62ed",
+    "publishedSha256": "635e0a19818905688a4a018e5b5efe0586f64f307b330f8e1fd7a1fe8f0a62ed"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/bind_gates.py",
+    "originalSha256": "7b34fd6e5e799fdee1ce7c598f16f38ec62dcb1f85150b912486f3500d1c7c6a",
+    "publishedSha256": "7b34fd6e5e799fdee1ce7c598f16f38ec62dcb1f85150b912486f3500d1c7c6a"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/native_index_proof.py",
+    "originalSha256": "81fe84db38a1b89645f5362f170239c091777ff663f8aa9cbc3246ca574a47cf",
+    "publishedSha256": "81fe84db38a1b89645f5362f170239c091777ff663f8aa9cbc3246ca574a47cf"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/index-proof.mjs",
+    "originalSha256": "41d2f082075b985a5c6964f36310354adf1d9b2bd09acbdbbaf924a2eea45e69",
+    "publishedSha256": "41d2f082075b985a5c6964f36310354adf1d9b2bd09acbdbbaf924a2eea45e69"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/test_qa_reset_scope.py",
+    "originalSha256": "5b60de3c6f74e1df5faaeb6fe0af9ad66763c6eb5314c6067d0fd1342dd81706",
+    "publishedSha256": "5b60de3c6f74e1df5faaeb6fe0af9ad66763c6eb5314c6067d0fd1342dd81706"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/qa-reset-scope-runner.py",
+    "originalSha256": "5ddbb01bd5b4e7780ecae26a072ce52dd2050ca75e89ea8536fa24d40f2ad639",
+    "publishedSha256": "5ddbb01bd5b4e7780ecae26a072ce52dd2050ca75e89ea8536fa24d40f2ad639"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/qa-reset-seed.js",
+    "originalSha256": "37bafe4fcfcd7c79f45c86eb5eee319ed5c281cfcb44da28de6145ce9fae314f",
+    "publishedSha256": "37bafe4fcfcd7c79f45c86eb5eee319ed5c281cfcb44da28de6145ce9fae314f"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/qa-reset-mongo-scope.js",
+    "originalSha256": "b842177343afbb7e35baf8128d9a9cd0abf9d07ce3bf2298b3278f4ef423f9e9",
+    "publishedSha256": "b842177343afbb7e35baf8128d9a9cd0abf9d07ce3bf2298b3278f4ef423f9e9"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/ec-b01-named-entry-profile-v246-r5.mjs.patch",
+    "originalSha256": "242b6a72be1db426cceac1589f8cc0ee5e73f3b555a0bf38656b98cfcd2a2152",
+    "publishedSha256": "242b6a72be1db426cceac1589f8cc0ee5e73f3b555a0bf38656b98cfcd2a2152"
+  },
+  {
+    "path": "ops/publication/vitpower-named-entry-v246-r5/ec-b01-named-entry-sealed-v246-r5.mjs.patch",
+    "originalSha256": "d6319b14a9b59a75f62d4499742821636de8fb7732dad16370308fa8e950f394",
+    "publishedSha256": "d6319b14a9b59a75f62d4499742821636de8fb7732dad16370308fa8e950f394"
+  }
+]

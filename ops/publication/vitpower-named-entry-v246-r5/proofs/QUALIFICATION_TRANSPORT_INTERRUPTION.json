@@ -1,0 +1,12 @@
+{
+  "project": "VITALISMEN_EC",
+  "at": "2026-11-18T17:38:18.438788+00:00",
+  "toolSession": 5297,
+  "transportError": "SSH connection reset",
+  "remoteDriverPid": 3958049,
+  "completeSeniorGroup": 3961866,
+  "remoteDriverAndSuiteAliveVerified": true,
+  "testsRestarted": false,
+  "productionChanged": false,
+  "durableProgress": "root QUALIFICATION_PROGRESS.json has 3PASS; final complete_senior running"
+}

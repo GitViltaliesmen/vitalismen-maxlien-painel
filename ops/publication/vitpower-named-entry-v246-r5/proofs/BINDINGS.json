@@ -1,0 +1,27 @@
+{
+  "project": "VITALISMEN_EC",
+  "candidateCommit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+  "hashes": {
+    "docs/freeze/vitpower-named-entry-v246-contract.json": "397260bf5526e3582329ab02051f822d2cfb7191aa9bb6f255007ee283d54f3b",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "e0363a662c074a0d60a58712eb4927905aceb20a7020e4df41f15269f474bd41",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "133dbd57c5e03a4ed96c9d77c4c1238a49c8cffebce160c9229be69e0be8a58d",
+    "src/routes/zapi.js": "b961791a50725edb7909dfc622476f4548783b15c1ea4308231b36ffbaa279e0",
+    "src/services/vitPowerB01CoreV216Service.js": "1528f14543a0fde3b12d76838431a302a1788f12c054e9724870009181073bed",
+    "src/services/vitPowerBurstRuntimeV228Service.js": "2d8b191395d208c67970e84ad195513ac747012dc9f484636d03ecccd06c966d",
+    "src/services/vitPowerEntryContextV246Service.js": "c125b764e6e9da8af62c126814a0479af91f10db10e51427c69dc9a9b865532b",
+    "tests/b01-named-entry-v246.test.mjs": "c7e88f62f19eb2c36712823c2c5f6c0a4ff4e373dbb68c15cf4cfe084b3c8b50"
+  },
+  "approvalSha256": "078038eb1f1fdc7225c2f50183c47889a6a07129014d30e076342e550300cd31",
+  "controllerSha256": "56fb37be1483b6eaabf07b5e21d105d96bfbdc78545ee9c742c55bcc397004ae",
+  "stageOwnerSha256": "ba37dcea4f2d937f9356c120e6a60385864641578d3ee0509e0b89d1e83879a1",
+  "gates": {
+    "QUALIFICATION": "acfa49a7d74a459b1466cfa4d9b273b40345769e81be00dc2364e7780acf32f7",
+    "EXTRA_QUALIFICATION": "6f492e436ee70706cb4e1f6ed691b6804ddc74de6f2c24389a21ffcc1bc43178",
+    "CODE_CONFIG_RECOVERY": "ad9bf0485f52420bfcda17bb62b87ef05b61e2bff2b4b224f58dc628e1d392c0",
+    "HTTP_SALE_TEST": "f1b357d2e44464811c7736e59c39c2f522741a073070487cd6e93abc0944ce5a",
+    "INHERITED_REGRESSION": "72793860103ecfa91a968011c347a2e121c00317d9fe901eaac8f13a9de5d27f",
+    "PUBLIC_BASELINE": "0e706f425987e53efb99802b3d71bf500cebdaf5fd909f84544b96a1f90c2c5f",
+    "OPERATIONS_TEST": "5bd1d45c0df65d3f6b62a71356475403f7e8a648555558ea991bed612502f66c",
+    "INHERITED_CONTROL": "31fbae51924d21c443009afea7f7b1657365a87ab0bd9ca5e9f8c59271b29660"
+  }
+}

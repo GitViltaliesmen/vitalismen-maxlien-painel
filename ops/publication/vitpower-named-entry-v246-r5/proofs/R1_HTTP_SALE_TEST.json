@@ -1,0 +1,305 @@
+{
+  "pass": false,
+  "error": "TIMEOUT QA initial greeting gits\",\"tags\"],\"filterSha256\":\"f5e5a07589f3e4ef099e04d5acfc22bd3e83c5fe7f7fec43088f6b9ee0bc7dd8\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"888fa97b-0829-4330-8d05-724555e8fa10\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"initial\",\"executed\":true,\"matchedCount\":null,\"modifiedCount\":0}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"888fa97b-0829-4330-8d05-724555e8fa10\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"followup\",\"executed\":false,\"matchedCount\":null,\"modifiedCount\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_CLAIM_RETURN\",\"requestId\":\"888fa97b-0829-4330-8d05-724555e8fa10\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"returnState\":{\"applicable\":true,\"allowed\":false,\"persistenceAllowed\":true,\"automationAllowed\":false,\"reason\":\"qa_dashboard_persistence_only\",\"phase\":null}}\n[WHATSAPP] Engine desativado por WHATSAPP_CONNECT_ENABLED=false\n\n🚀 ================================\n🚀  Express Checkout API Server\n🚀  Host: 127.0.0.1\n🚀  Port: 3001\n🚀  Environment: production\n🚀 ================================\n\n📍 Endpoints:\n   POST /api/auth/login\n   POST /api/auth/register\n   GET  /api/orders\n   POST /api/orders\n   GET  /api/products?country=EC\n   POST /api/webhook/order-created\n\n✅ MongoDB Connected: 127.0.0.1\n2026-11-18T16:41:06.856Z | GET /api/health/\n[STARTUP-V66] API/health ativos em modo seguro; nenhuma mutacao automatica iniciada; reason=mutation_flag_invalid_or_false.\n2026-11-18T16:41:07.261Z | POST /api/zapi/webhook/received\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ENTER\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"path\":\"/api/zapi/webhook/received\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ALLOWED\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"writeContext\":true}\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_CLAIM_ENTER\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FILTER_APPLIED\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"initial\",\"filterApplied\":true,\"filterFields\":[\"chatId\",\"human.mode\",\"metadata.botTestEnabled\",\"metadata.fullFunnelTestEnabled\",\"metadata.qaTestContextV78.context\",\"metadata.qaTestContextV78.expiresAt\",\"metadata.qaTestContextV78.phone\",\"metadata.qaTestContextV78.routingMessageId\",\"metadata.qaTestContextV78.status\",\"metadata.qaTestContextV78.version\",\"metadata.testOnly\",\"phoneDigits\",\"tags\"],\"filterSha256\":\"533b1aa23dcd5769e4aa69a374e19bf72afdc0e531ee081a48c9d951cf9f5fe2\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"initial\",\"executed\":true,\"matchedCount\":1,\"modifiedCount\":1}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"followup\",\"executed\":false,\"matchedCount\":null,\"modifiedCount\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_CLAIM_RETURN\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"returnState\":{\"applicable\":true,\"allowed\":true,\"persistenceAllowed\":true,\"automationAllowed\":true,\"reason\":\"qa_context_claimed\",\"phase\":\"initial\"}}\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[ZAPI-WEBHOOK] inbound | recorded=true | phone=5515998038637 | type=chat | id=SIM_IN_00001\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FINALIZE_ENTER\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FILTER_APPLIED\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"finalize\",\"filterApplied\":true,\"filterFields\":[\"metadata.qaTestContextV78.routingMessageId\",\"metadata.qaTestContextV78.status\",\"phoneDigits\"],\"filterSha256\":\"71e68670838de636baddd37b94bd0041cf5de556e3b9833167fe08daf390e14d\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"finalize\",\"executed\":true,\"matchedCount\":1,\"modifiedCount\":1}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FINALIZE_RESULT\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"changed\":true}\n",
+  "checks": [
+    "real_mongo_history_accepts_proven_receipts_and_rejects_foreign_or_unproven_rows",
+    "production_unique_compound_index_reproduced",
+    "qa_named_entry_persisted_and_accepted"
+  ],
+  "stages": [],
+  "ingress": [
+    {
+      "id": "SIM_IN_00001",
+      "text": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00001",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00001",
+          "body": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+          "bodyLength": 161,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": false,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": true,
+          "contactStateId": "6afdd5230b399576da589f4b",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": false,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    }
+  ],
+  "contactDiagnostic": null,
+  "qaDiagnostic": {
+    "_id": "6afdd5230b399576da589f4b",
+    "phoneDigits": "5515998038637",
+    "chatId": "5515998038637@c.us",
+    "countryCode": "EC",
+    "assignedAgent": "vit_power_ec",
+    "human": {
+      "mode": "auto",
+      "assignedTo": "",
+      "assignedName": "Teste 8637",
+      "pausedUntil": null,
+      "lastManualBy": "",
+      "note": "TESTE 8637: prioridade fixa no painel com bot liberado."
+    },
+    "tags": [
+      "TESTE_8637_PRIORIDADE",
+      "TESTE_FIXO_NAO_MEXER",
+      "BOT_TESTE_LIBERADO",
+      "ZAPI_INBOUND_CAPTURED",
+      "AUTHORIZED_VSL_TEST_RECIPIENT",
+      "BR_CAPTURADO_CELULAR",
+      "COMMERCIAL_READY",
+      "VIT_POWER_EC",
+      "ASKS_PRICE",
+      "HAS_ORDER_DATA"
+    ],
+    "metadata": {
+      "testOnly": true,
+      "botTestEnabled": true,
+      "fullFunnelTestEnabled": true,
+      "noDropiEver": true,
+      "productKey": "vit_power_ec",
+      "productName": "Vit Power Ecuador",
+      "qaTestContextV78": {
+        "version": 78,
+        "context": "EC_V78_OFFICIAL_VSL_QA",
+        "phone": "5515998038637",
+        "permitId": "ecqa-v78-3dd358d92f85c78f5602711622a52282",
+        "status": "consumed",
+        "armedAt": "2026-11-18T16:41:07.134Z",
+        "expiresAt": "2026-11-18T16:51:07.133Z",
+        "previousHumanMode": "manual",
+        "previousPausedUntil": "2036-01-01T00:00:00.000Z",
+        "messageCount": 1,
+        "processedMessageIds": [
+          "SIM_IN_00001"
+        ],
+        "auditAction": "temporary_human_hold_release_for_exact_qa",
+        "routingAt": "2026-11-18T16:41:07.513Z",
+        "routingMessageId": "SIM_IN_00001",
+        "routingPhase": "initial",
+        "routingSignature": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?",
+        "consumedAt": "2026-11-18T16:41:07.875Z",
+        "consumedMessageId": "SIM_IN_00001",
+        "httpStatus": 200,
+        "lastProcessedAt": "2026-11-18T16:41:07.875Z",
+        "lastProcessedPhase": "initial"
+      },
+      "lastProvider": "zapi",
+      "lastProviderMessageId": "SIM_IN_00001",
+      "lastProviderZaapId": "",
+      "lastSessionId": "zapi",
+      "zapiInboundAt": "2026-11-18T16:41:07.290Z",
+      "zapiCapturedContact": true,
+      "zapiCapturedAt": "2026-11-18T16:41:07.290Z",
+      "zapiCapturedCountry": "BR",
+      "zapiCapturedSource": "connected_phone_inbound",
+      "publicVslLeadEntry": false,
+      "profileName": "Carlos Prueba",
+      "customerDraft": {
+        "name": "Carlos Prueba",
+        "nameSource": "provider_profile_name",
+        "updatedAt": "2026-11-18T16:41:07.290Z",
+        "phone": "+5515998038637",
+        "country": "EC"
+      },
+      "linkedChatIds": [
+        "5515998038637@c.us"
+      ],
+      "lastActiveChatId": "5515998038637@c.us",
+      "sessionContinuity": {
+        "lastInboundAt": "2026-11-18T16:41:07.698Z",
+        "lastInboundSessionId": "zapi",
+        "lastInboundChatId": "5515998038637@c.us",
+        "history": [
+          {
+            "at": "2026-11-18T16:41:07.698Z",
+            "direction": "inbound",
+            "chatId": "5515998038637@c.us",
+            "sessionId": "zapi",
+            "senderPn": "5515998038637",
+            "phoneDigits": "5515998038637"
+          }
+        ]
+      },
+      "lastSenderPn": "5515998038637",
+      "customerPhoneDigits": "5515998038637",
+      "processedInboundMessageIds": [
+        "SIM_IN_00001"
+      ],
+      "lastProcessedInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+      "lastProcessedInboundAt": "2026-11-18T16:41:07.699Z",
+      "outboundTestOnly": true,
+      "priorityFrozen": true,
+      "priorityFrozenReason": "NUMERO_8637_TESTE_PERMANENTE_NAO_MEXER",
+      "lastHumanHoldReason": "",
+      "lastRouterDecisionAt": "2026-11-18T16:41:07.757Z",
+      "lastRouterDecisionText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+      "lastRouterDecisionProductKey": "vit_power_ec",
+      "lastRouterDecisionReason": "current_negotiation_product",
+      "lastDetectedSignals": {
+        "wantsConsultation": false,
+        "showsPurchaseIntent": true,
+        "asksPrice": true,
+        "asksProductQuestion": false,
+        "asksProof": false,
+        "asksComposition": false,
+        "asksLiquid": false,
+        "asksGuide": false,
+        "asksPickup": false,
+        "mentionsAddress": true,
+        "priceResistance": false,
+        "closing": false,
+        "postSale": false,
+        "requestsQuantity": false,
+        "mentionsProducts": true,
+        "mentionsVitPower": true,
+        "explicitWarmupExit": false,
+        "funnelBucket": "06_FECHAMENTO",
+        "buyerScore": 100
+      },
+      "lastKnownFunnelBucket": "06_FECHAMENTO",
+      "buyerScore": 100,
+      "perAgentMemory": {
+        "vit_power_ec": {
+          "lastInboundAt": "2026-11-18T16:41:07.758Z",
+          "lastInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+          "lastReason": "current_negotiation_product",
+          "lastFunnelBucket": "06_FECHAMENTO",
+          "buyerScore": 100
+        }
+      }
+    },
+    "__v": 2,
+    "agentHistory": [],
+    "buyLaterReminder": {
+      "active": false,
+      "attemptCount": 0,
+      "awaitingReply": false,
+      "customerName": "",
+      "desiredOrderDate": "",
+      "lastError": "",
+      "productKey": "",
+      "productName": "",
+      "providerMessageId": ""
+    },
+    "conversationBucket": {
+      "confidence": "low",
+      "history": [],
+      "manualSelectedBy": "",
+      "previousValue": "",
+      "reasons": [],
+      "score": 0,
+      "source": "default",
+      "value": "attendance"
+    },
+    "customerDataResolution": {
+      "version": 28,
+      "country": "",
+      "conflicts": [],
+      "qualityScore": 0,
+      "orderDataReady": false,
+      "blockedReasons": [],
+      "nextRequiredField": ""
+    },
+    "engagementAutomation": {
+      "approvalSource": "",
+      "approvedBy": "",
+      "blockedReason": "",
+      "dailyKey": "",
+      "dailyReplyCount": 0,
+      "estimatedCostUsd": 0,
+      "lastDecision": "",
+      "lastFailure": "",
+      "lastInboundMessageId": "",
+      "lastReplyProviderMessageId": "",
+      "lastReplyTemplateKey": "",
+      "localDecisionCount": 0,
+      "modelCallCount": 0,
+      "passiveInboundCount": 0,
+      "passiveLastCountedMessageId": "",
+      "passiveReplyCycle": 0,
+      "passiveReplyTarget": 2,
+      "replyHistory": [],
+      "replyLockedForMessageId": ""
+    },
+    "firstInboundAt": "2026-11-18T16:41:07.290Z",
+    "firstInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+    "lastInboundAt": "2026-11-18T16:41:07.714Z",
+    "lastInboundText": "Hola, vengo del video. Quiero conocer la oferta disponible de Vit Power. ¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan? Nombre: Gerson",
+    "productHistory": [
+      {
+        "productKey": "vit_power_ec",
+        "reason": "current_negotiation_product",
+        "at": "2026-11-18T16:41:07.754Z",
+        "_id": "6afdd5233abfabacb0eaf343"
+      }
+    ],
+    "updatedAt": "2026-11-18T16:41:07.881Z",
+    "vitPowerBurstV228": {
+      "version": "vitpower-burst-v228",
+      "status": "pending",
+      "phone": "5515998038637",
+      "chatId": "5515998038637@c.us",
+      "sessionId": "zapi",
+      "generation": 1,
+      "pendingIds": [
+        "SIM_IN_00001"
+      ],
+      "seenIds": [
+        "SIM_IN_00001"
+      ],
+      "lockedIds": [],
+      "dueAt": "2026-11-18T16:42:07.838Z",
+      "lastInboundAt": "2026-11-18T16:41:07.838Z",
+      "createdAt": "2026-11-18T16:41:07.838Z",
+      "history": []
+    }
+  },
+  "qaLedgerDifferences": [],
+  "providerRequests": [],
+  "log": "o não autorizada.\n[DEPLOY-STAGE-SOURCE-REF-SAFETY-V69] ref exata, commit/tree detached e production imutável; publicação não autorizada.\n[DEPLOY-PUBLICATION-ATTESTATION-SAFETY-V70] publicação fechada, attestation imutável e ativação vinculada; nenhum efeito operacional autorizado.\n[STRICT-READ-ONLY-OBSERVATION-SAFETY-V71] SAFE_OBSERVATION_ONLY equivale a STRICT_READ_ONLY global; writes permitidos=0; nenhum efeito operacional autorizado.\n[DEPLOY-HELPER-V71-CHAIN-ALIGNMENT-SAFETY-V72] helper/freeze V72 materializa runtime V71 e dados V66; STRICT_READ_ONLY preservado; nenhum efeito operacional autorizado.\n[META-PARTNER-DESTINATION-REGISTRY-V73] Browser/CAPI atômicos; parceiro compartilha Dataset existente; V72/V71/V66 preservados; nenhum evento Meta autorizado.\n[FREEZE-LOCK-EC-META-DYNAMIC-V74] freeze legado intacto; destino dinâmico, igualdade Browser/CAPI, Lead/eventID e Purchase preservados; nenhuma mutação operacional autorizada.\n[CANARY-ISOLATION-SAFETY-V75] V75 → V74 → V73 → V72 → V71 íntegra; destinatário único, providers e efeitos externos falham fechados; nenhuma mutação operacional autorizada.\n[DEPLOY-HEALTH-BRIDGE-SEMANTICS-V76] V76 → V75 → V74 → V73 → V72 → V71 íntegra; migração persistente V66 concluída não habilita bridge operacional, writes, schedulers, provider, Dropi ou Meta.\n[CANARY-CONTROLLER-SAFETY-V77] V77 → V76 → V75 → V74 → V73 → V72 → V71 íntegra; permit único, janela temporizada, QA integral e expiração fail-closed; nenhuma mutação de produção autorizada.\n[CANARY-CONTROLLER-PM2-STDIN-HOTFIX-V77H] V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71 íntegra; stdin PM2 exclusivo, leitura até EOF e fingerprint externo fail-closed; nenhuma mutação de produção autorizada.\n[CANARY-CONTROLLER-HEALTH-POLICY-RESET-V77H2] V77H2 → V77H → V77 → V76 → V75 → V74 → V73 → V72 → V71 íntegra; política strict herdada sobrescrita por valor vazio somente no perfil QA; helper V77H preservado; nenhuma mutação de produção autorizada.\n[DROPI-EC] DROPPI_EC_STORAGE_STATE_PATH relativo ignorado; usando caminho persistente fora do release.\n[LOG_OPENAI_CLIENT_INIT] 🛠️ OPENAI SERVICE INICIALIZADO (Via Fetch)\nEC_PANEL_STATUS_OPERATIONS_V177=PASS manifest_sha256=e981ffa441c959f2c8ec91cf58e60240e0a3725cb3c6d7cc40f5684753c95c27\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_CLAIM_ENTER\",\"requestId\":\"888fa97b-0829-4330-8d05-724555e8fa10\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FILTER_APPLIED\",\"requestId\":\"888fa97b-0829-4330-8d05-724555e8fa10\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"initial\",\"filterApplied\":true,\"filterFields\":[\"chatId\",\"human.mode\",\"metadata.botTestEnabled\",\"metadata.fullFunnelTestEnabled\",\"metadata.qaTestContextV78.context\",\"metadata.qaTestContextV78.expiresAt\",\"metadata.qaTestContextV78.phone\",\"metadata.qaTestContextV78.routingMessageId\",\"metadata.qaTestContextV78.status\",\"metadata.qaTestContextV78.version\",\"metadata.testOnly\",\"phoneDigits\",\"tags\"],\"filterSha256\":\"f5e5a07589f3e4ef099e04d5acfc22bd3e83c5fe7f7fec43088f6b9ee0bc7dd8\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"888fa97b-0829-4330-8d05-724555e8fa10\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"initial\",\"executed\":true,\"matchedCount\":null,\"modifiedCount\":0}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"888fa97b-0829-4330-8d05-724555e8fa10\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"followup\",\"executed\":false,\"matchedCount\":null,\"modifiedCount\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_CLAIM_RETURN\",\"requestId\":\"888fa97b-0829-4330-8d05-724555e8fa10\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"returnState\":{\"applicable\":true,\"allowed\":false,\"persistenceAllowed\":true,\"automationAllowed\":false,\"reason\":\"qa_dashboard_persistence_only\",\"phase\":null}}\n[WHATSAPP] Engine desativado por WHATSAPP_CONNECT_ENABLED=false\n\n🚀 ================================\n🚀  Express Checkout API Server\n🚀  Host: 127.0.0.1\n🚀  Port: 3001\n🚀  Environment: production\n🚀 ================================\n\n📍 Endpoints:\n   POST /api/auth/login\n   POST /api/auth/register\n   GET  /api/orders\n   POST /api/orders\n   GET  /api/products?country=EC\n   POST /api/webhook/order-created\n\n✅ MongoDB Connected: 127.0.0.1\n2026-11-18T16:41:06.856Z | GET /api/health/\n[STARTUP-V66] API/health ativos em modo seguro; nenhuma mutacao automatica iniciada; reason=mutation_flag_invalid_or_false.\n2026-11-18T16:41:07.261Z | POST /api/zapi/webhook/received\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ENTER\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"path\":\"/api/zapi/webhook/received\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_PIPELINE_ALLOWED\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"writeContext\":true}\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_CLAIM_ENTER\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FILTER_APPLIED\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"initial\",\"filterApplied\":true,\"filterFields\":[\"chatId\",\"human.mode\",\"metadata.botTestEnabled\",\"metadata.fullFunnelTestEnabled\",\"metadata.qaTestContextV78.context\",\"metadata.qaTestContextV78.expiresAt\",\"metadata.qaTestContextV78.phone\",\"metadata.qaTestContextV78.routingMessageId\",\"metadata.qaTestContextV78.status\",\"metadata.qaTestContextV78.version\",\"metadata.testOnly\",\"phoneDigits\",\"tags\"],\"filterSha256\":\"533b1aa23dcd5769e4aa69a374e19bf72afdc0e531ee081a48c9d951cf9f5fe2\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"initial\",\"executed\":true,\"matchedCount\":1,\"modifiedCount\":1}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"followup\",\"executed\":false,\"matchedCount\":null,\"modifiedCount\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_CLAIM_RETURN\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"returnState\":{\"applicable\":true,\"allowed\":true,\"persistenceAllowed\":true,\"automationAllowed\":true,\"reason\":\"qa_context_claimed\",\"phase\":\"initial\"}}\n[META-ATTRIBUTION] UNMATCHED candidates=0 reason=no_unique_exact_visit\n[ZAPI-WEBHOOK] inbound | recorded=true | phone=5515998038637 | type=chat | id=SIM_IN_00001\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FINALIZE_ENTER\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FILTER_APPLIED\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"finalize\",\"filterApplied\":true,\"filterFields\":[\"metadata.qaTestContextV78.routingMessageId\",\"metadata.qaTestContextV78.status\",\"phoneDigits\"],\"filterSha256\":\"71e68670838de636baddd37b94bd0041cf5de556e3b9833167fe08daf390e14d\"}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_MONGO_RESULT\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"phase\":\"finalize\",\"executed\":true,\"matchedCount\":1,\"modifiedCount\":1}\n[EC-QA-CLAIM-V78] {\"project\":\"VITALISMEN_EC\",\"event\":\"QA_FINALIZE_RESULT\",\"requestId\":\"ccf45460-f226-46d1-b88c-b16afc54d27a\",\"qaContextId\":null,\"contactStateId\":null,\"inboundId\":null,\"changed\":true}\n",
+  "processExit": 1,
+  "qaTwoCyclesVerified": false,
+  "scopedHistoryMongoVerified": true,
+  "providerIdsGloballyUniqueVerified": false,
+  "periodAudioVerified": false,
+  "finalPriceTableVerified": false,
+  "qaNaturalEntryVerified": true,
+  "qaGreetingVerified": false,
+  "qaMixedQuestionsVerified": false,
+  "candidateCommit": "b86ec136c67f62b48621f5b1b4a6f5e8ae61f496",
+  "unpunctuatedPriceVerified": false,
+  "confirmedOrderVerified": false,
+  "thankYouVerified": false,
+  "at": "2026-11-18T16:41:49.567693+00:00",
+  "productionUnchanged": true,
+  "baselinePid": 3910112,
+  "candidateIntegrationBeforeFullSuite": true,
+  "launcherExit": 0
+}

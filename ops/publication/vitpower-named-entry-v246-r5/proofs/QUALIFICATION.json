@@ -1,0 +1,70 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PASS",
+  "candidateCommit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+  "results": [
+    {
+      "name": "senior_guard",
+      "pass": true,
+      "seconds": 44.5,
+      "exitCode": 0,
+      "timedOut": false,
+      "tapSummary": []
+    },
+    {
+      "name": "product_guard",
+      "pass": true,
+      "seconds": 49.1,
+      "exitCode": 0,
+      "timedOut": false,
+      "tapSummary": []
+    },
+    {
+      "name": "focused_tests",
+      "pass": true,
+      "seconds": 1064.0,
+      "exitCode": 0,
+      "timedOut": false,
+      "tapSummary": [
+        "# tests 429",
+        "# pass 429",
+        "# fail 0"
+      ]
+    },
+    {
+      "name": "complete_senior",
+      "pass": true,
+      "seconds": 3320.3,
+      "exitCode": 0,
+      "timedOut": false,
+      "tapSummary": [
+        "# tests 43",
+        "# pass 43",
+        "# fail 0",
+        "# tests 482",
+        "# pass 482",
+        "# fail 0",
+        "# tests 22",
+        "# pass 22",
+        "# fail 0"
+      ]
+    }
+  ],
+  "productionUnchanged": true,
+  "networkIsolated": true,
+  "messagesSent": 0,
+  "databaseProductionWrites": 0,
+  "transportRecovery": {
+    "reason": "SSH reset while full suite continued; recover durable per-command exit records, not inferred test success",
+    "actualDriverPid": 3958049,
+    "actualSeniorProcessGroup": 3961866,
+    "driverExited": true,
+    "rawLogSha256": {
+      "senior_guard.private.log": "3e84a38559ec75573c399ef4ff3988030e7cef904e226f372d4608d30e64fdbd",
+      "product_guard.private.log": "83b82495e4c78419e9b9da5901603f5d531461e84bb9ef33b9281bab5e34754b",
+      "focused_tests.private.log": "28384bb040e32987ae4df1bd437de44729c8d7c004c253e6060c42d6c5a83ff8",
+      "complete_senior.private.log": "351db9fdaf306651d2b2bf2ec1d0d30721d9608cb1a78eec568ba9eabdc0da0a"
+    },
+    "at": "2026-11-18T18:21:09.733152+00:00"
+  }
+}

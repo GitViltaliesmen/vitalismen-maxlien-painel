@@ -1,0 +1,20 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "FAIL",
+  "candidateCommit": "dd2fd90d68f30c8cb8f4ba9dbe9f99842bbd4f04",
+  "results": [
+    {
+      "name": "senior_guard",
+      "pass": false,
+      "seconds": 120.2,
+      "exitCode": -9,
+      "timedOut": true,
+      "tapSummary": [],
+      "tail": "\n"
+    }
+  ],
+  "productionUnchanged": true,
+  "networkIsolated": true,
+  "messagesSent": 0,
+  "databaseProductionWrites": 0
+}

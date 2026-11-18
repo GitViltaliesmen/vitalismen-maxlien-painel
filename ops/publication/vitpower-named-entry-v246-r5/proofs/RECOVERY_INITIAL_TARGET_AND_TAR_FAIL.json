@@ -1,0 +1,8 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": false,
+  "target": "BOOT_BEFORE_V241.vbe",
+  "reason": "Current R5 verifier rejected duplicate path tar entries; original verify script had pointed at R2 artifacts. Retain old envelope and create distinct deduplicated current backup, reverify all current artifacts.",
+  "productionActivated": false,
+  "sourceOnlyPublished": true
+}

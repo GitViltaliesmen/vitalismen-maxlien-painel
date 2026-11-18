@@ -1,0 +1,21 @@
+{
+  "ready": {
+    "project": "VITALISMEN_EC",
+    "status": "STAGE_LOCK_HELD",
+    "leaseId": "59193483100b46e991926fddb0b05b16",
+    "pid": 3963375,
+    "candidateCommit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+    "timeoutSeconds": 7200
+  },
+  "previousOwner": {
+    "project": "VITALISMEN_EC",
+    "status": "STAGE_LOCK_HELD",
+    "leaseId": "c28eb39d90b444539e8d6deb446ff976",
+    "pid": 3959930,
+    "candidateCommit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+    "timeoutSeconds": 7200
+  },
+  "noActionWasTriggered": true,
+  "ownerStdoutDurable": "/opt/vitalismen-automacao/backups/vitpower-named-entry-v246-r5-20261118/STAGE_OWNER_DETACHED.private.log",
+  "published": false
+}

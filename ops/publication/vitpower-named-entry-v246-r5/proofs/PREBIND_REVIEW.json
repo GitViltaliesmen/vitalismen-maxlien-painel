@@ -1,0 +1,11 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PASS_PREBIND_REAL_RECEIPTS",
+  "pass": true,
+  "candidateCommit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+  "gatesChecked": 8,
+  "actualControllerFunction": true,
+  "actualEvidenceOnly": true,
+  "remoteWrites": 0,
+  "productionActionInvoked": false
+}

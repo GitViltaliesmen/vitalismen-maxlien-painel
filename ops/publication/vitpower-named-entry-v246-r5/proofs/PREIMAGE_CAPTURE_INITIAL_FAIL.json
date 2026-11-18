@@ -1,0 +1,5 @@
+{
+  "pass": false,
+  "reason": "new helper has no predecessor file; failed envelope retained; absence now independently verified",
+  "productionChanged": false
+}

@@ -1,0 +1,10 @@
+{
+  "pass": true,
+  "actualProductionIndexes": 12,
+  "duplicateRejections": 15,
+  "legacyRowsPreserved": 5,
+  "newIndependentQaCycles": 2,
+  "ecKeyFingerprintUnchanged": true,
+  "networkNamespaceIsolated": true,
+  "realMongo": true
+}

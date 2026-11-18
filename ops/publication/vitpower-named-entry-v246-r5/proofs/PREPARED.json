@@ -1,0 +1,25 @@
+{
+  "project": "VITALISMEN_EC",
+  "commit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+  "tree": "7716d88ff14aaded258f4d9cdbca8a37e52841fb",
+  "release": "/opt/vitalismen-automacao/releases/20261118T170557Z_production-20261118-1b356e3",
+  "sourceRef": "refs/heads/codex/vitpower-named-entry-v246-r5-20261118",
+  "parentRelease": "/opt/vitalismen-automacao/releases/20261118T154334Z_production-20261118-d8c8b0d",
+  "parentCommit": "d8c8b0dd697e712bf2d7442ae90cb6aa6576fcc8",
+  "parentTree": "4bb34d98bb8a070a083637c75d7b9328f3e73f0b",
+  "parentSeal": "80a38401d6c84c9c75f9caa6c14ed58d065bef1dd98169eb309310ad72b198c8",
+  "hashes": {
+    "docs/freeze/vitpower-named-entry-v246-contract.json": "397260bf5526e3582329ab02051f822d2cfb7191aa9bb6f255007ee283d54f3b",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "e0363a662c074a0d60a58712eb4927905aceb20a7020e4df41f15269f474bd41",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "133dbd57c5e03a4ed96c9d77c4c1238a49c8cffebce160c9229be69e0be8a58d",
+    "src/routes/zapi.js": "b961791a50725edb7909dfc622476f4548783b15c1ea4308231b36ffbaa279e0",
+    "src/services/vitPowerB01CoreV216Service.js": "1528f14543a0fde3b12d76838431a302a1788f12c054e9724870009181073bed",
+    "src/services/vitPowerBurstRuntimeV228Service.js": "2d8b191395d208c67970e84ad195513ac747012dc9f484636d03ecccd06c966d",
+    "src/services/vitPowerEntryContextV246Service.js": "c125b764e6e9da8af62c126814a0479af91f10db10e51427c69dc9a9b865532b",
+    "tests/b01-named-entry-v246.test.mjs": "c7e88f62f19eb2c36712823c2c5f6c0a4ff4e373dbb68c15cf4cfe084b3c8b50"
+  },
+  "seal": "3a7d20463b152fc3ee74db3cd446280ca7d7b025743bea8b576749ae53b57854",
+  "sourceMetadataSha256": "8d49cb21b8828175369beeead2c2d99b9ddbf10d53449d438bb21b4f5bb818d7",
+  "baseEnvSha256": "a6d86e83a8f824c615aa7673408aa421d8f7f137ba3ccf1782701a0abdb0a470",
+  "pm2HelperSha256": "e0363a662c074a0d60a58712eb4927905aceb20a7020e4df41f15269f474bd41"
+}

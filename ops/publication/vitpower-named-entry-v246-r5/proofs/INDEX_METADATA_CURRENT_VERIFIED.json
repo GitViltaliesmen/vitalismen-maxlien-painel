@@ -1,0 +1,15 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "indexes": 12,
+  "allKeysAndRuntimeOptionsEqual": true,
+  "excludedMetadata": [
+    "v",
+    "ns",
+    "background"
+  ],
+  "rawRetained": true,
+  "initialDirectComparisonFailedOnBackgroundMetadata": true,
+  "sha256": "2e8f3aae690c10cdba6121cee579f888061e8747fb401fc6409c5eb473fdf145",
+  "productionWrites": 0
+}
