@@ -1,0 +1,40 @@
+{
+  "status": "PASS_SOURCE_PUBLISHED_NOT_ACTIVE",
+  "at": "2026-11-18T02:04:32.750Z",
+  "facts": {
+    "commit": "322c98a652c71d9a9714a523d83e91093bbbfe18",
+    "tree": "1e0bebc4483e56faa41531082e1897bec3d8acd4",
+    "parent": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+    "changedPaths": [
+      "docs/freeze/qa-b01-cycle-v244-contract.json",
+      "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+      "scripts/lib/sealed-successor-preload-v1.mjs",
+      "src/models/ContactState.js",
+      "src/services/vitPowerB01CoreV216Service.js",
+      "src/services/vitPowerB01RuntimeV216Service.js",
+      "tests/b01-qa-cycle-v244.test.mjs",
+      "tests/b01-qa-schema-v244.test.mjs"
+    ],
+    "clean": true
+  },
+  "publication": {
+    "project": "VITALISMEN_EC",
+    "status": "complete",
+    "publicationStatus": "production_published",
+    "functionalCommit": "322c98a652c71d9a9714a523d83e91093bbbfe18",
+    "functionalTree": "1e0bebc4483e56faa41531082e1897bec3d8acd4",
+    "sourceRef": "refs/heads/codex/qa-b01-cycle-v244-r8-20261117",
+    "publicationTag": "production-20261118-322c98a",
+    "publicationTagResolvedCommit": "322c98a652c71d9a9714a523d83e91093bbbfe18",
+    "sourceMetadataSha256": "94a7e13e8598bbad43d78e09ac238a25e05580a4f609fabbd8fba900339826a1",
+    "stagingCompleteSha256": "9de2c6f717e5e208309af0acec47400d0266d577ad5e83e500a27031105e2ff0",
+    "sealedEnvelopeSha256": "b3a90081c0d093a2e0f5630391a2fde3bb831f11a95e833e219fc686bac17a65",
+    "productionBranchChanged": false,
+    "productionBranchBefore": "e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9",
+    "productionBranchAfter": "e4f0f3b4afa075b9fcaf421eda8689b5a3cfd8e9",
+    "publishedAt": "2026-11-18T02:04:32.745Z",
+    "pm2Actions": 0,
+    "outboundActions": 0,
+    "dropiActions": 0
+  }
+}

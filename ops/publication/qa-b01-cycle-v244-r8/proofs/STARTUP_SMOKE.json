@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "results": [
+    {
+      "name": "isolated_startup_and_qa_gate",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "ESET-V77H2] V77H2 \u2192 V77H \u2192 V77 \u2192 V76 \u2192 V75 \u2192 V74 \u2192 V73 \u2192 V72 \u2192 V71 \u00edntegra; pol\u00edtica strict herdada sobrescrita por valor vazio somente no perfil QA; helper V77H preservado; nenhuma muta\u00e7\u00e3o de produ\u00e7\u00e3o autorizada.\nV213_STARTUP_CONFIG=PASS; INHERITED_SDR_PROOF=VERIFIED; MEASUREMENT=DISABLED; SERVER_STARTED=NO\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n",
+      "pm2LauncherSimulated": true,
+      "serverStarted": false
+    }
+  ]
+}

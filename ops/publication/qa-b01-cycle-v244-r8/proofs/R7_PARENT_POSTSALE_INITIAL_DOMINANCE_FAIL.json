@@ -1,0 +1,11 @@
+{
+  "pass": false,
+  "reason": "inherited 80-z child filename sorts before new parent drop-in",
+  "parent": {
+    "parentName": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-ec-tex-measurement-v243-r5.conf",
+    "zPrefix": 80,
+    "filenameBytes": 112
+  },
+  "correctedChild": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-ec-qa-b01-cycle-v244-r7.conf",
+  "productionFilesChanged": false
+}

@@ -1,0 +1,49 @@
+{
+  "project": "VITALISMEN_EC",
+  "failuresRetained": [
+    {
+      "candidate": "r1",
+      "published": false,
+      "reason": "strict schema did not persist permit",
+      "commit": "c4d12e357604b28ab09e17b5647226b5b2dd9846"
+    },
+    {
+      "candidate": "r2",
+      "published": false,
+      "reason": "compound fingerprint unique index and old-row preservation failed",
+      "commit": "dd98d213fd3c413763588109fc0a96d80a047edb",
+      "httpPass": false,
+      "passedChecks": 15,
+      "originalEvidence": "C:\\Users\\Wolfe\\Documents\\SITES\\MAXLIENSHOP_JULHO_2026\\Vitalismen Automacao\\ops\\candidates\\qa-b01-cycle-v244-r2-20261117\\HTTP_SALE_TEST.json",
+      "sha256": "4562e2e3c1e8027dd73584cacf80406346d30c4d4d40e871edb881f987c53d1c"
+    },
+    {
+      "candidate": "r3",
+      "published": false,
+      "reason": "semantic text key still collided across independent native permits",
+      "commit": "1cc52b9cad4b6217da8aa6b2f5d4e9f147ab1856",
+      "httpPass": false,
+      "passedChecks": 12,
+      "originalEvidence": "C:\\Users\\Wolfe\\Documents\\SITES\\MAXLIENSHOP_JULHO_2026\\Vitalismen Automacao\\ops\\candidates\\qa-b01-cycle-v244-r3-20261117\\HTTP_SALE_TEST.json",
+      "sha256": "ef7c93e0dfe5637022e29b4bb51347bd11663d7ac848b1551fe9fce658862fe9"
+    },
+    {
+      "candidate": "r4",
+      "published": false,
+      "reason": "runtime constant case error caught in static review before qualification",
+      "commit": "84c0f6bb4aeeed773aa2c04d0d6d49cef6bc9206"
+    },
+    {
+      "candidate": "r5",
+      "commit": "bdfcd7eee88a0e227f2a9dda5083e63ed2927cb4",
+      "published": false,
+      "reason": "two QA cycles pass; EC price table blocked by shared semantic key",
+      "httpPass": false,
+      "passedChecks": 33,
+      "originalEvidence": "C:\\Users\\Wolfe\\Documents\\SITES\\MAXLIENSHOP_JULHO_2026\\Vitalismen Automacao\\ops\\candidates\\qa-b01-cycle-v244-r5-20261117\\HTTP_SALE_TEST.json",
+      "sha256": "7288aca699add5d244d80201ef199b20d5af6e8a96971fa81ff500b6d175cc4d"
+    }
+  ],
+  "globalDataBackupPass": false,
+  "guardsDisabled": false
+}

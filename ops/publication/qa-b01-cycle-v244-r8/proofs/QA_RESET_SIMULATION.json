@@ -1,0 +1,61 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "actualMaintenanceMongoScopeSha256": "71932e39eb1e1b3d1b652e3c4e549c7a0ee6d617d962e1069e724dd7164d6411",
+  "cases": [
+    {
+      "case": "zero_attempt_dry_run",
+      "pass": true,
+      "accepted": true,
+      "applied": false
+    },
+    {
+      "case": "zero_attempt_apply",
+      "pass": true,
+      "accepted": true,
+      "applied": true
+    },
+    {
+      "case": "attempted",
+      "pass": true,
+      "accepted": false,
+      "applied": false
+    },
+    {
+      "case": "provider_ambiguous",
+      "pass": true,
+      "accepted": false,
+      "applied": false
+    },
+    {
+      "case": "pending",
+      "pass": true,
+      "accepted": false,
+      "applied": false
+    },
+    {
+      "case": "human_auto",
+      "pass": true,
+      "accepted": false,
+      "applied": false
+    },
+    {
+      "case": "concurrent_change",
+      "pass": true,
+      "accepted": false,
+      "applied": false
+    },
+    {
+      "case": "uncertain_old_ledger",
+      "pass": true,
+      "accepted": false,
+      "applied": false
+    }
+  ],
+  "isolatedNetwork": true,
+  "realMongo": true,
+  "oldLedgersPreserved": true,
+  "foreignContactAndMessagesPreserved": true,
+  "productionWrites": 0,
+  "customerMessagesSent": 0
+}

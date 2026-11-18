@@ -1,0 +1,21 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "commit": "322c98a652c71d9a9714a523d83e91093bbbfe18",
+  "sourceRef": "refs/heads/codex/qa-b01-cycle-v244-r8-20261117",
+  "allowedDelta": [
+    "docs/freeze/qa-b01-cycle-v244-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/models/ContactState.js",
+    "src/services/vitPowerB01CoreV216Service.js",
+    "src/services/vitPowerB01RuntimeV216Service.js",
+    "tests/b01-qa-cycle-v244.test.mjs",
+    "tests/b01-qa-schema-v244.test.mjs"
+  ],
+  "defaultIndexUnchanged": true,
+  "workingBranchUnchanged": true,
+  "diffCheckPass": true,
+  "lfOnly": true,
+  "uniqueAllowedDelta": true
+}

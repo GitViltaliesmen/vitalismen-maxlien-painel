@@ -1,0 +1,13 @@
+{
+  "pass": false,
+  "results": [
+    {
+      "name": "isolated_startup_and_qa_gate",
+      "pass": false,
+      "exitCode": 1,
+      "tail": "ODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\nnode:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\ntrue !== false\n\n    at file:///opt/vitalismen-automacao/releases/20261118T004425Z_production-20261118-7efed19/[eval1]:15:8 {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: true,\n  expected: false,\n  operator: 'strictEqual'\n}\n\nNode.js v20.20.2\n",
+      "pm2LauncherSimulated": true,
+      "serverStarted": false
+    }
+  ]
+}

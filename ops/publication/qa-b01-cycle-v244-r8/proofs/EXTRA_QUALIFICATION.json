@@ -1,0 +1,102 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PASS",
+  "results": [
+    {
+      "name": "product_micro_layer",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "o perfil QA; helper V77H preservado; nenhuma muta\u00e7\u00e3o de produ\u00e7\u00e3o autorizada.\nEC product micro-layer guard: OK\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n"
+    },
+    {
+      "name": "tampered_vitPowerB01CoreV216Service.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "   'tests/tex-measurement-v243.test.mjs': 'da344b5b10135d9524cbd667195ac5b73ead438cc73863d298fb3ff59692d6b5',\n    'docs/freeze/qa-b01-cycle-v244-contract.json': '6c0a5c26928142aead4be5a30f2e7bf2446c31191374d3831e705d0a02ea722f',\n    'tests/b01-qa-cycle-v244.test.mjs': '2f84e5de7690040a6a5e1236c8db69f522cf6402af0890b5bb3e15421b134dca',\n    'tests/b01-qa-schema-v244.test.mjs': 'ce84ef6094f3e90437fb33d49b787c43abfe5016d80047060d1b5762511fc605'\n  },\n  operator: 'deepStrictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "tampered_ContactState.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "   'tests/tex-measurement-v243.test.mjs': 'da344b5b10135d9524cbd667195ac5b73ead438cc73863d298fb3ff59692d6b5',\n    'docs/freeze/qa-b01-cycle-v244-contract.json': '6c0a5c26928142aead4be5a30f2e7bf2446c31191374d3831e705d0a02ea722f',\n    'tests/b01-qa-cycle-v244.test.mjs': '2f84e5de7690040a6a5e1236c8db69f522cf6402af0890b5bb3e15421b134dca',\n    'tests/b01-qa-schema-v244.test.mjs': 'ce84ef6094f3e90437fb33d49b787c43abfe5016d80047060d1b5762511fc605'\n  },\n  operator: 'deepStrictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "tampered_vitPowerB01RuntimeV216Service.js",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "\n    'docs/INBOUND_MEDIA_PATH_PORTABILITY_FREEZE_V38_20260822.md': 'd5dad4cca0c693c0c8a558366e53ddd7166e3cdba62e73d8edd72e417172f7a3',\n    'docs/INCIDENTE_502_RECOVERY_V72_20260828.md': 'cde3eb7847be466fdb3eb7f104a0fa50bc5a1175c3a6de432fc7e475e8b566b4',\n    'docs/INCIDENTE_V65_REPLAY_E_STARTUP_20260826.md': '0f8e7c5678be1149d065783629289a87a6bd93370cd9ceaa15a0c5873580d4c1',\n    'docs/INFRAESTRUTURA_OFICIAL.md': '81ae18d00487d0e1cb61c3c7078c3dda577d4f852eed3d15932270961de74cc2',\n    'docs/INSTRUC"
+    },
+    {
+      "name": "tampered_b01-qa-cycle-v244.test.mjs",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "   'tests/tex-measurement-v243.test.mjs': 'da344b5b10135d9524cbd667195ac5b73ead438cc73863d298fb3ff59692d6b5',\n    'docs/freeze/qa-b01-cycle-v244-contract.json': '6c0a5c26928142aead4be5a30f2e7bf2446c31191374d3831e705d0a02ea722f',\n    'tests/b01-qa-cycle-v244.test.mjs': '2f84e5de7690040a6a5e1236c8db69f522cf6402af0890b5bb3e15421b134dca',\n    'tests/b01-qa-schema-v244.test.mjs': 'ce84ef6094f3e90437fb33d49b787c43abfe5016d80047060d1b5762511fc605'\n  },\n  operator: 'deepStrictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "tampered_sealed-successor-preload-v1.mjs",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "bcd3ae21f5',\n    'docs/INBOUND_MEDIA_PATH_PORTABILITY_FREEZE_V38_20260822.md': 'd5dad4cca0c693c0c8a558366e53ddd7166e3cdba62e73d8edd72e417172f7a3',\n    'docs/INCIDENTE_502_RECOVERY_V72_20260828.md': 'cde3eb7847be466fdb3eb7f104a0fa50bc5a1175c3a6de432fc7e475e8b566b4',\n    'docs/INCIDENTE_V65_REPLAY_E_STARTUP_20260826.md': '0f8e7c5678be1149d065783629289a87a6bd93370cd9ceaa15a0c5873580d4c1',\n    'docs/INFRAESTRUTURA_OFICIAL.md': '81ae18d00487d0e1cb61c3c7078c3dda577d4f852eed3d15932270961de74cc2',\n    '"
+    },
+    {
+      "name": "forbidden_flag_AI_WORKER_ENABLED",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "c-qa-b01-cycle-sealed-v244-r8.mjs:1083:49)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-qa-b01-cycle-sealed-v244-r8.mjs:1082:44)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-qa-b01-cycle-sealed-v244-r8.mjs:1081:46) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'true',\n  expected: 'false',\n  operator: 'strictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "forbidden_flag_VITALISMEN_META_PURCHASE_ENABLED",
+      "pass": true,
+      "exitCode": 1,
+      "tail": "c-qa-b01-cycle-sealed-v244-r8.mjs:1083:49)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-qa-b01-cycle-sealed-v244-r8.mjs:1082:44)\n    at registryEnvelope (file:///usr/local/lib/vitalismen-deploy/ec-qa-b01-cycle-sealed-v244-r8.mjs:1081:46) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'true',\n  expected: 'false',\n  operator: 'strictEqual'\n}\n\nNode.js v20.20.2\n"
+    },
+    {
+      "name": "isolated_startup_and_qa_gate",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "ESET-V77H2] V77H2 \u2192 V77H \u2192 V77 \u2192 V76 \u2192 V75 \u2192 V74 \u2192 V73 \u2192 V72 \u2192 V71 \u00edntegra; pol\u00edtica strict herdada sobrescrita por valor vazio somente no perfil QA; helper V77H preservado; nenhuma muta\u00e7\u00e3o de produ\u00e7\u00e3o autorizada.\nV213_STARTUP_CONFIG=PASS; INHERITED_SDR_PROOF=VERIFIED; MEASUREMENT=DISABLED; SERVER_STARTED=NO\n[EC-MANUAL-DROPI-V119] manifesto, rotas manuais e escopo persistente \u00edntegros.\n[EC-MULTIPRODUCT-V120] cadastro autenticado e transporte manual multiproduto \u00edntegros.\n[DROPI-TOTAL-V121] estados, rastreio e seguran\u00e7a do envio manual EC \u00edntegros.\n[EC-PANEL-CUSTOMER-V122] persist\u00eancia autenticada da ficha e do status \u00edntegra.\n[EC-PANEL-STATUS-V123] ficha e status persistem antes da sincronizacao opcional do pedido.\n[EC-PANEL-STATE-ONLY-V124] salvamento comum separado de acoes explicitas de pedido.\n[EC-PANEL-STATUS-STATE-V125] status solicitado persiste; pedido incompleto permanece bloqueado.\n[EC-AUTH-LOGIN-V127] somente POST /api/auth/login atravessa V78; writeContext permanece false.\n",
+      "pm2LauncherSimulated": true,
+      "serverStarted": false
+    },
+    {
+      "name": "legacy_senior_readonly",
+      "pass": true,
+      "exitCode": 0,
+      "tail": "\n> zapdesk-premium@0.0.0 senior:check\n> node scripts/senior-guard-vitalismen.mjs\n\n[SENIOR-GUARD-VPS] OK: VPS congelado no fluxo oficial Vit Power.\n"
+    },
+    {
+      "name": "inherited_linked_entry_public_policy_and_tamper_rejection",
+      "pass": true,
+      "exitCode": 0,
+      "proof": {
+        "publicLinkedEntryPreserved": true,
+        "parentProofCommitAndShaBound": true,
+        "changedProofRejected": true,
+        "changedInheritedPayloadRejected": true,
+        "foreignOriginRejected": true,
+        "realMessages": 0,
+        "productionWrites": 0,
+        "serverStarted": false
+      }
+    },
+    {
+      "name": "native_linked_http_owner_scope",
+      "pass": true,
+      "exitCode": 0,
+      "networkIsolated": true,
+      "privateQaStoreEnabled": true,
+      "publicBusinessDispatchEnabled": false,
+      "unchangedInheritedTestSha256": "edef4dd0288eee744fa3b7d65267f1ea75344de5da73feb4e5023045c0fe013f",
+      "tapSummary": [
+        "# tests 1",
+        "# pass 1",
+        "# fail 0"
+      ],
+      "productionWrites": 0,
+      "realMessages": 0
+    }
+  ],
+  "activeReleaseUnchanged": true,
+  "productionDatabaseWrites": 0,
+  "whatsappSends": 0
+}

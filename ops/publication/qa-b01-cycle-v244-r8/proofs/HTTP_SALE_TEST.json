@@ -1,0 +1,1718 @@
+{
+  "pass": true,
+  "project": "VITALISMEN_EC",
+  "functionalCommit": "322c98a652c71d9a9714a523d83e91093bbbfe18",
+  "release": "/opt/vitalismen-automacao/releases/20261118T010247Z_production-20261118-322c98a",
+  "checks": [
+    "real_mongo_history_accepts_proven_receipts_and_rejects_foreign_or_unproven_rows",
+    "production_unique_compound_index_reproduced",
+    "qa_named_entry_persisted_and_accepted",
+    "qa_named_entry_greeting_5_to_30_seconds",
+    "qa_optional_name_personalizes_greeting",
+    "qa_duplicate_entry_no_second_greeting",
+    "qa_price_and_ingredients_one_ordered_reply",
+    "qa_one_composed_answer",
+    "qa_no_order_after_questions",
+    "qa_questions_do_not_force_or_repeat_b01_media",
+    "qa_window_still_valid_after_grouped_response",
+    "qa_reset_has_no_pending_batch_1",
+    "qa_complete_five_steps_1",
+    "qa_job_bound_to_native_server_permit_1",
+    "qa_one_period_audio_1",
+    "qa_final_price_table_1",
+    "qa_all_old_ledgers_preserved_1",
+    "qa_duplicate_callback_no_new_presentation_1",
+    "qa_cycle_never_creates_order_1",
+    "qa_reset_has_no_pending_batch_2",
+    "qa_complete_five_steps_2",
+    "qa_job_bound_to_native_server_permit_2",
+    "qa_one_period_audio_2",
+    "qa_final_price_table_2",
+    "qa_all_old_ledgers_preserved_2",
+    "qa_duplicate_callback_no_new_presentation_2",
+    "qa_cycle_never_creates_order_2",
+    "two_new_native_qa_permits_complete_without_deleting_legacy_ledgers",
+    "initial_greeting_scheduled_5_to_30_seconds_with_worker_tolerance",
+    "greeting_persona",
+    "no_foreign_product_greeting",
+    "duplicate_entry_does_not_repeat_greeting",
+    "automatic_product_and_vsl_origin_preserved",
+    "B01_completes_with_original_pauses_and_bottle",
+    "one_correct_ecuador_period_audio",
+    "period_audio_matches_ecuador_entry_time",
+    "uninterrupted_b01_ends_in_readable_official_price_table",
+    "only_one_audio_transport_call",
+    "greeting_one_audio_two_images_one_price_total_five_calls",
+    "questions_answered_price_then_ingredients",
+    "unpunctuated_prices_answered_without_repeat_quantity",
+    "price_request_keeps_automatic_attendance",
+    "quantity_city_saved",
+    "official_price_3_bottles",
+    "name_and_home_delivery_saved",
+    "summary_is_not_a_sale",
+    "validated_summary_with_correct_price_address",
+    "new_summary_after_address_correction",
+    "correction_preserves_quantity_city",
+    "exactly_one_confirmed_order",
+    "conversational_receipt_verified",
+    "thank_you_only_after_confirmed_order",
+    "sale_marked_confirmed_3_bottles_usd_95_99",
+    "lead_panel_mirror_confirmado",
+    "no_dropi_submission_without_manual_authorization",
+    "repeated_confirmation_does_not_duplicate_sale",
+    "permanent_qa_never_creates_order",
+    "unattributed_simulation_does_not_invent_meta_purchase",
+    "early_confirmation_separate_contact_cannot_create_sale",
+    "provider_message_ids_globally_unique_across_qa_and_ec"
+  ],
+  "stages": [
+    {
+      "stage": "entrada_e_saudacao",
+      "customer": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Carlos Prueba",
+      "simulatedAt": "2026-11-18T01:10:23.179Z",
+      "replies": [
+        "¡Hola! Buenas noches, Carlos! Soy Ana Lopez, del equipo de la Dra. María Fernandes. Gracias por tu interés en Vit Power. Estoy aquí para ayudarte y aclarar tus dudas. Te comparto una breve presentación y seguimos conversando."
+      ],
+      "draft": {
+        "name": "Carlos Prueba",
+        "productKey": "vit_power_ec"
+      },
+      "humanMode": "auto",
+      "orderCount": 0,
+      "orders": [],
+      "leads": [
+        {
+          "id": 1,
+          "status": "atendendo",
+          "name": "Carlos Prueba",
+          "city": "",
+          "province": "",
+          "product_qty": 0,
+          "product_value": 0,
+          "event_id": "EC-ADMIN-1"
+        }
+      ],
+      "pendingSummary": null,
+      "registration": null
+    },
+    {
+      "stage": "perguntas_fora_do_roteiro",
+      "customer": "Preço de 3 frascos, depois composição",
+      "simulatedAt": "2026-11-18T01:13:00.230Z",
+      "replies": [
+        "/instances/simulation/token/simulation/send-image",
+        "Estos son los valores normales de Vit Power:\n\n• 1 frasco: USD 39.99\n• 2 frascos: USD 70.00\n• 3 frascos: USD 95.99\n• 6 frascos: USD 167.99\n\n¿Cuántos frascos desea?",
+        "Precio: 3 frascos: USD 95.99.\nComposición de Vit Power: borojó, chontaduro, noni, L-arginina, maca, guaraná, vitaminas."
+      ],
+      "draft": {
+        "name": "Carlos Prueba",
+        "productKey": "vit_power_ec"
+      },
+      "humanMode": "auto",
+      "orderCount": 0,
+      "orders": [],
+      "leads": [
+        {
+          "id": 1,
+          "status": "atendendo",
+          "name": "Carlos Prueba",
+          "city": "",
+          "province": "",
+          "product_qty": 0,
+          "product_value": 0,
+          "event_id": "EC-ADMIN-1"
+        }
+      ],
+      "pendingSummary": null,
+      "registration": null
+    },
+    {
+      "stage": "precos_sem_interrogacao",
+      "customer": "Porfavor me indicas la promoción..\nLos precios..",
+      "simulatedAt": "2026-11-18T01:14:01.906Z",
+      "replies": [
+        "Estos son los valores normales de Vit Power:\n\n• 1 frasco: USD 39.99\n• 2 frascos: USD 70.00\n• 3 frascos: USD 95.99\n• 6 frascos: USD 167.99\n\n¿Cuántos frascos desea?",
+        "Precio: 3 frascos: USD 95.99.\nComposición de Vit Power: borojó, chontaduro, noni, L-arginina, maca, guaraná, vitaminas.",
+        "Precio: 1 frasco: USD 39.99; 3 frascos: USD 95.99; 6 frascos: USD 167.99."
+      ],
+      "draft": {
+        "name": "Carlos Prueba",
+        "productKey": "vit_power_ec"
+      },
+      "humanMode": "auto",
+      "orderCount": 0,
+      "orders": [],
+      "leads": [
+        {
+          "id": 1,
+          "status": "atendendo",
+          "name": "Carlos Prueba",
+          "city": "",
+          "province": "",
+          "product_qty": 0,
+          "product_value": 0,
+          "event_id": "EC-ADMIN-1"
+        }
+      ],
+      "pendingSummary": null,
+      "registration": null
+    },
+    {
+      "stage": "quantidade_e_cidade",
+      "customer": "Quiero 3 frascos. Estoy en Quito.",
+      "simulatedAt": "2026-11-18T01:15:04.800Z",
+      "replies": [
+        "Precio: 3 frascos: USD 95.99.\nComposición de Vit Power: borojó, chontaduro, noni, L-arginina, maca, guaraná, vitaminas.",
+        "Precio: 1 frasco: USD 39.99; 3 frascos: USD 95.99; 6 frascos: USD 167.99.",
+        "Tengo 3 frascos y Quito. ¿Prefiere una agencia Servientrega o domicilio?"
+      ],
+      "draft": {
+        "name": "Carlos Prueba",
+        "quantity": 3,
+        "total": 95.99,
+        "city": "Quito",
+        "productKey": "vit_power_ec"
+      },
+      "humanMode": "auto",
+      "orderCount": 0,
+      "orders": [],
+      "leads": [
+        {
+          "id": 1,
+          "status": "atendendo",
+          "name": "Carlos Prueba",
+          "city": "Quito",
+          "province": "",
+          "product_qty": 3,
+          "product_value": 95.99,
+          "event_id": "EC-ADMIN-1"
+        }
+      ],
+      "pendingSummary": null,
+      "registration": null
+    },
+    {
+      "stage": "nome_e_entrega",
+      "customer": "Me llamo Carlos Prueba. Entrega a domicilio.",
+      "simulatedAt": "2026-11-18T01:16:06.872Z",
+      "replies": [
+        "Precio: 1 frasco: USD 39.99; 3 frascos: USD 95.99; 6 frascos: USD 167.99.",
+        "Tengo 3 frascos y Quito. ¿Prefiere una agencia Servientrega o domicilio?",
+        "Gracias, Carlos. ¿Cuál es la dirección de entrega?"
+      ],
+      "draft": {
+        "name": "Carlos Prueba",
+        "quantity": 3,
+        "total": 95.99,
+        "city": "Quito",
+        "deliveryMode": "home",
+        "productKey": "vit_power_ec"
+      },
+      "humanMode": "auto",
+      "orderCount": 0,
+      "orders": [],
+      "leads": [
+        {
+          "id": 1,
+          "status": "atendendo",
+          "name": "Carlos Prueba",
+          "city": "Quito",
+          "province": "",
+          "product_qty": 3,
+          "product_value": 95.99,
+          "event_id": "EC-ADMIN-1"
+        }
+      ],
+      "pendingSummary": null,
+      "registration": null
+    },
+    {
+      "stage": "dados_completos_e_resumo",
+      "customer": "La provincia es Pichincha. Dirección: Avenida Simulada 123. Referencia: junto al parque.",
+      "simulatedAt": "2026-11-18T01:17:12.378Z",
+      "replies": [
+        "Tengo 3 frascos y Quito. ¿Prefiere una agencia Servientrega o domicilio?",
+        "Gracias, Carlos. ¿Cuál es la dirección de entrega?",
+        "Carlos Prueba: 3 frascos de Vit Power por USD 95.99. Quito, Pichincha. Entrega: Avenida Simulada 123. Confirma estos datos y el pedido?"
+      ],
+      "draft": {
+        "name": "Carlos Prueba",
+        "quantity": 3,
+        "total": 95.99,
+        "city": "Quito",
+        "province": "Pichincha",
+        "address": "Avenida Simulada 123",
+        "deliveryMode": "home",
+        "productKey": "vit_power_ec"
+      },
+      "humanMode": "auto",
+      "orderCount": 0,
+      "orders": [],
+      "leads": [
+        {
+          "id": 1,
+          "status": "atendendo",
+          "name": "Carlos Prueba",
+          "city": "Quito",
+          "province": "Pichincha",
+          "product_qty": 3,
+          "product_value": 95.99,
+          "event_id": "EC-ADMIN-1"
+        }
+      ],
+      "pendingSummary": "Carlos Prueba: 3 frascos de Vit Power por USD 95.99. Quito, Pichincha. Entrega: Avenida Simulada 123. Confirma estos datos y el pedido?",
+      "registration": null
+    },
+    {
+      "stage": "correcao_preserva_dados",
+      "customer": "La dirección correcta es Avenida Simulada 456.",
+      "simulatedAt": "2026-11-18T01:18:15.788Z",
+      "replies": [
+        "Gracias, Carlos. ¿Cuál es la dirección de entrega?",
+        "Carlos Prueba: 3 frascos de Vit Power por USD 95.99. Quito, Pichincha. Entrega: Avenida Simulada 123. Confirma estos datos y el pedido?",
+        "Carlos Prueba: 3 frascos de Vit Power por USD 95.99. Quito, Pichincha. Entrega: Avenida Simulada 456. Confirma estos datos y el pedido?"
+      ],
+      "draft": {
+        "name": "Carlos Prueba",
+        "quantity": 3,
+        "total": 95.99,
+        "city": "Quito",
+        "province": "Pichincha",
+        "address": "Avenida Simulada 456",
+        "deliveryMode": "home",
+        "productKey": "vit_power_ec"
+      },
+      "humanMode": "auto",
+      "orderCount": 0,
+      "orders": [],
+      "leads": [
+        {
+          "id": 1,
+          "status": "atendendo",
+          "name": "Carlos Prueba",
+          "city": "Quito",
+          "province": "Pichincha",
+          "product_qty": 3,
+          "product_value": 95.99,
+          "event_id": "EC-ADMIN-1"
+        }
+      ],
+      "pendingSummary": "Carlos Prueba: 3 frascos de Vit Power por USD 95.99. Quito, Pichincha. Entrega: Avenida Simulada 456. Confirma estos datos y el pedido?",
+      "registration": null
+    },
+    {
+      "stage": "venda_confirmada",
+      "customer": "Sí, confirmo",
+      "simulatedAt": "2026-11-18T01:19:17.354Z",
+      "replies": [
+        "🙂 Gracias por confirmar sus datos.\nEn breve preparamos su pedido y apenas este disponible en la agencia Servientrega, le avisamos para que pueda retirarlo con tranquilidad.\nGuarde este numero como Ana López, porque por aqui le aviso cuando su pedido tenga guia y cuando este listo para retirar.",
+        "/instances/simulation/token/simulation/send-audio",
+        "/instances/simulation/token/simulation/send-audio"
+      ],
+      "draft": {
+        "name": "Carlos Prueba",
+        "quantity": "3",
+        "total": 95.99,
+        "city": "Quito",
+        "province": "Pichincha",
+        "address": "junto al parque",
+        "deliveryMode": "home",
+        "productKey": "vit_power_ec"
+      },
+      "humanMode": "manual",
+      "orderCount": 1,
+      "orders": [
+        {
+          "id": "EC-MWLFO67M-0RA5",
+          "status": "confirmed",
+          "total": 95.99,
+          "quantity": 3,
+          "dropiOrderId": ""
+        }
+      ],
+      "leads": [
+        {
+          "id": 1,
+          "status": "confirmado",
+          "name": "Carlos Prueba",
+          "city": "Quito",
+          "province": "Pichincha",
+          "product_qty": 3,
+          "product_value": 95.99,
+          "event_id": "EC-ADMIN-1"
+        }
+      ],
+      "pendingSummary": null,
+      "registration": "registered"
+    },
+    {
+      "stage": "confirmacao_repetida_sem_duplicar",
+      "customer": "Sí, confirmo repetido",
+      "simulatedAt": "2026-11-18T01:19:19.596Z",
+      "replies": [
+        "🙂 Gracias por confirmar sus datos.\nEn breve preparamos su pedido y apenas este disponible en la agencia Servientrega, le avisamos para que pueda retirarlo con tranquilidad.\nGuarde este numero como Ana López, porque por aqui le aviso cuando su pedido tenga guia y cuando este listo para retirar.",
+        "/instances/simulation/token/simulation/send-audio",
+        "/instances/simulation/token/simulation/send-audio"
+      ],
+      "draft": {
+        "name": "Carlos Prueba",
+        "quantity": "3",
+        "total": 95.99,
+        "city": "Quito",
+        "province": "Pichincha",
+        "address": "junto al parque",
+        "deliveryMode": "home",
+        "productKey": "vit_power_ec"
+      },
+      "humanMode": "manual",
+      "orderCount": 1,
+      "orders": [
+        {
+          "id": "EC-MWLFO67M-0RA5",
+          "status": "confirmed",
+          "total": 95.99,
+          "quantity": 3,
+          "dropiOrderId": ""
+        }
+      ],
+      "leads": [
+        {
+          "id": 1,
+          "status": "confirmado",
+          "name": "Carlos Prueba",
+          "city": "Quito",
+          "province": "Pichincha",
+          "product_qty": 3,
+          "product_value": 95.99,
+          "event_id": "EC-ADMIN-1"
+        }
+      ],
+      "pendingSummary": null,
+      "registration": "registered"
+    }
+  ],
+  "ingress": [
+    {
+      "id": "SIM_IN_00001",
+      "text": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Gerson",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00001",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00001",
+          "body": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Gerson",
+          "bodyLength": 161,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": true,
+          "contactStateId": "6afcf9ba518d560cd1e3e8fa",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": true,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00002",
+      "text": "Precio",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00002",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00002",
+          "body": "Precio",
+          "bodyLength": 6,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": false,
+          "contactStateId": "6afcf9ba518d560cd1e3e8fa",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": true,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00003",
+      "text": "¿Qué contiene Vit Power?",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00003",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00003",
+          "body": "¿Qué contiene Vit Power?",
+          "bodyLength": 24,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": true,
+          "contactStateId": "6afcf9ba518d560cd1e3e8fa",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": true,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00004",
+      "text": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Gerson",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00004",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00004",
+          "body": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Gerson",
+          "bodyLength": 161,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": true,
+          "contactStateId": "6afcf9ba518d560cd1e3e8fa",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": true,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00005",
+      "text": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Gerson",
+      "phone": "5515998038637",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "5515998038637",
+          "chatId": "5515998038637@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00005",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00005",
+          "body": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Gerson",
+          "bodyLength": 161,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "authorized_qa_excluded",
+          "directProductInbound": true,
+          "contactStateId": "6afcf9ba518d560cd1e3e8fa",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": null,
+          "qaBotEligibility": true,
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00006",
+      "text": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Carlos Prueba",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00006",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00006",
+          "body": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Carlos Prueba",
+          "bodyLength": 168,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": true,
+          "vslFirstEntryMessageId": "SIM_IN_00006",
+          "vslFirstEntryAt": "2026-11-18T01:10:12.807Z",
+          "vslFirstResponseWatchdogKey": "zapi:SIM_IN_00006",
+          "vslFirstResponseWatchdogEligibilityReason": "first_entry_marker_created",
+          "directProductInbound": true,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "orders",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "orders",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "support_intent"
+            ],
+            "hardExclusions": [
+              "support_intent",
+              "commercial_intent"
+            ],
+            "currentInboundKind": "question",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 1,
+              "logicalMessages": 1,
+              "inboundMessages": 1,
+              "outboundMessages": 0,
+              "recentInboundMessages": 1,
+              "recentOutboundMessages": 0,
+              "activeDays": 1,
+              "questions": 1,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 1,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": true,
+              "commercialIntent": true,
+              "contextualFunnelReply": false,
+              "activeCommercialStage": "",
+              "strongPurchase": true,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00007",
+      "text": "¿Cuánto cuestan 3 frascos?",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00007",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00007",
+          "body": "¿Cuánto cuestan 3 frascos?",
+          "bodyLength": 26,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 4,
+            "modified": 4
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": false,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "attendance",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "strong_purchase_intent"
+            ],
+            "hardExclusions": [
+              "commercial_intent"
+            ],
+            "currentInboundKind": "question",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 7,
+              "logicalMessages": 7,
+              "inboundMessages": 2,
+              "outboundMessages": 5,
+              "recentInboundMessages": 2,
+              "recentOutboundMessages": 5,
+              "activeDays": 1,
+              "questions": 2,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 2,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": false,
+              "commercialIntent": true,
+              "contextualFunnelReply": false,
+              "activeCommercialStage": "",
+              "strongPurchase": true,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00008",
+      "text": "¿Qué contiene Vit Power?",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00008",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00008",
+          "body": "¿Qué contiene Vit Power?",
+          "bodyLength": 24,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": true,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "attendance",
+            "score": 95,
+            "confidence": "high",
+            "reasons": [
+              "commercial_intent"
+            ],
+            "hardExclusions": [
+              "commercial_intent"
+            ],
+            "currentInboundKind": "question",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 8,
+              "logicalMessages": 8,
+              "inboundMessages": 3,
+              "outboundMessages": 5,
+              "recentInboundMessages": 3,
+              "recentOutboundMessages": 5,
+              "activeDays": 1,
+              "questions": 3,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 3,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": false,
+              "commercialIntent": true,
+              "contextualFunnelReply": false,
+              "activeCommercialStage": "",
+              "strongPurchase": false,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00009",
+      "text": "Porfavor me indicas la promoción..\nLos precios..",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00009",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00009",
+          "body": "Porfavor me indicas la promoción..\nLos precios..",
+          "bodyLength": 48,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": false,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "attendance",
+            "score": 95,
+            "confidence": "high",
+            "reasons": [
+              "commercial_intent"
+            ],
+            "hardExclusions": [
+              "commercial_intent"
+            ],
+            "currentInboundKind": "statement",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 10,
+              "logicalMessages": 10,
+              "inboundMessages": 4,
+              "outboundMessages": 6,
+              "recentInboundMessages": 4,
+              "recentOutboundMessages": 6,
+              "activeDays": 1,
+              "questions": 3,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 4,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": false,
+              "commercialIntent": true,
+              "contextualFunnelReply": false,
+              "activeCommercialStage": "",
+              "strongPurchase": false,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00010",
+      "text": "Quiero 3 frascos. Estoy en Quito.",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00010",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00010",
+          "body": "Quiero 3 frascos. Estoy en Quito.",
+          "bodyLength": 33,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": false,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "attendance",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "strong_purchase_intent"
+            ],
+            "hardExclusions": [
+              "commercial_intent"
+            ],
+            "currentInboundKind": "statement",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 12,
+              "logicalMessages": 12,
+              "inboundMessages": 5,
+              "outboundMessages": 7,
+              "recentInboundMessages": 5,
+              "recentOutboundMessages": 7,
+              "activeDays": 1,
+              "questions": 3,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 5,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": false,
+              "commercialIntent": true,
+              "contextualFunnelReply": false,
+              "activeCommercialStage": "",
+              "strongPurchase": true,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00011",
+      "text": "Me llamo Carlos Prueba. Entrega a domicilio.",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00011",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00011",
+          "body": "Me llamo Carlos Prueba. Entrega a domicilio.",
+          "bodyLength": 44,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": false,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "orders",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "orders",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "support_intent"
+            ],
+            "hardExclusions": [
+              "support_intent",
+              "commercial_intent"
+            ],
+            "currentInboundKind": "statement",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 14,
+              "logicalMessages": 14,
+              "inboundMessages": 6,
+              "outboundMessages": 8,
+              "recentInboundMessages": 6,
+              "recentOutboundMessages": 8,
+              "activeDays": 1,
+              "questions": 3,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 6,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": true,
+              "commercialIntent": true,
+              "contextualFunnelReply": true,
+              "activeCommercialStage": "sdr_awaiting_customer_data",
+              "strongPurchase": false,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00012",
+      "text": "La provincia es Pichincha. Dirección: Avenida Simulada 123. Referencia: junto al parque.",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00012",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00012",
+          "body": "La provincia es Pichincha. Dirección: Avenida Simulada 123. Referencia: junto al parque.",
+          "bodyLength": 88,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": false,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "attendance",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "active_funnel_reply"
+            ],
+            "hardExclusions": [
+              "commercial_intent"
+            ],
+            "currentInboundKind": "statement",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 16,
+              "logicalMessages": 16,
+              "inboundMessages": 7,
+              "outboundMessages": 9,
+              "recentInboundMessages": 7,
+              "recentOutboundMessages": 9,
+              "activeDays": 1,
+              "questions": 3,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 7,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": false,
+              "commercialIntent": true,
+              "contextualFunnelReply": true,
+              "activeCommercialStage": "sdr_awaiting_customer_data",
+              "strongPurchase": false,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00013",
+      "text": "La dirección correcta es Avenida Simulada 456.",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00013",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00013",
+          "body": "La dirección correcta es Avenida Simulada 456.",
+          "bodyLength": 46,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": false,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "attendance",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "active_funnel_reply"
+            ],
+            "hardExclusions": [
+              "commercial_intent"
+            ],
+            "currentInboundKind": "statement",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 18,
+              "logicalMessages": 18,
+              "inboundMessages": 8,
+              "outboundMessages": 10,
+              "recentInboundMessages": 8,
+              "recentOutboundMessages": 10,
+              "activeDays": 1,
+              "questions": 3,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 8,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": false,
+              "commercialIntent": true,
+              "contextualFunnelReply": true,
+              "activeCommercialStage": "sdr_awaiting_order_confirmation",
+              "strongPurchase": false,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00014",
+      "text": "Sí, confirmo",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00014",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00014",
+          "body": "Sí, confirmo",
+          "bodyLength": 12,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": false,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "attendance",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "active_funnel_reply"
+            ],
+            "hardExclusions": [
+              "commercial_intent"
+            ],
+            "currentInboundKind": "statement",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 20,
+              "logicalMessages": 20,
+              "inboundMessages": 9,
+              "outboundMessages": 11,
+              "recentInboundMessages": 9,
+              "recentOutboundMessages": 11,
+              "activeDays": 1,
+              "questions": 3,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 9,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": false,
+              "commercialIntent": true,
+              "contextualFunnelReply": true,
+              "activeCommercialStage": "sdr_awaiting_order_confirmation",
+              "strongPurchase": false,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00015",
+      "text": "Sí, confirmo",
+      "phone": "593980000071",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000071",
+          "chatId": "593980000071@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00015",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00015",
+          "body": "Sí, confirmo",
+          "bodyLength": 12,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": false,
+          "contactStateId": "6afcfaf4e6c4db1962b8a20b",
+          "conversationBucket": "orders",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "orders",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "active_order_obligation"
+            ],
+            "hardExclusions": [
+              "active_order_obligation",
+              "support_intent"
+            ],
+            "currentInboundKind": "statement",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 24,
+              "logicalMessages": 24,
+              "inboundMessages": 10,
+              "outboundMessages": 14,
+              "recentInboundMessages": 10,
+              "recentOutboundMessages": 14,
+              "activeDays": 1,
+              "questions": 3,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 10,
+              "activeOrders": 1,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": true,
+              "commercialIntent": false,
+              "contextualFunnelReply": false,
+              "activeCommercialStage": "",
+              "strongPurchase": false,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": false
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00016",
+      "text": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Carlos Prueba",
+      "phone": "593980000072",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000072",
+          "chatId": "593980000072@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00016",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00016",
+          "body": "Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?\nNombre: Carlos Prueba",
+          "bodyLength": 168,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": true,
+          "vslFirstEntryMessageId": "SIM_IN_00016",
+          "vslFirstEntryAt": "2026-11-18T01:19:19.604Z",
+          "vslFirstResponseWatchdogKey": "zapi:SIM_IN_00016",
+          "vslFirstResponseWatchdogEligibilityReason": "first_entry_marker_created",
+          "directProductInbound": true,
+          "contactStateId": "6afcfd17e6c4db1962b8aefa",
+          "conversationBucket": "orders",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "orders",
+            "score": 100,
+            "confidence": "high",
+            "reasons": [
+              "support_intent"
+            ],
+            "hardExclusions": [
+              "support_intent",
+              "commercial_intent"
+            ],
+            "currentInboundKind": "question",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 1,
+              "logicalMessages": 1,
+              "inboundMessages": 1,
+              "outboundMessages": 0,
+              "recentInboundMessages": 1,
+              "recentOutboundMessages": 0,
+              "activeDays": 1,
+              "questions": 1,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 1,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": true,
+              "commercialIntent": true,
+              "contextualFunnelReply": false,
+              "activeCommercialStage": "",
+              "strongPurchase": true,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    },
+    {
+      "id": "SIM_IN_00017",
+      "text": "Confirmo",
+      "phone": "593980000072",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "recorded": true,
+          "newMessage": true,
+          "phone": "593980000072",
+          "chatId": "593980000072@c.us",
+          "type": "chat",
+          "providerMessageId": "SIM_IN_00017",
+          "providerZaapId": "",
+          "messageId": "SIM_IN_00017",
+          "body": "Confirmo",
+          "bodyLength": 8,
+          "mediaHealth": null,
+          "readInference": {
+            "matched": 0,
+            "modified": 0
+          },
+          "publicVslLeadEntry": true,
+          "eligibleForFirstResponseWatchdog": false,
+          "vslFirstEntryMessageId": "",
+          "vslFirstEntryAt": "",
+          "vslFirstResponseWatchdogKey": "",
+          "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+          "directProductInbound": false,
+          "contactStateId": "6afcfd17e6c4db1962b8aefa",
+          "conversationBucket": "attendance",
+          "engagementReplyEligible": false,
+          "conversationClassification": {
+            "bucket": "attendance",
+            "score": 95,
+            "confidence": "high",
+            "reasons": [
+              "commercial_intent"
+            ],
+            "hardExclusions": [
+              "commercial_intent"
+            ],
+            "currentInboundKind": "statement",
+            "eligibleForEngagement": false,
+            "replyEligibleByHistory": false,
+            "metrics": {
+              "rawRecords": 2,
+              "logicalMessages": 2,
+              "inboundMessages": 2,
+              "outboundMessages": 0,
+              "recentInboundMessages": 2,
+              "recentOutboundMessages": 0,
+              "activeDays": 1,
+              "questions": 1,
+              "links": 0,
+              "media": 0,
+              "conversationalTextCount": 2,
+              "activeOrders": 0,
+              "activeShipments": 0,
+              "linkMediaDominant": false,
+              "risk": false,
+              "optOut": false,
+              "supportIntent": false,
+              "commercialIntent": true,
+              "contextualFunnelReply": false,
+              "activeCommercialStage": "",
+              "strongPurchase": false,
+              "priceObjection": false,
+              "legacyManualAllowed": false,
+              "protectedTestContact": false
+            }
+          },
+          "routeToBot": true
+        },
+        "engagementReply": {
+          "scheduled": false,
+          "reason": "not_eligible"
+        }
+      }
+    }
+  ],
+  "negative": {
+    "phone": "593980000072",
+    "orderCount": 0,
+    "bucket": {
+      "value": "attendance",
+      "previousValue": "orders",
+      "source": "zapi_inbound_rule_v40",
+      "confidence": "high",
+      "score": 95,
+      "reasons": [
+        "commercial_intent"
+      ],
+      "classifiedAt": "2026-11-18T01:19:19.902Z",
+      "manualSelectedBy": "",
+      "commercialInterruptedAt": "2026-11-18T01:19:19.902Z",
+      "history": [
+        {
+          "from": "attendance",
+          "to": "orders",
+          "source": "zapi_inbound_rule_v40",
+          "reason": "support_intent",
+          "score": 100,
+          "by": "",
+          "at": "2026-11-18T01:19:19.631Z"
+        },
+        {
+          "from": "orders",
+          "to": "attendance",
+          "source": "zapi_inbound_rule_v40",
+          "reason": "commercial_intent",
+          "score": 95,
+          "by": "",
+          "at": "2026-11-18T01:19:19.902Z"
+        }
+      ]
+    },
+    "routeToBot": true,
+    "receipt": {
+      "ok": true,
+      "result": {
+        "recorded": true,
+        "newMessage": true,
+        "phone": "593980000072",
+        "chatId": "593980000072@c.us",
+        "type": "chat",
+        "providerMessageId": "SIM_IN_00017",
+        "providerZaapId": "",
+        "messageId": "SIM_IN_00017",
+        "body": "Confirmo",
+        "bodyLength": 8,
+        "mediaHealth": null,
+        "readInference": {
+          "matched": 0,
+          "modified": 0
+        },
+        "publicVslLeadEntry": true,
+        "eligibleForFirstResponseWatchdog": false,
+        "vslFirstEntryMessageId": "",
+        "vslFirstEntryAt": "",
+        "vslFirstResponseWatchdogKey": "",
+        "vslFirstResponseWatchdogEligibilityReason": "persisted_context_without_fresh_attribution",
+        "directProductInbound": false,
+        "contactStateId": "6afcfd17e6c4db1962b8aefa",
+        "conversationBucket": "attendance",
+        "engagementReplyEligible": false,
+        "conversationClassification": {
+          "bucket": "attendance",
+          "score": 95,
+          "confidence": "high",
+          "reasons": [
+            "commercial_intent"
+          ],
+          "hardExclusions": [
+            "commercial_intent"
+          ],
+          "currentInboundKind": "statement",
+          "eligibleForEngagement": false,
+          "replyEligibleByHistory": false,
+          "metrics": {
+            "rawRecords": 2,
+            "logicalMessages": 2,
+            "inboundMessages": 2,
+            "outboundMessages": 0,
+            "recentInboundMessages": 2,
+            "recentOutboundMessages": 0,
+            "activeDays": 1,
+            "questions": 1,
+            "links": 0,
+            "media": 0,
+            "conversationalTextCount": 2,
+            "activeOrders": 0,
+            "activeShipments": 0,
+            "linkMediaDominant": false,
+            "risk": false,
+            "optOut": false,
+            "supportIntent": false,
+            "commercialIntent": true,
+            "contextualFunnelReply": false,
+            "activeCommercialStage": "",
+            "strongPurchase": false,
+            "priceObjection": false,
+            "legacyManualAllowed": false,
+            "protectedTestContact": false
+          }
+        },
+        "routeToBot": true
+      },
+      "engagementReply": {
+        "scheduled": false,
+        "reason": "not_eligible"
+      }
+    }
+  },
+  "greetingRealElapsedMs": 9763,
+  "quietWindowSeconds": 60,
+  "nativeClock": true,
+  "actualHttpApp": true,
+  "actualMongoPersistence": true,
+  "dedupeIndexesSourceSha256": "2e8f3aae690c10cdba6121cee579f888061e8747fb401fc6409c5eb473fdf145",
+  "nativeUniqueIndexesVerified": true,
+  "actualSqliteMirror": true,
+  "model": "SCRIPTED_TOOL_CALLS_SIMULATION",
+  "transport": "LOCAL_PROVIDER_NO_EXTERNAL_NETWORK",
+  "networkNamespaceIsolated": true,
+  "realWhatsAppSends": 0,
+  "realDropiOrders": 0,
+  "realMetaEvents": 0,
+  "productionWrites": 0,
+  "localProviderRequests": 14,
+  "localOrderCount": 1,
+  "processExit": 0,
+  "qaTwoCyclesVerified": true,
+  "scopedHistoryMongoVerified": true,
+  "providerIdsGloballyUniqueVerified": true,
+  "periodAudioVerified": true,
+  "finalPriceTableVerified": true,
+  "qaNaturalEntryVerified": true,
+  "qaGreetingVerified": true,
+  "qaMixedQuestionsVerified": true,
+  "candidateCommit": "322c98a652c71d9a9714a523d83e91093bbbfe18",
+  "unpunctuatedPriceVerified": true,
+  "confirmedOrderVerified": true,
+  "thankYouVerified": true,
+  "at": "2026-11-18T01:19:25.094519+00:00",
+  "productionUnchanged": true,
+  "baselinePid": 3896107,
+  "candidateIntegrationBeforeFullSuite": true,
+  "launcherExit": 0
+}
