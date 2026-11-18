@@ -1,0 +1,11 @@
+PROJECT=VITALISMEN_EC — VITALISMEN OFICIAL
+STATUS=CONGELADO_POR_ORDEM_EXPLICITA
+PEDIDO=Congele tudo
+DATA_LOCAL=2026-11-17
+REGISTRO_UTC=2026-11-18T01:22:35.242449+00:00
+BASELINE=docs/freeze/vitalismen-ec-total-aprovado-v244-20261117.json
+BASELINE_SHA256=601b8ea3060d88874ae4cedd1b37b7c8cf93ca331754cb45a6f5a8ae9e66679e
+TAG=freeze-vitalismen-ec-v244-20261117
+OPERACAO=Continua no estado autorizado existente
+PRODUCAO_ALTERADA=NAO
+NOVAS_ALTERACOES=Somente com pedido explicito citando o ponto a mudar

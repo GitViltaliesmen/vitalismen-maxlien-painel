@@ -1,5 +1,18 @@
 # Regras Fixas do Projeto
 
+PROJECT=VITALISMEN_EC
+
+## Congelamento total vigente — V244 — 2026-11-17
+
+- Ordem explícita mais recente do operador: `Congele tudo`.
+- Fonte de verdade: `docs/CONGELAMENTO_TOTAL_VITALISMEN_V244_20261117.md`; manifesto `docs/freeze/vitalismen-ec-total-aprovado-v244-20261117.json`; recibo `approved_freezes/CONGELAMENTO_TOTAL_VITALISMEN_V244_20261117.txt`.
+- Preservar o estado aprovado inteiro: backend d27cc7c7f2a21ad74e02ca5b6332ee50b151399b, VSL móvel/informativa desktop, player/CTA/Turbo/telefone, chat liberado somente junto à CTA WhatsApp, funil/voz, identidade entre canais, Meta, demais produtos, memória, pedidos, Dropi, Z-API, pós-venda e guardas existentes.
+- O congelamento protege alterações de código/configuração/apresentação; atendimento e dados operacionais continuam no modo autorizado existente. Não pausar serviços nem criar flags, locks ou bloqueios por causa deste registro.
+- Nova alteração somente por pedido explícito do operador citando o ponto a mudar. Autorizações anteriores já concluídas não reabrem o trabalho congelado.
+- Guard obrigatório para esta rota: `node scripts/guard-plusmen-tex-freeze.mjs`. Manter todos os manifestos anteriores, backups, falhas e limites; nunca trocar hashes ou desligar guard/dedupe/histórico para obter PASS.
+- A primeira jornada/conversão Meta real continua pendente de observação; congelamento não transforma ensaio em cliente real nem equivale a backup global MongoDB.
+
+
 ## Regra maxima EC Maxlien — Tex Ultra / Nitrix / Vit Power
 
 Regra maxima e permanente: este projeto, quando tratar de `ec.maxlien.shop/n/`, e somente Equador na VPS Hostinger oficial, Git Equador e dominio publico oficial:

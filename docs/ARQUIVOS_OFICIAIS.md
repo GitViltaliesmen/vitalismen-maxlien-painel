@@ -1412,3 +1412,8 @@ nenhuma alteração realizada no VPS.
   `docs/freeze/ec-buy-later-operational-v162-20260915.json`,
   `scripts/guard-buy-later-operational-v162.mjs` e
   `tests/buy-later-operational-v162.test.mjs`.
+
+
+## Congelamento total V244 — ordem do operador — 17/11/2026
+
+Estado aprovado congelado por pedido explícito “Congele tudo”. Referência: docs/CONGELAMENTO_TOTAL_VITALISMEN_V244_20261117.md; manifesto docs/freeze/vitalismen-ec-total-aprovado-v244-20261117.json; recibo approved_freezes/CONGELAMENTO_TOTAL_VITALISMEN_V244_20261117.txt. Backend/VSL/chat/Meta/funil/voz/telefone/demais produtos e guardas preservados; operação continua. Somente conferência de leitura em produção e documentação, sem deploy/restart/envio. Novas alterações exigem pedido explícito do ponto a mudar.

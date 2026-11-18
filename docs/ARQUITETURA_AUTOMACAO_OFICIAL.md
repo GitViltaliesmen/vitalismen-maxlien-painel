@@ -1736,3 +1736,8 @@ bloqueia a ativação. Falha de transporte grava `failedAt`, conserva
 `sentAt=null`, incrementa a tentativa e exige revisão humana, sem retry
 automático. Contrato completo:
 `docs/BUY_LATER_OPERATIONAL_ACTIVATION_V162_20260915.md`.
+
+
+## Congelamento total V244 — ordem do operador — 17/11/2026
+
+Estado aprovado congelado por pedido explícito “Congele tudo”. Referência: docs/CONGELAMENTO_TOTAL_VITALISMEN_V244_20261117.md; manifesto docs/freeze/vitalismen-ec-total-aprovado-v244-20261117.json; recibo approved_freezes/CONGELAMENTO_TOTAL_VITALISMEN_V244_20261117.txt. Backend/VSL/chat/Meta/funil/voz/telefone/demais produtos e guardas preservados; operação continua. Somente conferência de leitura em produção e documentação, sem deploy/restart/envio. Novas alterações exigem pedido explícito do ponto a mudar.
