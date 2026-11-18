@@ -40,7 +40,7 @@ def same_before(m,scope):
   target=pathlib.Path(p);before=r['before']
   if before['exists']:assert target.is_file() and not target.is_symlink() and sha(target)==before['sha256'],'CONCURRENT_FILE_CHANGED:'+p
   else:assert not target.exists(),'UNEXPECTED_NEW_FILE:'+p
-def restart(interpreter,previous_pid,expected_desktop_sha):
+def restart(interpreter,previous_pid,expected_desktop_sha,expected_application_sha):
  # No --update-env: preserve the existing process environment and all other PM2 apps.
  r=run(['pm2','restart','cloaker','--interpreter',interpreter],env={**os.environ,'NODE_OPTIONS':''});assert r.returncode==0,'ORIGIN_PM2_RESTART_FAILED'
  deadline=time.monotonic()+90
@@ -51,7 +51,10 @@ def restart(interpreter,previous_pid,expected_desktop_sha):
     actual=pathlib.Path('/proc/'+str(p['pid'])+'/exe').resolve();assert actual==pathlib.Path(interpreter).resolve(),'ORIGIN_WRONG_NODE_INTERPRETER'
     req=urllib.request.Request('http://127.0.0.1:3002/tex',headers={'Host':'plusmen.shop','User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36'})
     with urllib.request.urlopen(req,timeout=4) as f:body=f.read();assert f.status==200
-    assert hashlib.sha256(body).hexdigest()==expected_desktop_sha,'DESKTOP_CHANGED_AFTER_RESTART'
+    assert hashlib.sha256(body).hexdigest()==expected_application_sha,'APPLICATION_DESKTOP_CHANGED_AFTER_RESTART'
+    public=urllib.request.Request('https://plusmen.shop/tex',headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36'})
+    with urllib.request.urlopen(public,timeout=10) as f:public_body=f.read();assert f.status==200
+    assert hashlib.sha256(public_body).hexdigest()==expected_desktop_sha,'PUBLIC_DESKTOP_CHANGED_AFTER_RESTART'
     return p
   except (OSError,urllib.error.URLError,ConnectionError):pass
   time.sleep(.4)
@@ -75,7 +78,7 @@ def restore_code(m,previous_pid):
  current=APP/'node_modules';old=B/'node_modules.before'
  if old.exists():
   failed=B/('node_modules.failed-'+uuid.uuid4().hex[:8]);os.rename(current,failed);os.rename(old,current)
- p=restart(m['originalInterpreter'],previous_pid,m['desktopSha256']);save_pm2()
+ p=restart(m['originalInterpreter'],previous_pid,m['desktopSha256'],m['applicationDesktopSha256']);save_pm2()
  return receipt('EMERGENCY_ROLLBACK_'+uuid.uuid4().hex[:8]+'.json',{'status':'RESTORED_PREPUBLICATION_BASELINE','pid':p['pid'],'dataRestored':False,'measurementLedgersErased':False,'securityStatus':'ORIGINAL_BASELINE_NOT_QUALIFIED_ZERO'})
 def publish_application():
  m=manifest();assert not (B/'APPLICATION_PUBLIC.json').exists();same_before(m,'application')
@@ -90,7 +93,7 @@ def publish_application():
   for p in sorted((p for p,r in m['files'].items() if r['scope']=='application'),key=lambda p:(p.endswith('/server.js'),p)):
    r=m['files'][p];old=r['before'];path=pathlib.Path(p);path.parent.mkdir(parents=True,exist_ok=True)
    put(path,(B/'candidate'/r['candidate']).read_bytes(),old.get('mode',0o644),old.get('uid',0),old.get('gid',0));assert sha(path)==r['sha256']
-  app=restart(str(runtime),before['pid'],m['desktopSha256'])
+  app=restart(str(runtime),before['pid'],m['desktopSha256'],m['applicationDesktopSha256'])
   for p in all_before:
    if p['name']!='cloaker':assert next(x for x in pm2() if x['name']==p['name'])['pid']==p['pid'],'OTHER_ORIGIN_PROCESS_CHANGED'
   env={**os.environ,'NODE_OPTIONS':'','PATH':str(runtime.parent)+':'+os.environ['PATH']}
@@ -99,7 +102,7 @@ def publish_application():
   save_pm2()
   return receipt('APPLICATION_PUBLIC.json',{'project':'VITALISMEN_EC','pass':True,'pid':app['pid'],'nodeVersion':'v22.23.5','interpreter':str(runtime),'cwd':app['pm2_env']['pm_cwd'],'exec':app['pm2_env']['pm_exec_path'],'desktopUnchanged':True,'zeroVulnerabilities':True,'measurementEnabled':False,'otherProcessPidsUnchanged':True,'at':utc()})
  except BaseException as e:
-  receipt('APPLICATION_FAILURE.json',{'error':str(e)[:300],'at':utc()});restore_code(m,target()['pid']);raise
+  receipt('APPLICATION_FAILURE_attempt2_'+uuid.uuid4().hex[:8]+'.json',{'error':str(e)[:300],'at':utc()});restore_code(m,target()['pid']);raise
 def publish_site():
  m=manifest();assert read(B/'APPLICATION_PUBLIC.json')['pass'];assert not (B/'SITE_PUBLIC.json').exists();same_before(m,'site')
  ready=read(B/'BACKEND_MEASUREMENT_READY.json');assert ready['pass'] is True and ready['commit']==m['backendCommit'] and ready['measurementEnabled'] is True

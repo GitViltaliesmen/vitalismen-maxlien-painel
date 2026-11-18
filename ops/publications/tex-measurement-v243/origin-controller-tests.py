@@ -18,4 +18,32 @@ try:
  except AssertionError:assert not effects;checks.append('site_denies_disabled_backend_before_mutation')
 finally:
  assert temp.resolve().parent==pathlib.Path(tempfile.gettempdir()).resolve();shutil.rmtree(temp)
+
+# Exercise the real restart verifier against separate application/public responses.
+import os,sys,types,urllib.request
+for mode in ['matching','application_changed','public_changed']:
+ s=load();g=s['restart'].__globals__;application=b'application baseline';public=b'public nginx baseline';seen=[]
+ class Response:
+  status=200
+  def __init__(self,body):self.body=body
+  def __enter__(self):return self
+  def __exit__(self,*args):pass
+  def read(self):return self.body
+ def opener(req,timeout):
+  seen.append(req.full_url)
+  if req.full_url=='http://127.0.0.1:3002/tex':return Response(b'changed' if mode=='application_changed' else application)
+  assert req.full_url=='https://plusmen.shop/tex'
+  return Response(b'changed' if mode=='public_changed' else public)
+ original=urllib.request.urlopen;urllib.request.urlopen=opener
+ g.update(APP=pathlib.Path.cwd().resolve(),run=lambda *a,**kw:types.SimpleNamespace(returncode=0),target=lambda:{'pid':os.getpid(),'pm2_env':{'status':'online'}})
+ try:
+  try:
+   result=s['restart'](str(pathlib.Path('/proc/self/exe').resolve()),-1,hashlib.sha256(public).hexdigest(),hashlib.sha256(application).hexdigest())
+   assert mode=='matching' and result['pid']==os.getpid() and seen==['http://127.0.0.1:3002/tex','https://plusmen.shop/tex'];checks.append('restart_checks_both_exact_baselines')
+  except AssertionError as e:
+   if mode=='matching':raise
+   expected='APPLICATION_DESKTOP_CHANGED_AFTER_RESTART' if mode=='application_changed' else 'PUBLIC_DESKTOP_CHANGED_AFTER_RESTART'
+   assert str(e)==expected;checks.append('restart_rejects_'+mode)
+ finally:urllib.request.urlopen=original
+
 report={'project':'VITALISMEN_EC','pass':True,'checks':checks,'controllerSha256':hashlib.sha256((H/'origin-controller.py').read_bytes()).hexdigest(),'productionMutations':0};(H/'ORIGIN_CONTROLLER_TESTS.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

@@ -19,3 +19,5 @@ Backups recuperáveis antes/depois de código e configuração usam envelope cif
 Rollback: desligar somente a capacidade de mensuração nos dois controllers; conservar código compatível, dependências seguras, referência/identidade/journal/locks/histórico. Depois de publicar a página ou observar a nova coorte, o controller bloqueia retorno ao backend antigo. Antes da página, rollback de código é restrito ao parent real d35. Não limpar MongoDB, resetar contatos, repetir tentativas nem restaurar deps vulneráveis como solução permanente.
 
 Limites: campanhas observadas desativadas; token de leitura sem ads_read. A chegada de cliente por anúncio e a aceitação final de um Lead/Purchase real exigem tráfego real posterior. Este trabalho não ativa anúncios ou altera orçamento.
+
+Controlador de publicação, tentativa2: conferir a resposta interna de3002/tex e o HTML público de https://plusmen.shop/tex contra seus próprios hashes exatos. A primeira tentativa comparou baselines de camadas diferentes e foi restaurada antes da página. O guard público de desktop permanece integral; sete testes do controlador cobrem os dois hashes e rejeitam alteração em qualquer camada.
