@@ -25,6 +25,12 @@ Pré-publicação: guard Plusmen PASS; guard candidato PASS; controladores audit
 
 O senior local foi tentado na sessão e não concluiu por mongoose ausente no checkout; não há alegação de PASS da suíte backend nesta publicação estática. Não há novo pacote/dependência ou alteração de backend. A reversão exata comprova que toda lógica de painel fora dos quatro pontos é preservada. A execução física no celular e eventual aumento de conversão não são comprovados por simulação.
 
+### Revisão final R2
+
+A interface publicada foi aberta na sessão administrativa existente e o QA exato selecionado, sem enviar mensagens. A lista lateral tinha zero `.chat-preview .meta`; o badge e estado vazio mostraram corretamente janela encerrada. A seleção pode atualizar o marcador de leitura do QA; não se afirma que esse metadado de leitura permaneceu idêntico.
+
+A conferência adicional da tela Controle do Bot não encontrou ação de abrir janela QA. A instrução inicial que apontava para essa tela foi removida antes do congelamento final, para não direcionar o operador a um comando inexistente. O texto final é: **A janela anterior terminou. Uma nova mensagem de teste precisa de uma janela autorizada ativa.** Os 24 testes e a prova de inversão foram repetidos para esse ajuste; a negativa agora também rejeita o texto incorreto. R1, backups e evidências anteriores permanecem disponíveis no commit 4b620170d476944da30aa523df06d07aaa82fd83 e nas pastas de publicação. `refine panel` admite exclusivamente o SHA R1 publicado e conserva preimage próprio; não reescreve o backup original. A CTA e o backend não mudam no R2.
+
 ## Publicação, guard e rollback
 
 Artefatos/backup na origem: `/root/tex-cta-qa-panel-v248-20261118`; painel: `/opt/vitalismen-automacao/backups/tex-cta-qa-panel-v248-20261118`. Cada controlador gera comprovantes audit/apply e `before-apply.private` root0600 em pasta root0700, com comparação completa antes da troca. São backups dos dois arquivos públicos, não backup global MongoDB ou configuração inteira.

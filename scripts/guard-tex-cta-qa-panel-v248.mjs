@@ -14,12 +14,12 @@ assert.equal(m.parentSourceCommit,'72c6ab9c0e66e52bb79540ad2cbe7e18af8b6c96');
 assert.equal(m.parentWhatsappFreezeSha256,sha(fs.readFileSync(path.join(root,'docs/freeze/plusmen-tex-whatsapp-clean-v245-20261117.json'))));
 const fixed={
  cta:{path:'/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js',before:'de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd',after:'deeeb05d598b697762d352f1c47d91d0ed850e57a81a3f4ee70e37118bbdddc7'},
- panel:{path:'/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html',before:'e2dcc2343466f69a9850fae787b4ea8c29a7cdfac2e8734ed0ac1951fab2e3a3',after:'ecfb29720492931c884b37814fb9dae3a4f5dcc12c7f3845f332f725d31a4e56'}
+ panel:{path:'/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html',before:'e2dcc2343466f69a9850fae787b4ea8c29a7cdfac2e8734ed0ac1951fab2e3a3',after:'3b334f0cc5c8da9840fd257c521cdc828e264a8c4f1a814d190e292640a2f1e2'}
 };
 for(const key of ['cta','panel']){assert.equal(m[key].path,fixed[key].path);assert.equal(m[key].beforeSha256,fixed[key].before);assert.equal(m[key].sha256,fixed[key].after);}
 assert.equal(m.cta.phone,'553171862958');assert.equal(m.cta.message,'Hola, quiero el tratamiento Tex Ultra.');assert.equal(m.cta.label,'PEDIR TEX ULTRA POR WHATSAPP');
 assert.equal(sha(Buffer.from(m.cta.addonBase64,'base64')),'42f5867800295c7f5f593119fa98d612f3e652491b4761effa222730c82f846f');
-assert.equal(sha(JSON.stringify(m.panel.patches)),'40c5f13ee644bed438b741f0147d47b8098b51b129b03ac21b662c42dcf74b19');
+assert.equal(sha(JSON.stringify(m.panel.patches)),'8d31d7a5e9ad892a0bedd84325abbe43e5a6c1479f3c904c6ad601332d070fcc');
 const prefix=path.join(root,'ops/publications/tex-cta-qa-panel-v248');
 assert.equal(sha(Buffer.concat([Buffer.from('\n'),fs.readFileSync(path.join(prefix,'cta-label.js'))])),m.cta.addonSha256);
 assert.equal(sha(fs.readFileSync(path.join(prefix,'qa-panel.js'))),m.panel.helperSha256);

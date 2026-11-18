@@ -86,7 +86,7 @@ test('QA: before server read never claims online/active permit', () => {
   const f = qaFixture(); assert.equal(f.ui.status(f.chat()).kind, 'loading'); assert.match(f.ui.emptyHtml(f.chat()), /Consultando/);
 });
 test('QA: expired permit shows ended window and next operational step', async () => {
-  const f = qaFixture({ record: record(100000) }); await f.ui.load(); assert.equal(f.ui.status(f.chat()).kind, 'closed'); assert.match(f.ui.emptyHtml(f.chat()), /Controle do Bot/); assert.doesNotMatch(f.ui.emptyHtml(f.chat()), /BOT ONLINE/);
+  const f = qaFixture({ record: record(100000) }); await f.ui.load(); assert.equal(f.ui.status(f.chat()).kind, 'closed'); assert.match(f.ui.emptyHtml(f.chat()), /janela autorizada ativa/); assert.doesNotMatch(f.ui.emptyHtml(f.chat()), /BOT ONLINE|Controle do Bot/);
 });
 test('QA: valid native permit shows active and expires without renewal', async () => {
   const f = qaFixture({ record: record() }); await f.ui.load(); assert.equal(f.ui.status(f.chat()).kind, 'active'); f.expire(); assert.equal(f.ui.status(f.chat()).kind, 'closed'); assert.equal(f.calls(), 1);

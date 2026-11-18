@@ -9,7 +9,7 @@ import stat
 import time
 
 parser = argparse.ArgumentParser()
-parser.add_argument('action', choices=['audit', 'apply', 'rollback'])
+parser.add_argument('action', choices=['audit', 'apply', 'refine', 'rollback'])
 parser.add_argument('role', choices=['origin', 'panel'])
 args = parser.parse_args()
 folder = Path(__file__).resolve().parent
@@ -22,7 +22,7 @@ expected = {
             'deeeb05d598b697762d352f1c47d91d0ed850e57a81a3f4ee70e37118bbdddc7'),
     'panel': ('/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html',
               'e2dcc2343466f69a9850fae787b4ea8c29a7cdfac2e8734ed0ac1951fab2e3a3',
-              'ecfb29720492931c884b37814fb9dae3a4f5dcc12c7f3845f332f725d31a4e56')
+              '3b334f0cc5c8da9840fd257c521cdc828e264a8c4f1a814d190e292640a2f1e2')
 }[role]
 sha = lambda b: hashlib.sha256(b).hexdigest()
 assert (record['path'], record['beforeSha256'], record['sha256']) == expected
@@ -41,7 +41,7 @@ if role == 'cta':
     parent = candidate[:-len(suffix)]
 else:
     patches = record['patches']
-    assert sha(json.dumps(patches, separators=(',', ':')).encode()) == '40c5f13ee644bed438b741f0147d47b8098b51b129b03ac21b662c42dcf74b19'
+    assert sha(json.dumps(patches, separators=(',', ':')).encode()) == '8d31d7a5e9ad892a0bedd84325abbe43e5a6c1479f3c904c6ad601332d070fcc'
     parent = candidate
     for p in reversed(patches):
         before = base64.b64decode(p['beforeBase64'], validate=True)
@@ -53,7 +53,11 @@ report = {'project': 'VITALISMEN_EC', 'role': role, 'action': args.action,
           'time': time.time(), 'currentSha256': sha(original), 'path': str(target),
           'candidateSha256': sha(candidate), 'inverseExact': True}
 if args.action != 'audit':
-    replacing, replacement = (expected[1], candidate) if args.action == 'apply' else (expected[2], parent)
+    if args.action == 'refine':
+        assert role == 'panel'
+        replacing, replacement = 'ecfb29720492931c884b37814fb9dae3a4f5dcc12c7f3845f332f725d31a4e56', candidate
+    else:
+        replacing, replacement = (expected[1], candidate) if args.action == 'apply' else (expected[2], parent)
     assert sha(original) == replacing, 'CONCURRENT_CHANGE_OR_ALREADY_APPLIED_NO_RETRY'
     backup = folder / ('before-' + args.action + '.private')
     fd = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)

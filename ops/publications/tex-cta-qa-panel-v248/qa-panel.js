@@ -23,7 +23,7 @@ function createQaPanelUiV248({ api, getChat, getScope, refresh, now = () => Date
             ? 'Janela de teste ativa. Aguardando uma nova mensagem enviada pelo WhatsApp 8637.'
             : value.kind === 'loading' ? 'Consultando a janela autorizada do teste 8637.'
             : value.kind === 'error' ? 'Não foi possível consultar a janela de teste. Atualize a página para conferir o estado atual.'
-            : 'A janela anterior terminou. Abra uma nova janela de teste no Controle do Bot antes de enviar uma nova mensagem.';
+            : 'A janela anterior terminou. Uma nova mensagem de teste precisa de uma janela autorizada ativa.';
         return '<div class="empty" data-qa-empty-v248="true"><strong>Teste 8637: nenhuma mensagem nesta rodada.</strong><br>' + explanation + '</div>';
     }
     async function load() {
