@@ -1,3 +1,4 @@
+import { isPublishedTexUltraEntryV246 } from '../services/texUltraEntryClassificationV246Service.js';
 import { captureInboundMedia } from '../services/inboundMediaReplayV208Service.js';
 import express from 'express';
 import {
@@ -896,6 +897,7 @@ const recordZapiInboundPayload = async (payload = {}, { qaPostPersist = false } 
     const explicitTextProductContext = directProductInbound
         && detectedTextProductContext?.productSource === 'zapi_explicit_product_text'
         && !isPublishedVitPowerLeadV227(normalizedBody)
+        && !isPublishedTexUltraEntryV246(normalizedBody)
         ? null
         : detectedTextProductContext;
     const vslAttribution = vslRoutingAllowed

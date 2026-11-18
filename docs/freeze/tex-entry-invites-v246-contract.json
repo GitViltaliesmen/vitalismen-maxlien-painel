@@ -1,0 +1,20 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "322c98a652c71d9a9714a523d83e91093bbbfe18",
+  "parentRelease": "/opt/vitalismen-automacao/releases/20261118T010247Z_production-20261118-322c98a",
+  "allowedDelta": [
+    "docs/freeze/tex-entry-invites-v246-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/routes/zapi.js",
+    "src/services/customerInvitesV232Service.js",
+    "src/services/texUltraEntryClassificationV246Service.js",
+    "tests/tex-entry-invites-v246.test.mjs"
+  ],
+  "authorization": "USER_20261118_TEX_ENTRY_RECOGNITION_AND_NO_VITPOWER_INVITES_TO_TEX",
+  "scope": "Only published plain Tex greeting admission before existing assignment policy and suppression of Vit Power chat invites to Tex contexts at selection and refreshed-recipient boundaries. Preserve explicit current/manual product choices and every existing history/dedupe/lock. No replay, reset or release of the three inspected customers.",
+  "databaseMigrations": false,
+  "existingCustomerMutationAuthorized": false,
+  "historicalReplayAuthorized": false,
+  "whatsappQaSendsAuthorized": false
+}

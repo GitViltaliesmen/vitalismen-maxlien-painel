@@ -1,5 +1,6 @@
 // PROJECT=VITALISMEN_EC. Partner URLs are message content only; no partner integration.
 import { createHash, randomUUID } from 'node:crypto';
+import { suppressVitPowerInviteForTexV246 } from './texUltraEntryClassificationV246Service.js';
 export const INVITE_GAP_V232 = 600000;
 export const PARTNER_GAP_V232 = 43200000;
 export const INVITE_SITE_V232 = 'https://taviazen.shop/vitpower_2026g';
@@ -40,10 +41,11 @@ export async function runCustomerInviteV232({ repository, send, mirror, policy, 
     seen.add(phone);
     if (await repository.stopped(phone) || !inviteEligibilityV232(contact, now)) continue;
     const order = contact.order;
+    const suppressVitPowerInviteV246 = suppressVitPowerInviteForTexV246(contact);
     const stages = [];
-    if (order && !contact.returned && !contact.deliveredVerified && order.productKey === 'vit_power_ec' && ['confirmed', 'processing', 'shipped'].includes(order.status)) stages.push({ stage: 'CHAT_ORDER', orderId: order.orderId });
+    if (!suppressVitPowerInviteV246 && order && !contact.returned && !contact.deliveredVerified && order.productKey === 'vit_power_ec' && ['confirmed', 'processing', 'shipped'].includes(order.status)) stages.push({ stage: 'CHAT_ORDER', orderId: order.orderId });
     const lastActivity = Math.max(millis(contact.lastInboundAt), millis(contact.lastOutboundAt));
-    if (policy.generalChat === true && !contact.returned && lastActivity > 0 && now - lastActivity >= INVITE_GAP_V232) stages.push({ stage: 'CHAT_ACCESS', orderId: '' });
+    if (!suppressVitPowerInviteV246 && policy.generalChat === true && !contact.returned && lastActivity > 0 && now - lastActivity >= INVITE_GAP_V232) stages.push({ stage: 'CHAT_ACCESS', orderId: '' });
     const absent = lastActivity > 0 && now - lastActivity >= PARTNER_GAP_V232;
     const delivered = (order?.status === 'delivered' || contact.deliveredVerified === true) && !contact.returned;
     if (!contact.returned && (delivered || absent)) {
@@ -61,7 +63,8 @@ export async function runCustomerInviteV232({ repository, send, mirror, policy, 
       let attempted = false;
       try {
         const fresh = await repository.refresh(contact);
-        if (!inviteEligibilityV232(fresh, clock()) || await repository.stopped(phone)) {
+        if (!inviteEligibilityV232(fresh, clock()) || await repository.stopped(phone)
+          || (['CHAT_ORDER', 'CHAT_ACCESS'].includes(item.stage) && suppressVitPowerInviteForTexV246(fresh))) {
           await repository.finish(key, lockToken, { state: 'suppressed', reason: 'recipient_became_ineligible' });
           return { status: 'RECIPIENT_CHANGED', sent: 0, physicalOutboundCount: 0 };
         }
