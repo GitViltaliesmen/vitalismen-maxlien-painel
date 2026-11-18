@@ -10,18 +10,29 @@ export const B01_MEDIA = Object.freeze([
   { kind: 'image', label: 'Frasco Vit Power', asset: '/media/sales/ec/vit_power.jpeg' }
 ]);
 const clean = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+// Keep public CTA recognition independent from line breaks added or removed by the client.
+// An inline name is accepted only after an otherwise exact generic entry, at the end.
+function b01GenericBodyV246(body) {
+  const normalized = clean(body);
+  if (/^(hola|holaa|buenas|buenos dias|buenas tardes|buenas noches|saludos)$/.test(normalized)) return true;
+  return normalized === clean('Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?')
+    || /^(hola )?(quiero|deseo|necesito) (informacion|info|conocer) (sobre |de |del )?(vit power|producto|tratamiento)$/.test(normalized);
+}
+function b01InlineNameV246(text) {
+  const raw = String(text);
+  const match = raw.match(/\s+(?:nombre|nome)\s*:\s*([\p{L}][\p{L}\p{M}'’ .-]{0,79})\s*$/iu);
+  if (!match || !b01GenericBodyV246(raw.slice(0, match.index))) return '';
+  const name = match[1].trim().split(/\s+/)[0];
+  return /^[\p{L}][\p{L}'’-]{0,39}$/u.test(name) ? name : '';
+}
 export function firstName(text = '') {
   const match = String(text).match(/(?:^|\n)\s*(?:nombre|nome)\s*:\s*([^\n]{1,80})/i);
   const name = (match?.[1] || '').trim().split(/\s+/)[0];
-  return name && /^[\p{L}][\p{L}'’-]{0,39}$/u.test(name) ? name : '';
+  return name && /^[\p{L}][\p{L}'’-]{0,39}$/u.test(name) ? name : b01InlineNameV246(text);
 }
 export function isB01GenericEntry(text = '') {
   const body = String(text).replace(/(?:^|\n)\s*(?:nombre|nome)\s*:[^\n]*/gi, '').trim();
-  const normalized = clean(body);
-  if (/^(hola|holaa|buenas|buenos dias|buenas tardes|buenas noches|saludos)$/.test(normalized)) return true;
-  // Exact public CTA and a small set of generic intentions; specific questions keep priority.
-  return normalized === clean('Hola, vengo del video.\nQuiero conocer la oferta disponible de Vit Power.\n¡Me interesa aprovechar la mejor promoción y hacer mi pedido! ¿Me ayudan?')
-    || /^(hola )?(quiero|deseo|necesito) (informacion|info|conocer) (sobre |de |del )?(vit power|producto|tratamiento)$/.test(normalized);
+  return b01GenericBodyV246(body) || Boolean(b01InlineNameV246(text));
 }
 export function b01PeriodV242(date = new Date()) {
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Guayaquil', hour: '2-digit', hourCycle: 'h23' }).format(date));

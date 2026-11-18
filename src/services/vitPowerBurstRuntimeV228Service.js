@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import {isB01GenericEntry} from './vitPowerB01CoreV216Service.js';
+import {isVerifiedVitPowerFirstEntryV246} from './vitPowerEntryContextV246Service.js';
 import Contact from '../models/ContactState.js';
 import Message from '../models/Message.js';
 import Order from '../models/Order.js';
@@ -82,7 +84,14 @@ export async function handleVitPowerBurstInboundV228(input){
  if(!policy().enabled)return{handled:false,reason:'disabled'};
  if(input.vitPowerBurstV228)return{handled:false,reason:'already_processing_batch'};
  const state=await get(input.contactId);
- const initialEntry=state?.metadata?.vslEntryMessage===input.text&&String(state.firstInboundText||'')===input.text;
+ let verifiedGenericFirst=false;
+ if(input.productKey==='vit_power_ec'&&isB01GenericEntry(input.text)&&!state?.vitPowerB01){
+  const nativeQaInitial=input.phone===qa&&principalSdrQaRuntimeReadyV212({state,phone:qa,messageId:input.inboundId,now:new Date()});
+  const firstPersistedInbound=input.phone!==qa&&String(state?.firstInboundText||'')===input.text
+   &&await Message.countDocuments(incoming(input.phone))===1;
+  verifiedGenericFirst=isVerifiedVitPowerFirstEntryV246({input,state,firstPersistedInbound,verifiedQaInitial:nativeQaInitial});
+ }
+ const initialEntry=state?.metadata?.vslEntryMessage===input.text&&String(state.firstInboundText||'')===input.text||verifiedGenericFirst;
  return runtime.enqueue({...input,initialEntry});
 }
 let started=false;

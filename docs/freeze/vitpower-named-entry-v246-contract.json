@@ -1,0 +1,20 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "d8c8b0dd697e712bf2d7442ae90cb6aa6576fcc8",
+  "allowedDelta": [
+    "docs/freeze/vitpower-named-entry-v246-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/routes/zapi.js",
+    "src/services/vitPowerB01CoreV216Service.js",
+    "src/services/vitPowerBurstRuntimeV228Service.js",
+    "src/services/vitPowerEntryContextV246Service.js",
+    "tests/b01-named-entry-v246.test.mjs"
+  ],
+  "scope": "Recognize a terminal first-name field on the same line as an otherwise exact generic Vit Power entry. Route a verified fresh generic first message to B01 before burst grouping; ordinary contacts require exactly one persisted official inbound, while exact QA requires the native initial claim. Never synthesize VSL attribution. Preserve specific-question priority, period audio, all prices, B01 order, native finite QA permits, attempt/fingerprint/semantic identities, history, retries, other product routes, attribution and integrations. QA test preparation must distinguish an expired prior Hola from a new controlled first entry without deleting ledgers.",
+  "productionDatabaseMigration": false,
+  "automaticRetryAuthorized": false,
+  "oldLedgerDeletionAuthorized": false,
+  "historicalMessagesReplayed": false,
+  "nativePermitStillRequired": true
+}

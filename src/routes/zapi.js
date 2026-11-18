@@ -236,7 +236,14 @@ export const activeEcVslProductContextFromText = () => null;
 // The published Vit Power CTA is an entry, not an unrelated product inquiry.
 export const isPublishedVitPowerLeadV227 = (text = '') => {
     const lines = String(text || '').replace(/\r\n?/g, '\n').trim().split('\n').map(line => line.trim());
-    if (lines.length !== 3 && lines.length !== 4) return false;
+    if (lines.length !== 3 && lines.length !== 4) {
+        // Only the published CTA may cross this formatting compatibility path.
+        // Product questions, appended order details and unrelated greetings stay excluded.
+        const raw = String(text || '').trim();
+        const suffix = raw.match(/\s+(?:nombre|nome)\s*:\s*([\p{L}][\p{L}\p{M}'’ .-]{0,79})\s*$/iu);
+        const body = suffix ? raw.slice(0, suffix.index) : raw;
+        return normalizeVslText(body) === 'hola vengo del video quiero conocer la oferta disponible de vit power me interesa aprovechar la mejor promocion y hacer mi pedido me ayudan';
+    }
     if (normalizeVslText(lines[0]) !== 'hola vengo del video'
         || normalizeVslText(lines[1]) !== 'quiero conocer la oferta disponible de vit power'
         || normalizeVslText(lines[2]) !== 'me interesa aprovechar la mejor promocion y hacer mi pedido me ayudan') return false;
