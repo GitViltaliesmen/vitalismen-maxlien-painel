@@ -1,0 +1,22 @@
+{
+  "project": "VITALISMEN_EC",
+  "files": {
+    "/var/www/plusmen-tex-vsl-v1/index.html": {
+      "sha256": "abd3ed04ffb8257862dbfb8d0180f77e0f0214fe6b553871d65354fdc06b73b5",
+      "local": "official-index.html"
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js": {
+      "sha256": "e5a2c9b4816c46883acd4db5d8bb1ee0218748ed9fb0d58bafc81d5c8dfbdb0b",
+      "local": "official-chat-tex-ultra.js"
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.css": {
+      "sha256": "91a48cfeb0a525f0a38757bf31519eea44a5400fc17dc99883257760f8596b48",
+      "local": "official-chat-tex-ultra.css"
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/whatsapp.js": {
+      "sha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+      "local": "official-whatsapp.js"
+    }
+  },
+  "at": "2026-11-18T01:10:15.535954+00:00"
+}

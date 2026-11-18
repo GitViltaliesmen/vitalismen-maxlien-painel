@@ -1,0 +1,31 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "browser": "Brave headless Chromium",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "mobile": true
+  },
+  "checks": [
+    "baseline_reproduces_chat_visible_before_CTA",
+    "chat_hidden_initially_despite_author_display_block",
+    "early_programmatic_click_does_not_open_or_request",
+    "late_shadow_root_hidden_CTA_keeps_chat_hidden",
+    "transparent_CTA_ancestor_keeps_chat_hidden",
+    "disabled_WhatsApp_CTA_keeps_chat_hidden",
+    "hidden_player_keeps_chat_hidden",
+    "native_CTA_reveal_releases_chat_without_network",
+    "released_chat_opens_existing_identity_flow_only_after_click",
+    "open_chat_click_does_not_repeat_start",
+    "fresh_page_does_not_inherit_previous_release",
+    "BFCache_restore_resumes_CTA_detection_without_requests",
+    "already_released_native_CTA_reveals_chat_immediately",
+    "unrelated_path_unchanged_no_chat"
+  ],
+  "baselineFailureReproduced": true,
+  "realVslPlaybackClaimed": false,
+  "externalServiceRequests": 0,
+  "whatsappSends": 0,
+  "metaEvents": 0
+}

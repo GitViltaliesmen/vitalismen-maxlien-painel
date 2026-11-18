@@ -1,0 +1,7 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "fullFreezeCandidatePrivateMount": true,
+  "changedPhoneRejectedEvenWithForgedHash": true,
+  "productionWrites": 0
+}

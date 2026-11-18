@@ -62,6 +62,17 @@ if(measurement){
  assert.deepEqual(Object.keys(measurement.newFiles),['/var/www/plusmen-tex-vsl-v1/assets/meta-tex-ultra.js','/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js']);
 }
 
+const chatGatePath=path.join(root,'docs/freeze/plusmen-tex-chat-cta-v244-20261117.json');
+const chatGate=fs.existsSync(chatGatePath)?JSON.parse(fs.readFileSync(chatGatePath,'utf8')):null;
+if(chatGate){
+ assert.equal(chatGate.project,'VITALISMEN_EC');assert.equal(chatGate.version,244);assert.equal(chatGate.status,'AUTHORIZED_EXACT_SUCCESSOR');
+ assert.equal(chatGate.authorization,'USER_20261117_CHAT_ONLY_WITH_NATIVE_WHATSAPP_CTA');
+ assert.equal(chatGate.path,'/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js');assert.equal(chatGate.beforeSha256,'e5a2c9b4816c46883acd4db5d8bb1ee0218748ed9fb0d58bafc81d5c8dfbdb0b');
+ assert.equal(chatGate.parentMeasurementFreezeSha256,createHash('sha256').update(fs.readFileSync(measurementPath)).digest('hex'));
+ assert.equal(chatGate.nativeButton,'preco_89');assert.equal(chatGate.player,'6aafe87d665f0c5b457748ad');assert.equal(chatGate.mode,0o644);
+ assert.equal(createHash('sha256').update(JSON.stringify(chatGate.patches)).digest('hex'),'828f669db69561429531b2194459fffc49d81284f87e3381c3dba71259575120');
+}
+
 const ownedPaths = [
   '/etc/nginx/sites-available/plusmen.shop',
   '/etc/nginx/snippets/plusmen-tex-mobile-v1.conf',
@@ -80,7 +91,17 @@ files=json.loads(${JSON.stringify(JSON.stringify(files))})
 chat=json.loads(${JSON.stringify(JSON.stringify(chat))})
 linked=json.loads(${JSON.stringify(JSON.stringify(linked))})
 measurement=json.loads(${JSON.stringify(JSON.stringify(measurement))})
+chatGate=json.loads(${JSON.stringify(JSON.stringify(chatGate))})
+def chat_gate_bytes(name,data):
+ if not chatGate or name!=chatGate['path']:return data
+ assert hashlib.sha256(data).hexdigest()==chatGate['sha256'],'V244_CHAT_FILE_CHANGED'
+ for patch in reversed(chatGate['patches']):
+  old=base64.b64decode(patch['beforeBase64']);new=base64.b64decode(patch['afterBase64']);assert data.count(new)==1,'V244_PATCH_NOT_EXACT';data=data.replace(new,old,1)
+ assert hashlib.sha256(data).hexdigest()==chatGate['beforeSha256'],'V244_INVERSE_FAILED'
+ return data
+
 def native_bytes(name,data):
+ data=chat_gate_bytes(name,data)
  if not measurement or name not in measurement['changes']:return data
  change=measurement['changes'][name]
  assert hashlib.sha256(data).hexdigest()==change['sha256'],'V243_FILE_CHANGED: '+name
