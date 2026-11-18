@@ -1,3 +1,4 @@
+import { texEntryV249Current, isProcessedTexEntryDuplicateV249 } from '../services/texUltraEntryV249Service.js';
 import { isPublishedTexUltraEntryV246 } from '../services/texUltraEntryClassificationV246Service.js';
 import { captureInboundMedia } from '../services/inboundMediaReplayV208Service.js';
 import express from 'express';
@@ -864,6 +865,15 @@ const recordZapiInboundPayload = async (payload = {}, { qaPostPersist = false } 
         return { recorded: true, newMessage: false, phone, chatId, messageId,
             providerMessageId, providerZaapId, body: normalizedBody,
             type: effectiveType, routeToBot: false };
+    }
+    if (!newMessage && texEntryV249Current() && isPublishedTexUltraEntryV246(normalizedBody)) {
+        const duplicateState = await ContactState.findOne({ phoneDigits: phone, chatId }).lean();
+        const storedMessage = await Message.findOne({ _id: messageId, peerPhone: phone }).lean();
+        if (isProcessedTexEntryDuplicateV249({ text: normalizedBody, state: duplicateState || {}, messageId, phone, storedMessage })) {
+            return { recorded: true, newMessage: false, phone, chatId, messageId,
+                providerMessageId, providerZaapId, body: normalizedBody,
+                type: effectiveType, routeToBot: false, reason: 'processed_tex_entry_duplicate_v249' };
+        }
     }
     const mediaHealth = hasDeclaredMedia
         ? await captureInboundMedia({

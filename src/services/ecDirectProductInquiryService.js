@@ -1,3 +1,4 @@
+import { preferTexPublishedEntryV249 } from './texUltraEntryV249Service.js';
 import crypto from 'node:crypto';
 import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
@@ -235,6 +236,9 @@ export const maybeHandleEcuadorDirectProductInquiry = async ({
     sessionId = null
 } = {}) => {
     if (!contactStateId || !contactState || !chatId) return { handled: false };
+    if (preferTexPublishedEntryV249({ text, state: contactState, sourceMessageId })) {
+        return { handled: false, skipped: 'published_tex_initial_funnel_v249' };
+    }
 
     const explicitKeys = directEcuadorProductKeys(text);
     const memory = memoryForState(contactState);

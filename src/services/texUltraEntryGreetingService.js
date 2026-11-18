@@ -1,3 +1,4 @@
+import { texEntryV249Current, buildTexGreetingV249 } from './texUltraEntryV249Service.js';
 const ECUADOR_TIMEZONE = 'America/Guayaquil';
 
 export const TEX_ULTRA_GREETING_EMOJIS = Object.freeze(['👋', '😊', '🙂', '🙏', '✅']);
@@ -64,6 +65,7 @@ export const buildTexUltraEntryGreeting = ({
     timezone = ECUADOR_TIMEZONE,
     emoji = ''
 } = {}) => {
+    if (texEntryV249Current()) return buildTexGreetingV249({ name, salutation: texUltraGreetingSalutation(date, timezone) });
     const customerName = texUltraCustomerName(name);
     const salutation = texUltraGreetingSalutation(date, timezone);
     const openingEmoji = TEX_ULTRA_GREETING_EMOJIS.includes(String(emoji || '').trim())

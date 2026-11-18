@@ -1,0 +1,61 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "1b356e351210d9bf52fae7c1db9a7dcb9e9015fa",
+  "allowedDelta": [
+    "docs/freeze/tex-entry-greeting-v249-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/routes/zapi.js",
+    "src/services/ecDirectProductInquiryService.js",
+    "src/services/texUltraEntryGreetingService.js",
+    "src/services/texUltraEntryV249Service.js",
+    "tests/tex-entry-greeting-v249.test.mjs"
+  ],
+  "scope": "Exact published Tex Ultra CTA follows existing isolated funnel before generic informational reply. Exact duplicate provider callbacks already persisted and processed for the same official Tex contact return without rewriting the last-interaction clock; new IDs and unproven/foreign callbacks retain existing handling. Greeting uses requested Spanish text, Guayaquil period and a safe preferred first name. No forced replay, human release, new media, price change, ledger reset, fake attribution or historical order mutation. Legacy paths remain available outside the sealed authorized runtime; both modes require tests.",
+  "inverse": {
+    "src/services/ecDirectProductInquiryService.js": {
+      "parentSha256": "b9acaea5022c94f5b4eefa1f8181bd1ea837557bea2aa9ed3b75dbd842ea6fae",
+      "patches": [
+        {
+          "before": "",
+          "after": "import { preferTexPublishedEntryV249 } from './texUltraEntryV249Service.js';\n"
+        },
+        {
+          "before": "    if (!contactStateId || !contactState || !chatId) return { handled: false };",
+          "after": "    if (!contactStateId || !contactState || !chatId) return { handled: false };\n    if (preferTexPublishedEntryV249({ text, state: contactState, sourceMessageId })) {\n        return { handled: false, skipped: 'published_tex_initial_funnel_v249' };\n    }"
+        }
+      ]
+    },
+    "src/services/texUltraEntryGreetingService.js": {
+      "parentSha256": "b78e0dabd809e27917271e0a9343c6b3a6ea30a5174c3115278d42eeacea20e8",
+      "patches": [
+        {
+          "before": "",
+          "after": "import { texEntryV249Current, buildTexGreetingV249 } from './texUltraEntryV249Service.js';\n"
+        },
+        {
+          "before": "    const customerName = texUltraCustomerName(name);",
+          "after": "    if (texEntryV249Current()) return buildTexGreetingV249({ name, salutation: texUltraGreetingSalutation(date, timezone) });\n    const customerName = texUltraCustomerName(name);"
+        }
+      ]
+    },
+    "src/routes/zapi.js": {
+      "parentSha256": "b961791a50725edb7909dfc622476f4548783b15c1ea4308231b36ffbaa279e0",
+      "patches": [
+        {
+          "before": "",
+          "after": "import { texEntryV249Current, isProcessedTexEntryDuplicateV249 } from '../services/texUltraEntryV249Service.js';\n"
+        },
+        {
+          "before": "    const mediaHealth = hasDeclaredMedia\n",
+          "after": "    if (!newMessage && texEntryV249Current() && isPublishedTexUltraEntryV246(normalizedBody)) {\n        const duplicateState = await ContactState.findOne({ phoneDigits: phone, chatId }).lean();\n        const storedMessage = await Message.findOne({ _id: messageId, peerPhone: phone }).lean();\n        if (isProcessedTexEntryDuplicateV249({ text: normalizedBody, state: duplicateState || {}, messageId, phone, storedMessage })) {\n            return { recorded: true, newMessage: false, phone, chatId, messageId,\n                providerMessageId, providerZaapId, body: normalizedBody,\n                type: effectiveType, routeToBot: false, reason: 'processed_tex_entry_duplicate_v249' };\n        }\n    }\n    const mediaHealth = hasDeclaredMedia\n"
+        }
+      ]
+    }
+  },
+  "productionDatabaseMigration": false,
+  "historicalMessagesReplayed": false,
+  "automaticRetryAuthorized": false,
+  "nativePermitStillRequired": true,
+  "oldLedgerDeletionAuthorized": false
+}
