@@ -1,0 +1,127 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PUBLIC_VERIFIED",
+  "sourceCommit": "72c6ab9c0e66e52bb79540ad2cbe7e18af8b6c96",
+  "operatorRequest": "tire a referencia - esses codigos",
+  "reports": {
+    "HANDLER_TESTS": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "checks": [
+        "baseline_reproduces_reference_suffix",
+        "native_app_message_clean_with_same_destination",
+        "available_visit_reference_never_read_or_appended",
+        "existing_checkout_click_and_button_metadata_preserved",
+        "double_click_guard_preserved",
+        "delayed_web_fallback_has_same_clean_message",
+        "app_failure_uses_clean_web_fallback",
+        "opening_app_cancels_delayed_fallback",
+        "disabled_CTA_does_not_navigate",
+        "unrelated_click_ignored",
+        "non_shadow_target_fallback_preserved",
+        "other_host_and_route_unchanged",
+        "metric_failure_does_not_block_customer",
+        "full_candidate_equals_approved_native_handler"
+      ],
+      "whatsappSends": 0,
+      "actualAppOpened": false,
+      "productionMetaEvents": 0,
+      "transportFixture": true
+    },
+    "PRIVATE_QA": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "fullFreezeCandidatePrivateMount": true,
+      "changedPhoneRejectedEvenWithForgedHash": true,
+      "productionWrites": 0
+    },
+    "PUBLICATION": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "sourceCommit": "72c6ab9c0e66e52bb79540ad2cbe7e18af8b6c96",
+      "target": "/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js",
+      "sha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+      "beforeSha256": "86278207e6135ccf65a45f172457c88f551ce352ec44b4cd771c26ef23355fb3",
+      "backup": "/root/plusmen-tex-whatsapp-clean-v245-20261117/before.js",
+      "protectedFilesUnchanged": 28,
+      "originPidUnchanged": 1314328,
+      "pm2Restarts": 0,
+      "backendChanges": 0,
+      "whatsappSends": 0,
+      "metaEvents": 0,
+      "visibleMessage": "Hola, quiero el tratamiento Tex Ultra.",
+      "directWhatsAppVisitReferenceRemoved": true,
+      "fullFreezePassed": true,
+      "at": "2026-11-18T01:46:22.194299+00:00"
+    },
+    "PUBLIC_VERIFICATION": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "devices": [
+        {
+          "device": "desktop",
+          "path": "/tex",
+          "htmlUnchanged": true
+        },
+        {
+          "device": "desktop",
+          "path": "/tex/",
+          "htmlUnchanged": true
+        },
+        {
+          "device": "ipad",
+          "path": "/tex",
+          "htmlUnchanged": true
+        },
+        {
+          "device": "ipad",
+          "path": "/tex/",
+          "htmlUnchanged": true
+        },
+        {
+          "device": "iphone",
+          "path": "/tex",
+          "htmlUnchanged": true
+        },
+        {
+          "device": "iphone",
+          "path": "/tex/",
+          "htmlUnchanged": true
+        },
+        {
+          "device": "android",
+          "path": "/tex",
+          "htmlUnchanged": true
+        },
+        {
+          "device": "android",
+          "path": "/tex/",
+          "htmlUnchanged": true
+        }
+      ],
+      "actualScriptUrl": "/tex-assets/whatsapp-tex-v243.js?v=20261117-v243",
+      "sha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+      "cacheControl": "no-store",
+      "sameAsTestedNativeHandler": true,
+      "message": "Hola, quiero el tratamiento Tex Ultra.",
+      "visibleReferenceRemoved": true,
+      "whatsappSends": 0,
+      "actualAppOpened": false,
+      "metaEvents": 0,
+      "at": "2026-11-18T01:46:41.387532+00:00"
+    }
+  },
+  "firstFixtureFailure": {
+    "project": "VITALISMEN_EC",
+    "pass": false,
+    "reason": "Fixture closest() returned unrelated target without matching selector; production code unchanged"
+  },
+  "oneProductionFileChanged": true,
+  "backendSourceChanges": 0,
+  "metaConfigurationChanges": 0,
+  "directWhatsAppVisitAttributionRemoved": true,
+  "confirmedChatAndBrowserEventsPreserved": true,
+  "existingMessagesEdited": false,
+  "backupIsPublicCodeOnly": true,
+  "globalMongoBackupPass": false
+}
