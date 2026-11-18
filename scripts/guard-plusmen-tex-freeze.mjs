@@ -85,6 +85,18 @@ if(cleanWhatsApp){
  assert.equal(createHash('sha256').update(JSON.stringify(cleanWhatsApp.patches)).digest('hex'),'8a524fdb6a6856e1a4b6199d978536a52b68020ddd472594fe71b2fe894c3541');
 }
 
+const ctaUiPath=path.join(root,'docs/freeze/tex-cta-qa-panel-v248-20261118.json');
+const ctaUi=fs.existsSync(ctaUiPath)?JSON.parse(fs.readFileSync(ctaUiPath,'utf8')):null;
+if(ctaUi){
+ assert.equal(ctaUi.project,'VITALISMEN_EC');assert.equal(ctaUi.version,248);assert.equal(ctaUi.status,'AUTHORIZED_EXACT_SUCCESSOR');
+ assert.equal(ctaUi.authorization,'USER_20261118_SIMPLIFY_WHATSAPP_CTA_FIX_QA_EMPTY_STATUS_TEST_PUBLISH_FREEZE');
+ assert.equal(ctaUi.parentWhatsappFreezeSha256,createHash('sha256').update(fs.readFileSync(cleanWhatsAppPath)).digest('hex'));
+ assert.equal(ctaUi.cta.path,'/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js');
+ assert.equal(ctaUi.cta.beforeSha256,'de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd');
+ assert.equal(ctaUi.cta.sha256,'deeeb05d598b697762d352f1c47d91d0ed850e57a81a3f4ee70e37118bbdddc7');
+ assert.equal(createHash('sha256').update(Buffer.from(ctaUi.cta.addonBase64,'base64')).digest('hex'),'42f5867800295c7f5f593119fa98d612f3e652491b4761effa222730c82f846f');
+}
+
 const ownedPaths = [
   '/etc/nginx/sites-available/plusmen.shop',
   '/etc/nginx/snippets/plusmen-tex-mobile-v1.conf',
@@ -113,7 +125,11 @@ def chat_gate_bytes(name,data):
  return data
 
 cleanWhatsApp=json.loads(${JSON.stringify(JSON.stringify(cleanWhatsApp))})
+ctaUi=json.loads(${JSON.stringify(JSON.stringify(ctaUi))})
 def clean_whatsapp_bytes(name,data):
+ if ctaUi and name==ctaUi['cta']['path'] and hashlib.sha256(data).hexdigest()==ctaUi['cta']['sha256']:
+  suffix=base64.b64decode(ctaUi['cta']['addonBase64']);assert data.endswith(suffix),'V248_SUFFIX_NOT_EXACT';data=data[:-len(suffix)]
+  assert hashlib.sha256(data).hexdigest()==ctaUi['cta']['beforeSha256'],'V248_NATIVE_PREFIX_CHANGED'
  if not cleanWhatsApp or name!=cleanWhatsApp['path']:return data
  assert hashlib.sha256(data).hexdigest()==cleanWhatsApp['sha256'],'V245_CLEAN_HANDLER_CHANGED'
  assert data==pathlib.Path('/var/www/plusmen-tex-vsl-v1/assets/whatsapp.js').read_bytes(),'V245_NATIVE_HANDLER_NOT_EXACT'

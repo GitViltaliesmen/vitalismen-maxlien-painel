@@ -2,6 +2,14 @@
 
 PROJECT=VITALISMEN_EC
 
+## Exceção autorizada V248 — CTA clara e indicação QA — 2026-11-18
+
+- Pedido explícito: simplificar a CTA WhatsApp de `https://plusmen.shop/tex`, corrigir a indicação antiga do QA 8637, simular, publicar e congelar.
+- Baseline específico: `docs/freeze/tex-cta-qa-panel-v248-20261118.json`; procedimento e limites em `ops/publications/tex-cta-qa-panel-v248/README.md`; recibo pós-publicação em `approved_freezes/TEX_CTA_QA_PANEL_V248_20261118.txt`.
+- CTA: `PEDIR TEX ULTRA POR WHATSAPP`; mesmo botão, handler nativo, telefone, mensagem, timing e player. Não reabrir VTurb nem alterar a página desktop por causa deste registro.
+- QA: indicação visual da janela real ativa/encerrada; nenhuma reabertura automática de permit, restauração de conversa, envio, reset ou remoção de memória/ledger.
+- Guard: `node scripts/guard-tex-cta-qa-panel-v248.mjs --production` e guard Plusmen anterior preservado com inversão exata do sufixo autorizado. Demais congelamentos continuam vigentes.
+
 ## Exceção autorizada V245 — mensagem WhatsApp sem referência — 2026-11-17
 
 - Pedido explícito posterior ao congelamento: retirar a linha `Referencia: TX243-...` da mensagem aberta pelo botão da VSL `https://plusmen.shop/tex`.
