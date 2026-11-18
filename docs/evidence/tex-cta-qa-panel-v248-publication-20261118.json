@@ -1,0 +1,184 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 248,
+  "revision": "R2",
+  "status": "PUBLISHED_VERIFIED_FROZEN",
+  "operatorAuthorization": "USER_20261118_SIMPLIFY_WHATSAPP_CTA_FIX_QA_EMPTY_STATUS_TEST_PUBLISH_FREEZE",
+  "recordedAt": "2026-11-18T22:53:23.631035+00:00",
+  "frontendSourceCommit": "1dc871b5cfbfd917b4d2688abff1ba99e468a284",
+  "initialSourceCommit": "4b620170d476944da30aa523df06d07aaa82fd83",
+  "branch": "codex/tex-cta-qa-panel-v248",
+  "manifestSha256": "929fd6f9dfbb64bae38caaccf255c7638d92ca334940972e943a3723951e7c45",
+  "publishedFiles": {
+    "cta": "/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js",
+    "panel": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html"
+  },
+  "publishedHashes": {
+    "cta": "deeeb05d598b697762d352f1c47d91d0ed850e57a81a3f4ee70e37118bbdddc7",
+    "panel": "3b334f0cc5c8da9840fd257c521cdc828e264a8c4f1a814d190e292640a2f1e2"
+  },
+  "tests": {
+    "focusedSimulated": {
+      "tests": 24,
+      "pass": 24,
+      "fail": 0,
+      "skip": 0
+    },
+    "freezeGuard": "PASS_POST_PUBLICATION",
+    "exactPanelInverse": "PASS",
+    "nativeHandlerPrefix": "PASS",
+    "sourceMetadata": "PASS",
+    "browserSimulation": "CTA mobile 390px, click without real WhatsApp, active/expired/ordinary customer states",
+    "actualPublicPanel": {
+      "qaSelectedOnly": true,
+      "status": "TESTE: JANELA ENCERRADA",
+      "finalCopy": "A janela anterior terminou. Uma nova mensagem de teste precisa de uma janela autorizada ativa.",
+      "leftMessagePreviews": 0,
+      "screenshot": "docs/evidence/qa-panel-v248-r2-publicado-20261118.jpg"
+    },
+    "seniorLocal": "ATTEMPTED_FAILED_MONGOOSE_MISSING_NOT_REPRESENTED_AS_PASS"
+  },
+  "publicOrigin": {
+    "project": "VITALISMEN_EC",
+    "at": "2026-11-18T22:47:13.216640+00:00",
+    "checks": [
+      {
+        "host": "plusmen.shop",
+        "device": "mobile",
+        "path": "/tex",
+        "http": 200,
+        "sha256": "8582574836fbd0b228ca07e9a00abe959ec09fd435706321030818ff8dd948eb",
+        "sameHtml": true
+      },
+      {
+        "host": "plusmen.shop",
+        "device": "mobile",
+        "path": "/tex/",
+        "http": 200,
+        "sha256": "8582574836fbd0b228ca07e9a00abe959ec09fd435706321030818ff8dd948eb",
+        "sameHtml": true
+      },
+      {
+        "host": "plusmen.shop",
+        "device": "desktop",
+        "path": "/tex",
+        "http": 200,
+        "sha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+        "sameHtml": true
+      },
+      {
+        "host": "plusmen.shop",
+        "device": "desktop",
+        "path": "/tex/",
+        "http": 200,
+        "sha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+        "sameHtml": true
+      },
+      {
+        "host": "www.plusmen.shop",
+        "device": "mobile",
+        "path": "/tex",
+        "http": 200,
+        "sha256": "8582574836fbd0b228ca07e9a00abe959ec09fd435706321030818ff8dd948eb",
+        "sameHtml": true
+      },
+      {
+        "host": "www.plusmen.shop",
+        "device": "mobile",
+        "path": "/tex/",
+        "http": 200,
+        "sha256": "8582574836fbd0b228ca07e9a00abe959ec09fd435706321030818ff8dd948eb",
+        "sameHtml": true
+      },
+      {
+        "host": "www.plusmen.shop",
+        "device": "desktop",
+        "path": "/tex",
+        "http": 200,
+        "sha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+        "sameHtml": true
+      },
+      {
+        "host": "www.plusmen.shop",
+        "device": "desktop",
+        "path": "/tex/",
+        "http": 200,
+        "sha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+        "sameHtml": true
+      },
+      {
+        "asset": "whatsapp-tex-v243.js",
+        "http": 200,
+        "sha256": "deeeb05d598b697762d352f1c47d91d0ed850e57a81a3f4ee70e37118bbdddc7",
+        "matchesPublished": true,
+        "cache": "no-store"
+      }
+    ],
+    "pass": true
+  },
+  "publicPanel": {
+    "project": "VITALISMEN_EC",
+    "revision": "R2",
+    "at": "2026-11-18T22:52:12.135904+00:00",
+    "http": 200,
+    "sourceSha256": "3b334f0cc5c8da9840fd257c521cdc828e264a8c4f1a814d190e292640a2f1e2",
+    "publicNormalizedMatchesSource": true,
+    "onlyEdgeDifference": "one existing Cloudflare analytics tag, 367 bytes",
+    "newCopyServed": true,
+    "badDirectionRemoved": true,
+    "runtime": {
+      "pid": 3970878,
+      "status": "online",
+      "current": "/opt/vitalismen-automacao/releases/20261118T170557Z_production-20261118-1b356e3",
+      "actualCwd": "/opt/vitalismen-automacao/releases/20261118T170557Z_production-20261118-1b356e3",
+      "pmCwd": "/opt/vitalismen-automacao/current",
+      "pmExec": "/opt/vitalismen-automacao/current/src/index.js"
+    },
+    "health": "online",
+    "zapiConnected": true,
+    "queue": {
+      "pendingTasks": 0
+    },
+    "pass": true
+  },
+  "preserved": [
+    "player",
+    "cta2257s",
+    "turbo1.2",
+    "nativeClickHandler",
+    "phone",
+    "directMessage",
+    "desktopInformative",
+    "chatCtaGate",
+    "meta",
+    "backend",
+    "qaPermits",
+    "allCustomerData",
+    "allHistoryAndDedupe",
+    "leftListNoMessagePreviews"
+  ],
+  "operations": {
+    "whatsappSendsInvoked": 0,
+    "metaSyntheticEventsInvoked": 0,
+    "dropiOrdersInvoked": 0,
+    "qaResetOrPermitRenewal": false,
+    "qaPanelReadMarkerMayUpdate": true,
+    "backendDeploy": false,
+    "serviceRestart": false,
+    "runtimePid": 3970878,
+    "runtimeReleaseUnchanged": "/opt/vitalismen-automacao/releases/20261118T170557Z_production-20261118-1b356e3"
+  },
+  "backups": {
+    "origin": "/root/tex-cta-qa-panel-v248-20261118/before-apply.private",
+    "panelOriginal": "/opt/vitalismen-automacao/backups/tex-cta-qa-panel-v248-20261118/before-apply.private",
+    "panelRefinement": "/opt/vitalismen-automacao/backups/tex-cta-qa-panel-v248-20261118/refinement-r2/before-refine.private",
+    "scope": "TWO_PUBLIC_FILES_ONLY_NOT_GLOBAL_MONGODB",
+    "fullByteReadbackVerified": true
+  },
+  "limits": [
+    "No new physical WhatsApp message was sent; simulation and public UI are not a real conversion.",
+    "Conversion improvement is not measured or guaranteed.",
+    "Native QA window stays expired; no permanent Brazilian test exception was expanded.",
+    "Previously approved direct WhatsApp attribution limitation remains."
+  ]
+}
