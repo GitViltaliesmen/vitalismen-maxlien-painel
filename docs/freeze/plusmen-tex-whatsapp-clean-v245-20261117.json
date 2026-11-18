@@ -1,0 +1,37 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 245,
+  "status": "AUTHORIZED_EXACT_SUCCESSOR",
+  "authorization": "USER_20261117_REMOVE_VISIBLE_TX243_REFERENCE_FROM_WHATSAPP",
+  "officialUrl": "https://plusmen.shop/tex",
+  "path": "/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js",
+  "beforeSha256": "86278207e6135ccf65a45f172457c88f551ce352ec44b4cd771c26ef23355fb3",
+  "sha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+  "mode": 420,
+  "parentTotalFreezeSha256": "601b8ea3060d88874ae4cedd1b37b7c8cf93ca331754cb45a6f5a8ae9e66679e",
+  "parentMeasurementFreezeSha256": "e23e5d95b4edcdd8851860344c42568367eaf4c1a9be090a606a333b57af24eb",
+  "visibleMessage": "Hola, quiero el tratamiento Tex Ultra.",
+  "phone": "553171862958",
+  "patches": [
+    {
+      "beforeBase64": "ICAgIC8vIEFuIG9wYXF1ZSB2aXNpdCByZWZlcmVuY2UgbGlua3MgdGhlIGN1c3RvbWVyJ3Mgb3duIGluYm91bmQ7IHRoZSBkZXN0aW5hdGlvbiBpcyB1bmNoYW5nZWQuCiAgICB2YXIgc2VsZWN0ZWRNZXNzYWdlID0gbWVzc2FnZTsKICAgIHRyeSB7IHZhciByZWZlcmVuY2UgPSB3aW5kb3cuVGV4VWx0cmFNZWFzdXJlbWVudFYyNDMgJiYgd2luZG93LlRleFVsdHJhTWVhc3VyZW1lbnRWMjQzLnJlZmVyZW5jZSgpOwogICAgICBpZiAoL15UWDI0My1bYS1mMC05XXs2NH0kLy50ZXN0KHJlZmVyZW5jZSB8fCAnJykpIHNlbGVjdGVkTWVzc2FnZSArPSAnXG5SZWZlcmVuY2lhOiAnICsgcmVmZXJlbmNlOwogICAgfSBjYXRjaCAoXykge30KICAgIHZhciBzZWxlY3RlZFRleHQgPSBlbmNvZGVVUklDb21wb25lbnQoc2VsZWN0ZWRNZXNzYWdlKTsKICAgIHZhciBzZWxlY3RlZEFwcFVybCA9ICd3aGF0c2FwcDovL3NlbmQ/cGhvbmU9JyArIHBob25lICsgJyZ0ZXh0PScgKyBzZWxlY3RlZFRleHQ7CiAgICB2YXIgc2VsZWN0ZWRGYWxsYmFja1VybCA9ICdodHRwczovL3dhLm1lLycgKyBwaG9uZSArICc/dGV4dD0nICsgc2VsZWN0ZWRUZXh0OwogICAgYnV0dG9uLnNldEF0dHJpYnV0ZSgnZGF0YS13aGF0c2FwcC1waG9uZScsIHBob25lKTs=",
+      "afterBase64": "ICAgIGJ1dHRvbi5zZXRBdHRyaWJ1dGUoJ2RhdGEtd2hhdHNhcHAtcGhvbmUnLCBwaG9uZSk7",
+      "count": 1
+    },
+    {
+      "beforeBase64": "d2luZG93LmxvY2F0aW9uLmFzc2lnbihzZWxlY3RlZEZhbGxiYWNrVXJsKQ==",
+      "afterBase64": "d2luZG93LmxvY2F0aW9uLmFzc2lnbihmYWxsYmFja1VybCk=",
+      "count": 2
+    },
+    {
+      "beforeBase64": "d2luZG93LmxvY2F0aW9uLmFzc2lnbihzZWxlY3RlZEFwcFVybCk=",
+      "afterBase64": "d2luZG93LmxvY2F0aW9uLmFzc2lnbihhcHBVcmwp",
+      "count": 1
+    }
+  ],
+  "patchesSha256": "8a524fdb6a6856e1a4b6199d978536a52b68020ddd472594fe71b2fe894c3541",
+  "directWhatsAppReferenceAttributionRemoved": true,
+  "browserPageViewViewContentInitiateCheckoutUnchanged": true,
+  "confirmedChatAttributionUnchanged": true,
+  "backendAndMemoryUnchanged": true
+}

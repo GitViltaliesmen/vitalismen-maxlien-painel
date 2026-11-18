@@ -1,0 +1,24 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "checks": [
+    "baseline_reproduces_reference_suffix",
+    "native_app_message_clean_with_same_destination",
+    "available_visit_reference_never_read_or_appended",
+    "existing_checkout_click_and_button_metadata_preserved",
+    "double_click_guard_preserved",
+    "delayed_web_fallback_has_same_clean_message",
+    "app_failure_uses_clean_web_fallback",
+    "opening_app_cancels_delayed_fallback",
+    "disabled_CTA_does_not_navigate",
+    "unrelated_click_ignored",
+    "non_shadow_target_fallback_preserved",
+    "other_host_and_route_unchanged",
+    "metric_failure_does_not_block_customer",
+    "full_candidate_equals_approved_native_handler"
+  ],
+  "whatsappSends": 0,
+  "actualAppOpened": false,
+  "productionMetaEvents": 0,
+  "transportFixture": true
+}

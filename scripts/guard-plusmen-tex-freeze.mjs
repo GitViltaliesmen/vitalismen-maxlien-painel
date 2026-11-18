@@ -73,6 +73,18 @@ if(chatGate){
  assert.equal(createHash('sha256').update(JSON.stringify(chatGate.patches)).digest('hex'),'828f669db69561429531b2194459fffc49d81284f87e3381c3dba71259575120');
 }
 
+const cleanWhatsAppPath=path.join(root,'docs/freeze/plusmen-tex-whatsapp-clean-v245-20261117.json');
+const cleanWhatsApp=fs.existsSync(cleanWhatsAppPath)?JSON.parse(fs.readFileSync(cleanWhatsAppPath,'utf8')):null;
+if(cleanWhatsApp){
+ assert.equal(cleanWhatsApp.project,'VITALISMEN_EC');assert.equal(cleanWhatsApp.version,245);assert.equal(cleanWhatsApp.status,'AUTHORIZED_EXACT_SUCCESSOR');
+ assert.equal(cleanWhatsApp.authorization,'USER_20261117_REMOVE_VISIBLE_TX243_REFERENCE_FROM_WHATSAPP');assert.equal(cleanWhatsApp.path,'/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js');
+ assert.equal(cleanWhatsApp.beforeSha256,'86278207e6135ccf65a45f172457c88f551ce352ec44b4cd771c26ef23355fb3');assert.equal(cleanWhatsApp.sha256,'de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd');
+ assert.equal(cleanWhatsApp.phone,'553171862958');assert.equal(cleanWhatsApp.visibleMessage,'Hola, quiero el tratamiento Tex Ultra.');
+ assert.equal(cleanWhatsApp.parentTotalFreezeSha256,createHash('sha256').update(fs.readFileSync(path.join(root,'docs/freeze/vitalismen-ec-total-aprovado-v244-20261117.json'))).digest('hex'));
+ assert.equal(cleanWhatsApp.parentMeasurementFreezeSha256,createHash('sha256').update(fs.readFileSync(measurementPath)).digest('hex'));
+ assert.equal(createHash('sha256').update(JSON.stringify(cleanWhatsApp.patches)).digest('hex'),'8a524fdb6a6856e1a4b6199d978536a52b68020ddd472594fe71b2fe894c3541');
+}
+
 const ownedPaths = [
   '/etc/nginx/sites-available/plusmen.shop',
   '/etc/nginx/snippets/plusmen-tex-mobile-v1.conf',
@@ -98,6 +110,16 @@ def chat_gate_bytes(name,data):
  for patch in reversed(chatGate['patches']):
   old=base64.b64decode(patch['beforeBase64']);new=base64.b64decode(patch['afterBase64']);assert data.count(new)==1,'V244_PATCH_NOT_EXACT';data=data.replace(new,old,1)
  assert hashlib.sha256(data).hexdigest()==chatGate['beforeSha256'],'V244_INVERSE_FAILED'
+ return data
+
+cleanWhatsApp=json.loads(${JSON.stringify(JSON.stringify(cleanWhatsApp))})
+def clean_whatsapp_bytes(name,data):
+ if not cleanWhatsApp or name!=cleanWhatsApp['path']:return data
+ assert hashlib.sha256(data).hexdigest()==cleanWhatsApp['sha256'],'V245_CLEAN_HANDLER_CHANGED'
+ assert data==pathlib.Path('/var/www/plusmen-tex-vsl-v1/assets/whatsapp.js').read_bytes(),'V245_NATIVE_HANDLER_NOT_EXACT'
+ for patch in reversed(cleanWhatsApp['patches']):
+  before=base64.b64decode(patch['beforeBase64']);after=base64.b64decode(patch['afterBase64']);assert data.count(after)==patch['count'],'V245_PATCH_NOT_EXACT';data=data.replace(after,before)
+ assert hashlib.sha256(data).hexdigest()==cleanWhatsApp['beforeSha256'],'V245_INVERSE_FAILED'
  return data
 
 def native_bytes(name,data):
@@ -140,9 +162,10 @@ if chat:
 if measurement:
  for name,record in measurement['newFiles'].items():
   file=pathlib.Path(name);st=file.lstat();assert stat.S_ISREG(st.st_mode) and st.st_uid==0 and st.st_gid==0 and st.st_nlink==1 and (st.st_mode&0o777)==record['mode']
-  assert hashlib.sha256(file.read_bytes()).hexdigest()==record['sha256'],'V243_NEW_ASSET_CHANGED'
+  data=clean_whatsapp_bytes(name,file.read_bytes())
+  assert hashlib.sha256(data).hexdigest()==record['sha256'],'V243_NEW_ASSET_CHANGED'
   if name.endswith('/whatsapp-tex-v243.js'):
-   text=file.read_text();addition=base64.b64decode(measurement['inverse']['whatsappAdditionBase64']).decode();assert text.count(addition)==1
+   text=data.decode();addition=base64.b64decode(measurement['inverse']['whatsappAdditionBase64']).decode();assert text.count(addition)==1
    text=text.replace(addition,'',1).replace('window.location.assign(selectedFallbackUrl)','window.location.assign(fallbackUrl)').replace('window.location.assign(selectedAppUrl)','window.location.assign(appUrl)')
    assert hashlib.sha256(text.encode()).hexdigest()==record['baselineSha256']=='de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd','V243_NATIVE_HANDLER_INVERSE_FAILED'
 html=pathlib.Path('/var/www/plusmen-tex-vsl-v1/index.html').read_text()

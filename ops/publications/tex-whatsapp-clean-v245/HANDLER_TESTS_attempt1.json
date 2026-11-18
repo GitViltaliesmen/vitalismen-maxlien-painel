@@ -1,0 +1,5 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": false,
+  "reason": "Fixture closest() returned unrelated target without matching selector; production code unchanged"
+}

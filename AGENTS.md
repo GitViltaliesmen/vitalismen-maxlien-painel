@@ -2,6 +2,14 @@
 
 PROJECT=VITALISMEN_EC
 
+## Exceção autorizada V245 — mensagem WhatsApp sem referência — 2026-11-17
+
+- Pedido explícito posterior ao congelamento: retirar a linha `Referencia: TX243-...` da mensagem aberta pelo botão da VSL `https://plusmen.shop/tex`.
+- Mensagem direta: `Hola, quiero el tratamiento Tex Ultra.`; mesmo telefone e mesmo handler nativo aprovado.
+- Baseline específico: `docs/freeze/plusmen-tex-whatsapp-clean-v245-20261117.json`. O restante do congelamento V244 permanece vigente.
+- Novas entradas diretas deixam de levar a referência de visita usada para atribuição automática. Preservar eventos de navegador e vínculo confirmado do chat; não inventar correlação nem reintroduzir o código sem novo pedido explícito.
+
+
 ## Congelamento total vigente — V244 — 2026-11-17
 
 - Ordem explícita mais recente do operador: `Congele tudo`.
