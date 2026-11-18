@@ -1,0 +1,134 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PUBLIC_VERIFIED",
+  "sourceCommit": "1972bd33702067cc0182339fbac2d2e6196a006c",
+  "reports": {
+    "BROWSER_TESTS": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "browser": "Brave headless Chromium",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "mobile": true
+      },
+      "checks": [
+        "baseline_reproduces_chat_visible_before_CTA",
+        "chat_hidden_initially_despite_author_display_block",
+        "early_programmatic_click_does_not_open_or_request",
+        "late_shadow_root_hidden_CTA_keeps_chat_hidden",
+        "transparent_CTA_ancestor_keeps_chat_hidden",
+        "disabled_WhatsApp_CTA_keeps_chat_hidden",
+        "hidden_player_keeps_chat_hidden",
+        "native_CTA_reveal_releases_chat_without_network",
+        "released_chat_opens_existing_identity_flow_only_after_click",
+        "open_chat_click_does_not_repeat_start",
+        "fresh_page_does_not_inherit_previous_release",
+        "BFCache_restore_resumes_CTA_detection_without_requests",
+        "already_released_native_CTA_reveals_chat_immediately",
+        "unrelated_path_unchanged_no_chat"
+      ],
+      "baselineFailureReproduced": true,
+      "realVslPlaybackClaimed": false,
+      "externalServiceRequests": 0,
+      "whatsappSends": 0,
+      "metaEvents": 0
+    },
+    "PRIVATE_FREEZE_QA": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "fullFreezeCandidatePrivateMount": true,
+      "changedPhoneRejectedEvenWithForgedHash": true,
+      "productionWrites": 0
+    },
+    "PUBLICATION": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "sourceCommit": "1972bd33702067cc0182339fbac2d2e6196a006c",
+      "target": "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js",
+      "sha256": "0d43e20374ea9f2332fd8065b5bc16500a7800f2961bd0744985b818e4b0dfc3",
+      "beforeSha256": "e5a2c9b4816c46883acd4db5d8bb1ee0218748ed9fb0d58bafc81d5c8dfbdb0b",
+      "backup": "/root/plusmen-tex-chat-cta-v244-20261117/before-chat-tex-ultra.js",
+      "fullFreezePassed": true,
+      "protectedHashesUnchanged": 11,
+      "originPidUnchanged": 1314328,
+      "pm2Restarts": 0,
+      "nginxChanges": 0,
+      "backendChanges": 0,
+      "whatsappSends": 0,
+      "metaEvents": 0,
+      "at": "2026-11-18T01:17:23.805682+00:00"
+    },
+    "PUBLIC_VERIFICATION": {
+      "project": "VITALISMEN_EC",
+      "pass": true,
+      "deviceChecks": [
+        {
+          "device": "desktop",
+          "path": "/tex",
+          "unchanged": true
+        },
+        {
+          "device": "desktop",
+          "path": "/tex/",
+          "unchanged": true
+        },
+        {
+          "device": "ipad",
+          "path": "/tex",
+          "unchanged": true
+        },
+        {
+          "device": "ipad",
+          "path": "/tex/",
+          "unchanged": true
+        },
+        {
+          "device": "iphone",
+          "path": "/tex",
+          "unchanged": true
+        },
+        {
+          "device": "iphone",
+          "path": "/tex/",
+          "unchanged": true
+        },
+        {
+          "device": "android",
+          "path": "/tex",
+          "unchanged": true
+        },
+        {
+          "device": "android",
+          "path": "/tex/",
+          "unchanged": true
+        }
+      ],
+      "actualInjectedScriptUrl": "/tex-assets/chat-tex-ultra.js?v=20261117-v240-r7",
+      "servedScriptSha256": "0d43e20374ea9f2332fd8065b5bc16500a7800f2961bd0744985b818e4b0dfc3",
+      "cacheControl": "no-store",
+      "backendUnchanged": true,
+      "backend": {
+        "project": "VITALISMEN_EC",
+        "pid": 3896107,
+        "release": "/opt/vitalismen-automacao/releases/20261117T231233Z_production-20261117-d27cc7c",
+        "health": "online",
+        "zapiConnected": true
+      },
+      "fullFreezePassed": true,
+      "productionMessagesOrMetaEvents": 0,
+      "physicalFullVslPlaybackClaimed": false,
+      "at": "2026-11-18T01:17:52.920133+00:00"
+    }
+  },
+  "guardBeforeSha256": "00d9dfa0a0668a2f8d51742746c93c5e91b6ef5884d250aeb697df959649e543",
+  "guardAfterSha256": "ff263d5c558c454a82a906751b5c94d9a3c5568007509f1e48e9f4bcbedbcdec",
+  "filesChangedInProduction": 1,
+  "globalMongoBackupPass": false,
+  "limits": {
+    "browserFixtureNotPhysicalFullVslPlayback": true,
+    "syntheticMetaEvents": 0,
+    "whatsappSends": 0
+  },
+  "at": "2026-11-18T01:19:09.214549+00:00"
+}
