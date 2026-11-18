@@ -44,6 +44,27 @@ export function b01Greeting(name, date = new Date()) {
   const greeting = period === 'morning' ? '¡Buenos días' : period === 'afternoon' ? '¡Buenas tardes' : '¡Buenas noches';
   return `¡Hola! ${greeting.slice(1)}${name ? ', ' + name : ''}! Soy Ana Lopez, del equipo de la Dra. María Fernandes. Gracias por tu interés en Vit Power. Estoy aquí para ayudarte y aclarar tus dudas. Te comparto una breve presentación y seguimos conversando.`;
 }
+// Only the permanent QA contact gets a new namespace for an independently authorized native permit.
+const B01_QA_V244 = '5515998038637';
+const qaPermitV244 = value => typeof value === 'string' && /^ecqa-v78-[a-f0-9]{32}$/.test(value);
+export function b01AttemptKeyV244(job) {
+  const base = `${B01_VERSION}:${job.phone}:${job.cursor}`;
+  if (job.phone !== B01_QA_V244) return createHash('sha256').update(base).digest('hex');
+  if (!qaPermitV244(job.qaPermitId)) throw Error('b01_native_qa_permit_required');
+  return createHash('sha256').update(`${base}:qa-permit:${job.qaPermitId}`).digest('hex');
+}
+export function b01ReservationFingerprintV244(job) {
+  const base = 'b01-v216:' + job.cursor;
+  if (job.phone !== B01_QA_V244) return createHash('sha256').update(base).digest('hex');
+  if (!qaPermitV244(job.qaPermitId)) throw Error('b01_native_qa_permit_required');
+  return createHash('sha256').update(`${base}:qa-permit:${job.qaPermitId}`).digest('hex');
+}
+export function b01AntiSpamKeyV244(job) {
+  // Keep semantic anti-spam enabled; a fresh native permit identifies a separate logical QA cycle.
+  if (job.phone === B01_QA_V244) return 'b01-native-qa:' + b01AttemptKeyV244(job);
+  // Preserve the EC greeting key; the final price table is a distinct logical step.
+  return job.cursor === 4 ? 'vitpower_b01_v216:step:4' : undefined;
+}
 export function createB01({ repo, send, policy, now = () => new Date(), random = Math.random }) {
   const delay = (min, max) => min + Math.floor(Math.min(.999999, Math.max(0, random())) * (max - min + 1));
   async function start(input) {
@@ -60,11 +81,13 @@ export function createB01({ repo, send, policy, now = () => new Date(), random =
     if (input.origin !== 'manual' && !isB01GenericEntry(input.text)) return { handled: false, reason: 'intent_priority' };
     const eligibility = await repo.eligible(input, p);
     if (!eligibility.allowed) return { handled: false, reason: eligibility.reason };
+    if (input.phone === B01_QA_V244 && !qaPermitV244(eligibility.qaPermitId)) return { handled: true, reason: 'qa_permit_required' };
     const startedAt = now();
     const customerName = firstName(input.text) || firstName('Nombre: ' + (eligibility.name || ''));
     const greeting = { kind: 'text', label: 'Saudacao personalizada', text: b01Greeting(customerName, startedAt) };
     const job = { version: B01_VERSION, status: 'pending', origin: input.origin || 'automatic', phone: input.phone,
       chatId: input.chatId, sessionId: 'zapi', inboundId: input.inboundId, startedAt,
+      ...(input.phone === B01_QA_V244 ? { qaPermitId: eligibility.qaPermitId } : {}),
       manualStamp: eligibility.manualStamp || '', customerName, nextAt: new Date(+startedAt + delay(5000, 30000)), cursor: 0,
       steps: [greeting, ...b01MediaForPeriodV242(startedAt), { kind: 'text', label: 'Valores oficiais Vit Power', text: b01PriceTextV242() }].map(s => ({ ...s, status: 'pending' })) };
     const saved = await repo.start(input.contactId, job);
@@ -85,7 +108,7 @@ export function createB01({ repo, send, policy, now = () => new Date(), random =
         if (!step || step.status !== 'pending') { await repo.stop(id, token, 'ambiguous', 'invalid_step'); return; }
         const history = await repo.history(job, step);
         if (history) { await repo.stop(id, token, 'review', 'existing_media_history'); return; }
-        const key = createHash('sha256').update(`${B01_VERSION}:${job.phone}:${job.cursor}`).digest('hex');
+        const key = b01AttemptKeyV244(job);
         if (!await repo.reserve(id, token, job.cursor, key, now())) return;
         // Check interruption and policy again after persistent reservation, immediately before transport.
         const fresh = await repo.check(id, job, policy());

@@ -10,7 +10,7 @@ import { sendAudio } from '../whatsapp/sendAudio.js';
 import { sendImage } from '../whatsapp/sendImage.js';
 import { sendText } from '../whatsapp/sendText.js';
 import { principalSdrQaRuntimeReadyV212 } from './principalSdrQaIngressV212Service.js';
-import { B01_VERSION, B01_MEDIA, createB01 } from './vitPowerB01CoreV216Service.js';
+import { B01_VERSION, B01_MEDIA, createB01, b01ReservationFingerprintV244, b01AntiSpamKeyV244 } from './vitPowerB01CoreV216Service.js';
 
 const ROOT = 'vitPowerB01';
 const DURABLE = { writeConcern: { w: 'majority', j: true, wtimeout: 5000 } };
@@ -31,6 +31,7 @@ export function createMongoB01Repository({ Contact = ContactState, Messages = Me
   async function checkState(state, job, p) {
     if (!p.enabled || !state || digits(state.phoneDigits) !== job.phone) return { allowed: false, reason: 'scope_or_policy' };
     if (job.phone === qa && !qaReady({ state, phone: qa, messageId: job.inboundId, now: new Date() })) return { allowed: false, reason: 'qa_window_closed' };
+    if (job.phone === qa && job.version === B01_VERSION && job.qaPermitId !== state.metadata?.qaTestContextV78?.permitId) return { allowed: false, reason: 'qa_permit_changed' };
     if (job.origin === 'manual' ? stamp(state) !== job.manualStamp : state.human?.mode === 'manual' || +new Date(state.human?.pausedUntil || 0) > Date.now()) return { allowed: false, reason: 'human_hold' };
     const product = state.metadata?.customerDraft?.productKey;
     if (product && product !== 'vit_power_ec' || state.assignedAgent && state.assignedAgent !== 'vit_power_ec') return { allowed: false, reason: 'product_changed' };
@@ -65,7 +66,8 @@ export function createMongoB01Repository({ Contact = ContactState, Messages = Me
       }
       if (input.origin === 'manual' && await Messages.exists({ peerPhone: input.phone, sessionId: 'zapi', isFromMe: true,
         mediaUrl: { $in: B01_MEDIA.map(s => s.asset) } })) return { allowed: false, reason: 'existing_media_history' };
-      return { allowed: true, manualStamp: stamp(state), name: state.metadata?.customerDraft?.name || '' };
+      return { allowed: true, manualStamp: stamp(state), name: state.metadata?.customerDraft?.name || '',
+        ...(input.phone === qa ? { qaPermitId: state.metadata?.qaTestContextV78?.permitId } : {}) };
     },
     async start(id, job) {
       const s = await writeContact('findOneAndUpdate', { _id: id, [`${ROOT}.version`]: { $exists: false } }, { $set: { [ROOT]: job } }, { new: true }).lean();
@@ -93,7 +95,7 @@ export function createMongoB01Repository({ Contact = ContactState, Messages = Me
     async reserve(id, token, cursor, key, now) {
       const state = await getState(id), job = state?.[ROOT];
       if (!job || job.lockToken !== token || job.status !== 'sending') return false;
-      try { await Ledger.create([{ key: 'b01-v216:' + key, fingerprint: hash('b01-v216:' + cursor), phoneDigits: job.phone,
+      try { await Ledger.create([{ key: 'b01-v216:' + key, fingerprint: b01ReservationFingerprintV244({ ...job, cursor }), phoneDigits: job.phone,
         jid: job.chatId, sessionId: 'zapi', kind: job.steps[cursor].kind, label: 'B01 V216 ' + job.steps[cursor].label,
         status: 'reserved', retryAllowed: false, firstReservedAt: now }], DURABLE); }
       catch (e) { if (e.code !== 11000) throw e; await this.stop(id, token, 'ambiguous', 'attempt_already_reserved'); return false; }
@@ -123,7 +125,7 @@ export function createMongoB01Repository({ Contact = ContactState, Messages = Me
 async function sendStep(job, step, key) {
   const options = { provider: 'zapi', sessionId: 'zapi', recipientDigits: job.phone, country: 'EC',
     sendMode: job.origin === 'manual' ? 'manual_panel' : '', returnDetails: true,
-    allowAudioDedupeBypass: false, dedupeValue: 'b01-v216:' + key, outboundContext: 'vitpower_b01_v216', humanize: false };
+    allowAudioDedupeBypass: false, antiSpamKey: b01AntiSpamKeyV244(job), dedupeValue: 'b01-v216:' + key, outboundContext: 'vitpower_b01_v216', humanize: false };
   if (step.kind === 'text') return sendText(job.chatId, step.text, null, options);
   const file = path.resolve('public', '.' + step.asset);
   if (!file.startsWith(path.resolve('public') + path.sep) || !fs.existsSync(file)) throw new Error('b01_asset_missing');

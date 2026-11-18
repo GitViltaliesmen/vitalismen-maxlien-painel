@@ -1,0 +1,22 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "d27cc7c7f2a21ad74e02ca5b6332ee50b151399b",
+  "allowedDelta": [
+    "docs/freeze/qa-b01-cycle-v244-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/models/ContactState.js",
+    "src/services/vitPowerB01CoreV216Service.js",
+    "src/services/vitPowerB01RuntimeV216Service.js",
+    "tests/b01-qa-cycle-v244.test.mjs",
+    "tests/b01-qa-schema-v244.test.mjs"
+  ],
+  "scope": "Separate the EC final-price-table semantic key from greeting, preserving original EC greeting/attempt/fingerprint keys. Only exact QA 5515998038637 gets native finite server-permit namespaces for job, attempt, compound fingerprint and semantic keys. Preserve all previous ledgers, the newly published Tex measurement integration, all other products and commercial operations.",
+  "qaPhone": "5515998038637",
+  "productionDatabaseMigration": false,
+  "automaticRetryAuthorized": false,
+  "oldLedgerDeletionAuthorized": false,
+  "clientProvidedPermitTrusted": false,
+  "historicalMessagesReplayed": false,
+  "nativePermitStillRequired": true
+}

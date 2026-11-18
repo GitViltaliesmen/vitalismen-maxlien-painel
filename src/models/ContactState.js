@@ -43,6 +43,8 @@ const vitPowerB01StepSchema = new mongoose.Schema({
 const vitPowerB01Schema = new mongoose.Schema({
     version: String, status: { type: String, enum: ['pending', 'sending', 'interrupted', 'ambiguous', 'review', 'done'] },
     origin: String, phone: String, chatId: String, sessionId: String, inboundId: String,
+    qaPermitId: { type: String, default: undefined, maxlength: 41, match: /^ecqa-v78-[a-f0-9]{32}$/,
+        validate: { validator(value) { return value == null || this.phone === '5515998038637'; }, message: 'b01_qa_permit_requires_exact_test_phone' } },
     startedAt: Date, nextAt: Date, cursor: Number, manualStamp: String, customerName: String,
     lockToken: String, lockedUntil: Date, reason: String, steps: [vitPowerB01StepSchema]
 }, { _id: false });
