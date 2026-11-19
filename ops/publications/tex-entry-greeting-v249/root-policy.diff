@@ -1,0 +1,73 @@
+--- official/deploy-profile.mjs
++++ root-candidate/ec-tex-entry-greeting-profile-v249-r6.mjs
+@@ -2 +2 @@
+-import{texEntryInvitesRegistrationV246 as parentRegistration}from'/usr/local/lib/vitalismen-deploy/ec-tex-entry-invites-profile-v246-r2.mjs';
++import{b01NamedEntryRegistrationV246R5 as parentRegistration}from'/usr/local/lib/vitalismen-deploy/ec-b01-named-entry-profile-v246-r5.mjs';
+@@ -4 +4 @@
+-const DIR='/var/lib/vitalismen-deploy/ec-b01-named-entry-v246-r5',ENGINE='/usr/local/lib/vitalismen-deploy/ec-b01-named-entry-sealed-v246-r5.mjs',HELPER='/usr/local/lib/vitalismen-deploy/ec-b01-named-entry-profile-v246-r5.mjs',CURRENT='/opt/vitalismen-automacao/current';
++const DIR='/var/lib/vitalismen-deploy/ec-tex-entry-greeting-v249-r6',ENGINE='/usr/local/lib/vitalismen-deploy/ec-tex-entry-greeting-sealed-v249-r6.mjs',HELPER='/usr/local/lib/vitalismen-deploy/ec-tex-entry-greeting-profile-v249-r6.mjs',CURRENT='/opt/vitalismen-automacao/current';
+@@ -8,2 +8,2 @@
+-const ENTRY_PARENT='/opt/vitalismen-automacao/releases/20261118T154334Z_production-20261118-d8c8b0d',ENTRY_PARENT_COMMIT='d8c8b0dd697e712bf2d7442ae90cb6aa6576fcc8',ENTRY_PARENT_TREE='4bb34d98bb8a070a083637c75d7b9328f3e73f0b',ENTRY_PARENT_SEAL='80a38401d6c84c9c75f9caa6c14ed58d065bef1dd98169eb309310ad72b198c8';
+-const HASHES=Object.freeze({"docs/freeze/vitpower-named-entry-v246-contract.json":"397260bf5526e3582329ab02051f822d2cfb7191aa9bb6f255007ee283d54f3b","scripts/lib/pm2-target-env-restart-v78-r4.mjs":"e0363a662c074a0d60a58712eb4927905aceb20a7020e4df41f15269f474bd41","scripts/lib/sealed-successor-preload-v1.mjs":"133dbd57c5e03a4ed96c9d77c4c1238a49c8cffebce160c9229be69e0be8a58d","src/routes/zapi.js":"b961791a50725edb7909dfc622476f4548783b15c1ea4308231b36ffbaa279e0","src/services/vitPowerB01CoreV216Service.js":"1528f14543a0fde3b12d76838431a302a1788f12c054e9724870009181073bed","src/services/vitPowerBurstRuntimeV228Service.js":"2d8b191395d208c67970e84ad195513ac747012dc9f484636d03ecccd06c966d","src/services/vitPowerEntryContextV246Service.js":"c125b764e6e9da8af62c126814a0479af91f10db10e51427c69dc9a9b865532b","tests/b01-named-entry-v246.test.mjs":"c7e88f62f19eb2c36712823c2c5f6c0a4ff4e373dbb68c15cf4cfe084b3c8b50"});
++const ENTRY_PARENT='/opt/vitalismen-automacao/releases/20261118T170557Z_production-20261118-1b356e3',ENTRY_PARENT_COMMIT='1b356e351210d9bf52fae7c1db9a7dcb9e9015fa',ENTRY_PARENT_TREE='7716d88ff14aaded258f4d9cdbca8a37e52841fb',ENTRY_PARENT_SEAL='3a7d20463b152fc3ee74db3cd446280ca7d7b025743bea8b576749ae53b57854';
++const HASHES=Object.freeze({"docs/freeze/tex-entry-greeting-v249-contract.json":"14eff67f341acc8b378cf7ba72667921f3625afb800b87a2930321a89b37549b","scripts/lib/pm2-target-env-restart-v78-r4.mjs":"7f57be916936dd6535ce8be086857648f6ced216a913d0705d80d7949ad5faac","scripts/lib/sealed-successor-preload-v1.mjs":"647343c03ec2fdfcce734c8430b30500c8a03abe81777fe2856847c24887fd56","src/routes/zapi.js":"88bc00b16df221912122403527896bc9cf452ea671a376594e46ce8e331ea256","src/services/ecDirectProductInquiryService.js":"59f7cc0da765a9eb7bf8120b2b69495e3918ff0156a857121549790ff69a80a1","src/services/texUltraEntryGreetingService.js":"cd64abbd6bb562159a26c5c8c08ccbc735adc6634c9e6855db1c98e0a017c5e9","src/services/texUltraEntryV249Service.js":"4c9af17f54e1a1d561223fd44a5637fe34eab7ec7cce10b36e62bb50de09a8d6","tests/tex-entry-greeting-v249.test.mjs":"ae647244d5ca3b0d2e118d4249a76e468bdf922663f8c93c4596cb04547e96ef"});
+@@ -13 +13 @@
+-export function b01NamedEntryRegistrationV246R5(){
++export function texEntryGreetingRegistrationV249(){
+@@ -15,2 +15,2 @@
+- const a=record(DIR+'/approval.json');assert.equal(a.kind,'HUMAN_APPROVED_EC_B01_NAMED_ENTRY_V246_R5');assert.equal(a.project,'VITALISMEN_EC');assert.equal(a.activationApproved,true);
+- assert.equal(a.authorizationEvidence,'USER_20261118_RESTORE_INITIAL_FUNNEL_WITH_INLINE_NAME_PRODUCT_ISOLATION');assert.equal(a.purpose,'EC_B01_NAMED_ENTRY_V246_R5');
++ const a=record(DIR+'/approval.json');assert.equal(a.kind,'HUMAN_APPROVED_EC_TEX_ENTRY_GREETING_V249');assert.equal(a.project,'VITALISMEN_EC');assert.equal(a.activationApproved,true);
++ assert.equal(a.authorizationEvidence,'USER_20261118_ACTIVATE_TEX_INITIAL_FUNNEL_AND_REQUESTED_GREETING');assert.equal(a.purpose,'EC_TEX_ENTRY_GREETING_V249');
+@@ -24 +24 @@
+- assert.equal(a.parentApprovalSha256,sha(regular('/var/lib/vitalismen-deploy/ec-tex-entry-invites-v246-r2/approval.json')));
++ assert.equal(a.parentApprovalSha256,sha(regular('/var/lib/vitalismen-deploy/ec-b01-named-entry-v246-r5/approval.json')));
+@@ -33 +33 @@
+- assert.equal(fs.realpathSync(engineFile),ENGINE);const a=b01NamedEntryRegistrationV246R5(),s=record(DIR+'/activation.json');assert.equal(s.commit,a.commit);assert.equal(s.approvalSha256,sha(regular(DIR+'/approval.json')));
++ assert.equal(fs.realpathSync(engineFile),ENGINE);const a=texEntryGreetingRegistrationV249(),s=record(DIR+'/activation.json');assert.equal(s.commit,a.commit);assert.equal(s.approvalSha256,sha(regular(DIR+'/approval.json')));
+@@ -48,0 +49 @@
++ publishTexEntryGreetingCapabilityV249();
+@@ -59 +60 @@
+- const p=readWebChatPolicyV220(ENGINE);assert(p);const a=b01NamedEntryRegistrationV246R5(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true',receive=!fixture&&p.runtimeAllowed&&process.env.VITALISMEN_EC_BOT_CORE_OPERATIONAL==='true';
++ const p=readWebChatPolicyV220(ENGINE);assert(p);const a=texEntryGreetingRegistrationV249(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true',receive=!fixture&&p.runtimeAllowed&&process.env.VITALISMEN_EC_BOT_CORE_OPERATIONAL==='true';
+@@ -66 +67 @@
+- const p=readWebChatPolicyV220(ENGINE),a=b01NamedEntryRegistrationV246R5();assert(p);
++ const p=readWebChatPolicyV220(ENGINE),a=texEntryGreetingRegistrationV249();assert(p);
+@@ -77 +78 @@
+- const p=readWebChatPolicyV220(ENGINE),a=b01NamedEntryRegistrationV246R5();assert(p);
++ const p=readWebChatPolicyV220(ENGINE),a=texEntryGreetingRegistrationV249();assert(p);
+@@ -91 +92 @@
+- const a=b01NamedEntryRegistrationV246R5(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=texEntryGreetingRegistrationV249(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+@@ -106 +107 @@
+- const a=b01NamedEntryRegistrationV246R5(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=texEntryGreetingRegistrationV249(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+@@ -117 +118 @@
+- const a=b01NamedEntryRegistrationV246R5(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=texEntryGreetingRegistrationV249(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+@@ -133 +134 @@
+- const a=b01NamedEntryRegistrationV246R5(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=texEntryGreetingRegistrationV249(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+@@ -158 +159 @@
+- const a=b01NamedEntryRegistrationV246R5(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=texEntryGreetingRegistrationV249(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+@@ -177 +178 @@
+- const a=b01NamedEntryRegistrationV246R5(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=texEntryGreetingRegistrationV249(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+@@ -195 +196 @@
+- try{const a=b01NamedEntryRegistrationV246R5(),s=record(DIR+'/activation.json');
++ try{const a=texEntryGreetingRegistrationV249(),s=record(DIR+'/activation.json');
+@@ -208 +209 @@
+- const a=b01NamedEntryRegistrationV246R5();
++ const a=texEntryGreetingRegistrationV249();
+@@ -223 +224 @@
+- const a=b01NamedEntryRegistrationV246R5(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
++ const a=texEntryGreetingRegistrationV249(),fixture=process.env.GIRA21X_FIXTURE_PROFILE_V1==='true';
+@@ -239,0 +241,7 @@
++
++export function publishTexEntryGreetingCapabilityV249(){
++ const a=texEntryGreetingRegistrationV249(),p=readWebChatPolicyV220(ENGINE);
++ const receive=process.env.GIRA21X_FIXTURE_PROFILE_V1!=='true'&&p?.runtimeAllowed===true&&process.env.VITALISMEN_EC_BOT_CORE_OPERATIONAL==='true';
++ const isCurrent=()=>{try{const s=record(DIR+'/activation.json');return receive&&s.state==='ACTIVE'&&s.runtimeAllowed===true&&s.commit===a.commit&&s.approvalSha256===sha(regular(DIR+'/approval.json'))&&fs.realpathSync(CURRENT)===a.release}catch{return false}};
++ Object.defineProperty(globalThis,'__VITALISMEN_EC_TEX_ENTRY_V249',{configurable:false,enumerable:false,writable:false,value:Object.freeze({kind:'EC_TEX_ENTRY_GREETING_V249',isCurrent})});
++}

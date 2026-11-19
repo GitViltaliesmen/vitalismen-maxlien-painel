@@ -1,0 +1,170 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PUBLIC_VERIFIED_FROZEN",
+  "backend": "a7f2c6caa30ee9c6bf8cd0bfcf6a46a272ecc88f",
+  "activation": {
+    "status": "PASS_ACTIVE_TEX_ENTRY_GREETING_V249_INHERITED_OPERATIONS_PRESERVED",
+    "at": "2026-11-19T00:54:46.099Z",
+    "release": "/opt/vitalismen-automacao/releases/20261118T235313Z_production-20261118-a7f2c6c",
+    "commit": "a7f2c6caa30ee9c6bf8cd0bfcf6a46a272ecc88f",
+    "pidBefore": 3970878,
+    "pidAfter": 4086140,
+    "restartDelta": 1,
+    "actualProcessCwd": "/opt/vitalismen-automacao/releases/20261118T235313Z_production-20261118-a7f2c6c",
+    "pmCwd": "/opt/vitalismen-automacao/current",
+    "pmExecPath": "/opt/vitalismen-automacao/current/src/index.js",
+    "health": "online",
+    "apiKeyPreserved": true,
+    "postSaleTimerPreserved": true,
+    "burstAudience": "EC_FORWARD_ONLY",
+    "publicAudience": "PRESERVED_EC_FORWARD_ONLY_WEB_PUBLIC_SITE",
+    "voiceId": "qHkrJuifPpn95wK3rm2A",
+    "voiceCredentialValidated": true,
+    "sharedVoiceCredentialPreserved": true,
+    "webVoiceCredentialScoped": true,
+    "globalDataBackupPass": false,
+    "databaseMigrations": 0
+  },
+  "liveAudit": {
+    "project": "VITALISMEN_EC",
+    "pass": true,
+    "at": "2026-11-19T00:55:33.504655+00:00",
+    "commit": "a7f2c6caa30ee9c6bf8cd0bfcf6a46a272ecc88f",
+    "release": "/opt/vitalismen-automacao/releases/20261118T235313Z_production-20261118-a7f2c6c",
+    "pid": 4086140,
+    "observations": [
+      {
+        "pid": 4086140,
+        "restartCount": 53,
+        "health": "online",
+        "zapiConnected": true,
+        "queue": {
+          "pendingTasks": 0
+        }
+      },
+      {
+        "pid": 4086140,
+        "restartCount": 53,
+        "health": "online",
+        "zapiConnected": true,
+        "queue": {
+          "pendingTasks": 0
+        }
+      },
+      {
+        "pid": 4086140,
+        "restartCount": 53,
+        "health": "online",
+        "zapiConnected": true,
+        "queue": {
+          "pendingTasks": 0
+        }
+      },
+      {
+        "pid": 4086140,
+        "restartCount": 53,
+        "health": "online",
+        "zapiConnected": true,
+        "queue": {
+          "pendingTasks": 0
+        }
+      }
+    ],
+    "profilesPreserved": true,
+    "baseEnvPreserved": true,
+    "parentPolicyPreserved": true,
+    "texInitialFlagsActive": true,
+    "postSaleTimerPreserved": true,
+    "postSaleExecutorCurrent": true,
+    "publicPanelV248R2Preserved": true,
+    "productionMessagesSentByAudit": 0,
+    "productionDatabaseWrites": 0,
+    "physicalNewCustomerObservation": "PENDING_NATURAL_INBOUND",
+    "globalDataBackupPass": false
+  },
+  "qualification": {
+    "project": "VITALISMEN_EC",
+    "status": "PASS",
+    "candidateCommit": "a7f2c6caa30ee9c6bf8cd0bfcf6a46a272ecc88f",
+    "results": [
+      {
+        "name": "senior_guard",
+        "pass": true,
+        "seconds": 80.0,
+        "exitCode": 0,
+        "timedOut": false,
+        "tapSummary": []
+      },
+      {
+        "name": "product_guard",
+        "pass": true,
+        "seconds": 60.0,
+        "exitCode": 0,
+        "timedOut": false,
+        "tapSummary": []
+      },
+      {
+        "name": "focused_tests",
+        "pass": true,
+        "seconds": 250.0,
+        "exitCode": 0,
+        "timedOut": false,
+        "tapSummary": [
+          "# tests 49",
+          "# pass 49",
+          "# fail 0"
+        ]
+      },
+      {
+        "name": "complete_senior",
+        "pass": true,
+        "seconds": 3182.4,
+        "exitCode": 0,
+        "timedOut": false,
+        "tapSummary": [
+          "# tests 43",
+          "# pass 43",
+          "# fail 0",
+          "# tests 482",
+          "# pass 482",
+          "# fail 0",
+          "# tests 22",
+          "# pass 22",
+          "# fail 0"
+        ]
+      }
+    ],
+    "productionUnchanged": true,
+    "networkIsolated": true,
+    "messagesSent": 0,
+    "databaseProductionWrites": 0
+  },
+  "nativeChecks": [
+    "native_new_greeting_correct_first_name_and_guayaquil_period",
+    "native_greeting_real_cadence",
+    "duplicate_callback_does_not_repeat_greeting",
+    "native_exactly_five_initial_messages",
+    "native_all_approved_steps_persisted",
+    "native_approved_sequence_order",
+    "native_official_tex_prices_preserved",
+    "generic_and_foreign_product_text_not_sent",
+    "quantity_two_correct_total",
+    "quantity_continues_without_restarting_initial_block",
+    "native_human_pause_preserved",
+    "native_unknown_question_review_preserved",
+    "specific_question_does_not_start_presentation",
+    "native_known_tex_question_after_presentation_gets_official_prices",
+    "native_new_message_interrupts_remaining_presentation",
+    "no_simulated_or_real_order_created",
+    "native_tex_path_does_not_call_free_ai",
+    "unique_provider_ids"
+  ],
+  "publicHashes": {
+    "panelSha256": "3b334f0cc5c8da9840fd257c521cdc828e264a8c4f1a814d190e292640a2f1e2",
+    "plusmenWhatsAppAssetSha256": "deeeb05d598b697762d352f1c47d91d0ed850e57a81a3f4ee70e37118bbdddc7",
+    "nginxSha256": "1f3e1156302110e76b2d15d5f074d81360736daa9a6cdd63b2cabc700857c9b1"
+  },
+  "manifestSha256": "711a1b13632c0b2e3d68cef3d8a401ddc60f01b74b9d7f2706c431c1c7be3bb1",
+  "noPhysicalTestSends": true,
+  "globalDataBackupPass": false
+}

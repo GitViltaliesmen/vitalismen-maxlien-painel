@@ -2,6 +2,14 @@
 
 PROJECT=VITALISMEN_EC
 
+## Exceção autorizada e congelamento Tex V249 — 2026-11-18
+
+- Pedido explícito do operador: ativar o funil Tex e adaptar a saudação para Ana Lopez/equipe da Dra. María Fernandes, primeiro nome e período do Equador.
+- Baseline: `docs/freeze/tex-ultra-entry-greeting-v249-20261118.json`; auditoria `docs/TEX_ULTRA_ENTRADA_SAUDACAO_V249_20261118.md`; recibo `approved_freezes/TEX_ULTRA_ENTRADA_SAUDACAO_V249_20261118.txt`.
+- Preservar a preferência da entrada publicada pelo funil Tex, a saudação solicitada e o reconhecimento estrito do callback já processado, incluindo a identificação oficial de sessão de saída. Não transformar outro ID em duplicata nem repetir etapas.
+- Demais congelamentos e pausas humanas permanecem vigentes. Nenhum replay, reset, liberação de contatos ou nova janela QA decorre deste registro. Congelamento não pausa a operação.
+
+
 ## Exceção autorizada V248 — CTA clara e indicação QA — 2026-11-18
 
 - Pedido explícito: simplificar a CTA WhatsApp de `https://plusmen.shop/tex`, corrigir a indicação antiga do QA 8637, simular, publicar e congelar.
