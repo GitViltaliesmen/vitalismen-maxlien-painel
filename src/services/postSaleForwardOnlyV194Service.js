@@ -59,6 +59,17 @@ export const postSaleV194StageAnchor = (shipment = {}, stage = '') => {
 export const isPostSaleV194ForwardOnlyEligible = ({ shipment = {}, stage = '', forwardOnlySince } = {}) => {
     const cutoff = asDate(forwardOnlySince);
     if (!cutoff) return false;
+    if (shipment?.raw?.postSaleV194DropiSync?.terminalDeferredToCarrier === true) {
+        // Keep carrier polling alive while suppressing stale guide/transit/retirement
+        // messages after a final Dropi observation. Completion still needs real carrier proof.
+        const evidence = shipment?.logistics?.canonicalEvidence || {};
+        const carrierFinal = evidence.source === 'carrier_tracking' && /^servientrega$/i.test(clean(evidence.provider))
+            && afterOrEqual(evidence.observedAt, asDate(shipment.raw.postSaleV194DropiSync.lastSyncAt) || cutoff);
+        const delivered = shipment?.logistics?.canonicalStatus === 'DELIVERED' && [POST_SALE_STAGES.DELIVERED_THANK_YOU,
+            POST_SALE_STAGES.PICKUP_BONUS, POST_SALE_STAGES.PRODUCT_USAGE, POST_SALE_STAGES.TREATMENT_REFILL_REMINDER].includes(stage);
+        const returned = shipment?.logistics?.canonicalStatus === 'RETURNED' && stage === POST_SALE_STAGES.RETURNED;
+        if (!carrierFinal || (!delivered && !returned)) return false;
+    }
     if (shipment?.review?.manualOnly === true) return false;
     if (!stage || !postSaleV194StageAnchor(shipment, stage)) return false;
     if (stage === POST_SALE_STAGES.GUIDE && !afterOrEqual(shipment?.createdAt, cutoff)) return false;
@@ -94,7 +105,7 @@ const LOGISTICS_ACTIONS = Object.freeze([
             'logistics.status': 'READY_FOR_PICKUP',
             'logistics.canonicalStatus': 'READY_FOR_PICKUP',
             'logistics.pickupReadyVerified': true,
-            'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
+            'logistics.pickupReadyVerifiedSource': { $in: ['carrier_tracking', 'dropi_orders_api'] },
             'logistics.trackingNumber': { $exists: true, $ne: '' },
             'logistics.agencyPickup': true,
             $or: [

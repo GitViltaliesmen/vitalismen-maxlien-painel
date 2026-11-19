@@ -165,3 +165,25 @@ test('forward-only permite evento logístico novo e seleciona no máximo um envi
     assert.equal(report.physicalSendLimit, 1);
     assert.equal(physicalSends, 1);
 });
+
+
+test('V252 Dropi terminal statuses retain carrier polling and never invent delivered evidence', async () => {
+ for (const status of ['ENTREGADO','DEVUELTO','CANCELADO']) {
+  const shipment=baseShipment({logistics:{status:'EN_TRANSITO',canonicalStatus:'IN_TRANSIT',trackingNumber:'1897000123',distributionCompany:'SERVIENTREGA'}}),updates=[];
+  const model={find:()=>({sort:()=>({limit:async()=>[shipment]})}),findOneAndUpdate:async(query,update)=>({...shipment,raw:{...shipment.raw,postSaleV194DropiSync:{lockToken:update.$set['raw.postSaleV194DropiSync.lockToken']}}}),updateOne:async(query,update)=>{updates.push(update.$set);return{modifiedCount:1}}};
+  const report=await processDropiTrackingReconciliationV194({forwardOnlySince:cutoff,dryRun:false,shipmentModel:model,fetchRowsFn:async()=>({rows:[row({status})]})});
+  assert.equal(report.applied,1,status);const set=updates[0];assert.equal(set['logistics.status'],'EN_TRANSITO');assert.equal(set['raw.latestDroppiPayload.dropiStatus'],status);assert.equal(set['raw.postSaleV194DropiSync.terminalDeferredToCarrier'],true);assert.equal(set['logistics.canonicalStatus'],undefined);assert.equal(set['logistics.terminal'],undefined);assert.equal(set['outcomes.delivered'],undefined);assert.equal(set['automation.deliveredConfirmedAt'],undefined);
+ }
+});
+
+
+test('V252 pickup executor selects both already-authorized proof sources without sending in dry-run', async () => {
+ const queries=[];const model={find:query=>{queries.push(query);return{sort:()=>({limit:async()=>[]})}}};const report=await processForwardLogisticsStageV194({forwardOnlySince:cutoff,dryRun:true,shipmentModel:model});assert.equal(report.sent,0);const pickup=queries.find(q=>q['logistics.status']==='READY_FOR_PICKUP');assert.deepEqual(pickup['logistics.pickupReadyVerifiedSource'],{$in:['carrier_tracking','dropi_orders_api']});assert.equal(pickup['logistics.pickupReadyVerified'],true);assert.equal(pickup['logistics.canonicalStatus'],'READY_FOR_PICKUP');assert.equal(pickup['logistics.agencyPickup'],true);
+});
+
+
+test('V252 terminal Dropi observation blocks stale messages until later carrier completion proof', () => {
+ const shipment=baseShipment({raw:{postSaleV194DropiSync:{terminalDeferredToCarrier:true,lastSyncAt:new Date('2026-09-20T17:00:00Z'),trackingRecoveredAt:new Date('2026-09-20T17:00:00Z')}},logistics:{canonicalStatus:'IN_TRANSIT',lastStatusAt:new Date('2026-09-20T17:00:00Z'),canonicalEvidence:{provider:'dropi',source:'dropi_orders_api',observedAt:new Date('2026-09-20T17:00:00Z')}}});
+ for(const stage of [POST_SALE_STAGES.GUIDE,POST_SALE_STAGES.IN_TRANSIT,POST_SALE_STAGES.READY_FOR_PICKUP,POST_SALE_STAGES.DELIVERED_THANK_YOU])assert.equal(isPostSaleV194ForwardOnlyEligible({shipment,stage,forwardOnlySince:cutoff}),false,stage);
+ shipment.logistics.canonicalStatus='DELIVERED';shipment.logistics.canonicalEvidence={provider:'servientrega',source:'carrier_tracking',observedAt:new Date('2026-09-20T17:05:00Z')};assert.equal(isPostSaleV194ForwardOnlyEligible({shipment,stage:POST_SALE_STAGES.DELIVERED_THANK_YOU,forwardOnlySince:cutoff}),true);assert.equal(isPostSaleV194ForwardOnlyEligible({shipment,stage:POST_SALE_STAGES.GUIDE,forwardOnlySince:cutoff}),false);shipment.logistics.canonicalEvidence.observedAt=new Date('2026-09-20T16:59:00Z');assert.equal(isPostSaleV194ForwardOnlyEligible({shipment,stage:POST_SALE_STAGES.DELIVERED_THANK_YOU,forwardOnlySince:cutoff}),false);
+});

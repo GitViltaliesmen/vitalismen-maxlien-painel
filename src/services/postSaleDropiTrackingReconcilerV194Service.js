@@ -1,4 +1,6 @@
 import crypto from 'node:crypto';
+import { canonicalLogisticsProjectionV147 } from './canonicalLogisticsStatusV147Service.js';
+import { authoritativeDropiPickupReleaseV168B } from './dropiPickupReleaseV168BService.js';
 
 import Shipment from '../models/Shipment.js';
 import { resolveEcuadorProductInfo } from './ecuadorProductService.js';
@@ -123,6 +125,9 @@ export const classifyDropiTrackingResultV194 = ({ shipment = {}, rows = [] } = {
             row
         });
     }
+    if (clean(shipment?.logistics?.trackingNumber) && clean(shipment.logistics.trackingNumber) !== validated.value) {
+        return classification({ state: POST_SALE_DROPI_TRACKING_V194_STATES.MANUAL_REVIEW, reason: 'persisted_tracking_conflict', row });
+    }
     const normalizedStatus = normalizeDroppiEcuadorStatus(row?.status || 'GUIA_GENERADA') || 'GUIA_GENERADA';
     const changedFields = [
         clean(shipment?.logistics?.trackingNumber) !== validated.value ? 'logistics.trackingNumber' : '',
@@ -147,7 +152,7 @@ const nextBackoff = ({ shipment, classificationState, rowStatus, now }) => {
     const previousAttempts = sameDay && !statusChanged ? Number(previous.attemptsToday || 0) : 0;
     const attemptsToday = previousAttempts + 1;
     if (classificationState === POST_SALE_DROPI_TRACKING_V194_STATES.TRACKING_FOUND) {
-        return { attemptDay: day, attemptsToday, nextSyncAt: null, statusChanged };
+        return { attemptDay: day, attemptsToday, nextSyncAt: new Date(now.getTime() + 60 * 60_000), statusChanged };
     }
     const nextSyncAt = attemptsToday >= MAX_DAILY_ATTEMPTS
         ? nextGuayaquilDayAtEight(now)
@@ -161,11 +166,8 @@ const candidateQuery = (now = new Date()) => ({
     'review.manualOnly': { $ne: true },
     'automation.submittedToDroppiAt': { $exists: true, $ne: null },
     $and: [
-        { $or: [
-            { 'logistics.trackingNumber': { $exists: false } },
-            { 'logistics.trackingNumber': null },
-            { 'logistics.trackingNumber': '' }
-        ] },
+        { 'logistics.canonicalStatus': { $nin: ['DELIVERED', 'RETURNED'] } },
+        { 'logistics.status': { $nin: ['ENTREGADO', 'DEVUELTO', 'CANCELADO', 'CANCELADO_SERVIENTREGA'] } },
         { $or: [
             { 'raw.manualDropiOrderId': { $exists: true, $ne: '' } },
             { 'raw.latestDroppiPayload.dropiOrderId': { $exists: true, $ne: '' } },
@@ -221,9 +223,35 @@ const applyClassification = async ({ shipment, result, token, now, forwardOnlySi
     if (result.state === POST_SALE_DROPI_TRACKING_V194_STATES.TRACKING_FOUND) {
         const normalizedStatus = normalizeDroppiEcuadorStatus(rowStatus || 'GUIA_GENERADA') || 'GUIA_GENERADA';
         set['logistics.trackingNumber'] = result.trackingNumber;
-        set['logistics.status'] = normalizedStatus;
+        const remoteFinal = ['ENTREGADO', 'DEVUELTO', 'CANCELADO', 'CANCELADO_SERVIENTREGA'].includes(normalizedStatus);
+        // Carrier-confirmed terminal delivery drives thank-you/repurchase. A Dropi
+        // final status must not remove this shipment from the carrier sweep.
+        set['logistics.status'] = remoteFinal ? (clean(shipment?.logistics?.status) || 'GUIA_GENERADA') : normalizedStatus;
+        set[`${ROOT}.terminalDeferredToCarrier`] = remoteFinal;
+        set['raw.latestDroppiPayload.dropiStatus'] = rowStatus;
+        set['raw.latestDroppiPayload.reconciliationSource'] = 'dropi_orders_api';
+        set['raw.latestDroppiPayload.dropiOrderId'] = dropiOrderId;
+        set['raw.latestDroppiPayload.trackingNumber'] = result.trackingNumber;
         if (clean(result?.row?.distributionCompany)) set['logistics.distributionCompany'] = clean(result.row.distributionCompany).toUpperCase();
-        if (!clean(shipment?.logistics?.canonicalStatus) || clean(shipment?.logistics?.canonicalStatus) === 'UNKNOWN') {
+        const projection = canonicalLogisticsProjectionV147({ provider: 'dropi', providerStatus: rowStatus });
+        const explicitPickup = authoritativeDropiPickupReleaseV168B({ status: rowStatus,
+            source: 'dropi_orders_api', dropiOrderId, trackingNumber: result.trackingNumber,
+            agencyPickup: shipment.logistics?.agencyPickup === true,
+            distributionCompany: clean(result.row?.distributionCompany || shipment.logistics?.distributionCompany) });
+        if (!remoteFinal && projection.terminal !== true && projection.canonicalStatus !== 'UNKNOWN' && (projection.canonicalStatus !== 'READY_FOR_PICKUP' || explicitPickup)) {
+            for (const field of ['canonicalStatus', 'terminal', 'canPickup', 'reminderEligible', 'reviewRequired', 'panelLabel']) set['logistics.' + field] = projection[field];
+            set['logistics.canonicalEvidence'] = canonicalGuideEvidence({ row: result.row, dropiOrderId, trackingNumber: result.trackingNumber, now });
+            set['logistics.lastStatusAt'] = now;
+            set['raw.latestDroppiPayload.dropiStatus'] = rowStatus;
+            set['raw.latestDroppiPayload.reconciliationSource'] = 'dropi_orders_api';
+            set['raw.latestDroppiPayload.dropiOrderId'] = dropiOrderId;
+            set['raw.latestDroppiPayload.trackingNumber'] = result.trackingNumber;
+            if (explicitPickup) {
+                set['logistics.pickupReadyVerified'] = true;
+                set['logistics.pickupReadyVerifiedAt'] = now;
+                set['logistics.pickupReadyVerifiedSource'] = 'dropi_orders_api';
+            }
+        } else if (!clean(shipment?.logistics?.canonicalStatus) || clean(shipment?.logistics?.canonicalStatus) === 'UNKNOWN') {
             set['logistics.canonicalStatus'] = 'GUIDE_CREATED';
             set['logistics.canonicalEvidence'] = canonicalGuideEvidence({
                 row: result.row,
@@ -256,7 +284,7 @@ export const processDropiTrackingReconciliationV194 = async ({
     if (!cutoff) throw new Error('post_sale_v194_forward_only_since_invalid');
     const safeLimit = Math.max(1, Math.min(Number(limit) || 8, 8));
     const shipments = await shipmentModel.find(candidateQuery(now))
-        .sort({ createdAt: 1, updatedAt: 1 })
+        .sort({ 'raw.postSaleV194DropiSync.lastSyncAt': 1, createdAt: 1 })
         .limit(safeLimit);
     const report = {
         dryRun: Boolean(dryRun),

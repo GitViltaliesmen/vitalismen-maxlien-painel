@@ -4,6 +4,8 @@ import { validateEcuadorDropiCustomerName, validateEcuadorDropiPhone } from './d
 import { currentEcBotCoreRuntimeContextV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
 import { resolveEcAdminDropiDraftBridgeV128 } from './ecAdminDropiDraftBridgeV128Service.js';
 
+import { automaticDropiOrderAllowedV252 } from './confirmedDropiDispatchV252Service.js';
+
 const clean = value => String(value ?? '').trim();
 const digits = value => clean(value).replace(/\D/g, '');
 const key = value => clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ');
@@ -71,6 +73,7 @@ export const ecDropiCurrentDraftDeliveryV138 = (order = {}, state = null) => {
 };
 
 export const ecHumanDropiSubmitBlockV138 = ({ order, shipment } = {}) => {
+    if (automaticDropiOrderAllowedV252(order, shipment)) return null;
     const context = currentEcBotCoreRuntimeContextV78();
     const requestedId = clean(context?.humanDropiRequestedOrderId);
     const requestedMatches = requestedId && [clean(order?.orderId), clean(order?._mappedFromAdminLead?.requestedOrderId)].includes(requestedId);

@@ -193,3 +193,9 @@ test('canário usa somente QA oficial sem criar pedido ou Shipment e prova dedup
     assert.match(operations, /DUPLICATE_SEND_COUNT=0/);
     assert.match(operations, /NODE_OPTIONS= node - "\$audit_file"/);
 });
+
+
+test('V252 official Dropi pickup release uses the existing reminder cadence and rejects unknown sources', () => {
+ const shipment={review:{},logistics:{status:'READY_FOR_PICKUP',canonicalStatus:'READY_FOR_PICKUP',pickupReadyVerified:true,pickupReadyVerifiedSource:'dropi_orders_api'},outcomes:{},automation:{readyForPickupNotifiedAt:new Date('2026-11-17T12:00:00Z')}};
+ const now=new Date('2026-11-18T12:00:00Z');assert.equal(getDuePickupReminderStepV188(shipment,now)?.kind,'day1');shipment.logistics.pickupReadyVerifiedSource='unverified';assert.equal(getDuePickupReminderStepV188(shipment,now),null);shipment.logistics.pickupReadyVerifiedSource='dropi_orders_api';shipment.logistics.pickupReadyVerified=false;assert.equal(getDuePickupReminderStepV188(shipment,now),null);shipment.logistics.pickupReadyVerified=true;shipment.review.manualOnly=true;assert.equal(getDuePickupReminderStepV188(shipment,now),null);shipment.review.manualOnly=false;shipment.outcomes.delivered=true;assert.equal(getDuePickupReminderStepV188(shipment,now),null);
+});

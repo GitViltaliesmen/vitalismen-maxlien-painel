@@ -695,7 +695,8 @@ export const syncContactDraftToOnlineAdminPanel = (draft = {}, { country = 'EC',
         product_qty: normalizeAdminPackageQuantity(draft.quantity),
         product_value: Number(draft.total || 0) || 0,
         buy_later_followup_at: draft.buyLaterFollowupAt || draft.buy_later_followup_at || '',
-        status: adminStatus || normalizeAdminStatus({ status: draft.status || 'draft' }),
+        status: adminStatus || (normalizeAdminStatus({ status: draft.status || 'draft' }) === 'novo'
+            ? 'atendendo' : normalizeAdminStatus({ status: draft.status || 'draft' })),
         notes: String(note || '').trim(),
         action,
         db_path: dbPath

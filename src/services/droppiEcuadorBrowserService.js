@@ -1,4 +1,5 @@
 import { currentManualDropiSelectionV229 } from './dropiManualProductSelectionV229Service.js';
+import { isAutomaticDropiContextV252 } from './confirmedDropiDispatchV252Service.js';
 import { giraDropiOffer } from './gira21x/dropi-offer.mjs';
 import {prepaidDropiProjection,prepaidRuntimeApproved,dropiCollectionMode,dropiWireFinancials} from './gira21x/prepaid-contract.mjs';
 import {assertPrepaidCurrentPayment} from './gira21x/prepaid-client.mjs';
@@ -317,7 +318,9 @@ const buildContactLookupForShipment = (shipment = {}) => {
 };
 
 const tagDropiContactState = async ({ shipment, tag, payload = {} }) => {
-    const query = buildContactLookupForShipment(shipment);
+    const query = isAutomaticDropiContextV252()
+        ? { countryCode: 'EC', phoneDigits: String(shipment?.client?.phone || '').replace(/\D/g, '') }
+        : buildContactLookupForShipment(shipment);
     if (!query || !tag) return { matchedCount: 0, modifiedCount: 0 };
     return ContactState.updateMany(query, {
         $addToSet: { tags: tag },
@@ -534,6 +537,19 @@ const validateCurrentDropiBffSession = async (page) => {
         ok: Boolean(response.ok && normalized.isSuccess),
         errorCode: response.ok && normalized.isSuccess ? '' : (response.errorCode || 'AUTH_FAILED')
     };
+};
+
+const alignValidatedDropiSessionTokenV252 = async (page, expectedLoginResult = {}) => {
+    const auth = await getDropiBrowserAuth(page);
+    if (!isUnexpiredDropiToken(auth.token) || !dropiAccountIdentityIsPresent(auth.loginResult)
+        || (dropiAccountIdentityIsPresent(expectedLoginResult) && !sameDropiAccountIdentity(expectedLoginResult, auth.loginResult))) {
+        throw new Error('DROPI_AUTH_FAILED ACCOUNT_IDENTITY_MISMATCH');
+    }
+    const aligned = { ...auth.loginResult, token: auth.token, isSuccess: true };
+    if (!isFinalDropiLoginResult(aligned)) throw new Error('DROPI_AUTH_FAILED SESSION_NOT_PERSISTABLE');
+    if (auth.token === auth.loginResult.token) return false;
+    await page.evaluate(value => window.localStorage.setItem('DROPI_LoginResult', JSON.stringify(value)), aligned);
+    return true;
 };
 
 const performOfficialBffLogin = async ({ page, capturedPayload, expectedLoginResult, email, password }) => {
@@ -1489,7 +1505,7 @@ export const buildEcuadorProductBffQuote = async (page, payload) => {
             get_stock: false,
             no_count: true,
             search_type: 'simple',
-            country: ['COLOM', 'BIA'].join('')
+            country: 'ECUADOR'
         },
         timeoutMs: Number.parseInt(process.env.DROPPI_EC_CATALOG_API_TIMEOUT_MS || '30000', 10)
     });
@@ -1840,9 +1856,12 @@ export const performLogin = async (page) => {
         await page.goto(ORDERS_URL, { waitUntil: 'domcontentloaded' }).catch(() => null);
         await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => null);
         const pageLoginResult = await readStoredDropiLoginResult(page);
-        if (dropiAccountIdentityIsPresent(pageLoginResult)) expectedLoginResult = pageLoginResult;
+        if (!dropiAccountIdentityIsPresent(expectedLoginResult) && dropiAccountIdentityIsPresent(pageLoginResult)) expectedLoginResult = pageLoginResult;
         const storedProbe = await validateCurrentDropiBffSession(page).catch(() => ({ ok: false }));
-        if (storedProbe.ok) return;
+        if (storedProbe.ok) {
+            await alignValidatedDropiSessionTokenV252(page, expectedLoginResult);
+            return;
+        }
     }
 
     const email = process.env[EMAIL_ENV];
@@ -1903,6 +1922,7 @@ export const performLogin = async (page) => {
     }
     const finalProbe = await validateCurrentDropiBffSession(page).catch(() => ({ ok: false }));
     if (!finalProbe.ok) throw new Error(`DROPI_AUTH_FAILED BFF_HTTP_${finalProbe.status || 0}`);
+    await alignValidatedDropiSessionTokenV252(page, expectedLoginResult);
 };
 
 const persistStorageState = async (context) => {

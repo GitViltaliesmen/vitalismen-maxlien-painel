@@ -1,3 +1,4 @@
+import { isAutomaticDropiContextV252, automaticDropiMongoAllowedV252, automaticDropiExternalAllowedV252 } from './confirmedDropiDispatchV252Service.js';
 import { assertBurstEnvelopeV228, BURST_VERSION_V228 } from './vitPowerBurstCoreV228Service.js';
 import { webChatRequestAllowedV220 } from './vitPowerWebChatV220Application.js';
 import { recognizePrincipalSdrQaIngressV212, principalSdrQaPersistedRoutingV212 } from './principalSdrQaIngressV212Service.js';
@@ -659,6 +660,10 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
 };
 
 export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.env) => {
+    if (isAutomaticDropiContextV252()) {
+        if (automaticDropiExternalAllowedV252(effect)) return true;
+        throw new Error('automatic_dropi_external_effect_denied');
+    }
     if (currentEcBotCoreRuntimeContextV78()?.burstV228?.finalizeOnly || currentEcBotCoreRuntimeContextV78()?.burstV228?.claimOnly) throw new Error('burst_finalize_only_no_external_effect');
     if (currentEcBotCoreRuntimeContextV78()?.b01V216 && effect !== 'zapi_outbound_reply') throw new Error('b01_external_effect_denied');
     if (giraRuntimePolicy.external(effect) && (!ecBotCoreV78Requested(env) || resolveEcBotCoreV78Configuration(env).ready)) return true;
@@ -677,6 +682,7 @@ export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.en
 };
 
 export const isEcManualDropiExternalEffectAllowedV119 = (effect, env = process.env) => (
+    automaticDropiExternalAllowedV252(effect) ||
     ecManualDropiReleaseV119ExternalEffectAllowed({
         effect,
         context: currentEcBotCoreRuntimeContextV78(),
@@ -750,6 +756,11 @@ const patchMongoPrototype = (prototype) => {
                 if (burstScopeV228 && !burstMongoMutationAllowedV228(burstScopeV228,
                     String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase(), method, args)) {
                     throw new Error('burst_scoped_mongo_write_denied');
+                }
+                if (isAutomaticDropiContextV252()) {
+                    const collection = String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase();
+                    if (!automaticDropiMongoAllowedV252(collection, method, args)) throw new Error('automatic_dropi_scoped_mongo_write_denied');
+                    return original.apply(this, args);
                 }
                 const b01ScopeV216 = currentEcBotCoreRuntimeContextV78()?.b01V216;
                 if (b01ScopeV216 && !b01MongoMutationAllowedV216(b01ScopeV216,

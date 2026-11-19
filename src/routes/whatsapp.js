@@ -4149,7 +4149,8 @@ router.get('/dashboard-metrics', async (req, res) => {
             return new Date(contact.lastInboundAt || contact.lastOutboundAt || contact.updatedAt || contact.createdAt || 0);
         };
         const inPeriod = (date, start) => date instanceof Date && !Number.isNaN(date.getTime()) && date >= start;
-        const realContacts = contacts.filter((contact) => realPhoneFromState(contact));
+        const realContacts = contacts.filter((contact) => realPhoneFromState(contact)
+            && digitsOnly(realPhoneFromState(contact)) !== '5515998038637');
         const commercialContacts = realContacts.filter((contact) => (
             conversationBucketPanelView(contact).value !== EC_CONVERSATION_BUCKETS.ENGAGEMENT
         ));
@@ -6153,6 +6154,12 @@ router.patch('/contact-state/:phone', ecPanelStatusAuthenticatedActionV177, asyn
                         customerDraft: cleanDraft
                     };
                 }
+            }
+            if (!internalOrTest && normalizePanelStatus(cleanDraft.status) === 'confirmado'
+                && (customerDataBlockedResponse || !isValidPanelPackageQuantity(cleanDraft.quantity) || !(Number(cleanDraft.total) > 0))) {
+                cleanDraft.status = 'atendendo';
+                customerDataBlockedResponse = customerDataBlockedResponse || { error: 'confirmed_order_incomplete',
+                    message: 'Ficha salva em Atendendo. Complete quantidade e valor antes de confirmar o pedido.', customerDraft: cleanDraft };
             }
             const dataFields = state.customerDataResolution?.fields || {};
             const nameReady = internalOrTest ? Boolean(String(cleanDraft.name || '').trim()) : ['VERIFIED', 'HIGH_CONFIDENCE'].includes(dataFields.name?.validation_status);

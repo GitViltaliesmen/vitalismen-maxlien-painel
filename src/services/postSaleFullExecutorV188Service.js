@@ -1,4 +1,5 @@
 import Shipment from '../models/Shipment.js';
+import { pickupReadyVerifiedSourceAllowedV168B } from './dropiPickupReleaseV168BService.js';
 import { canaryV75SchedulerShipmentAllowed } from './canaryIsolationV75Service.js';
 import {
     POST_SALE_NOTIFICATION_DECISIONS,
@@ -84,7 +85,7 @@ export const getDuePickupReminderStepV188 = (shipment = {}, now = new Date()) =>
         || clean(shipment?.logistics?.status) !== 'READY_FOR_PICKUP'
         || clean(shipment?.logistics?.canonicalStatus) !== 'READY_FOR_PICKUP'
         || shipment?.logistics?.pickupReadyVerified !== true
-        || clean(shipment?.logistics?.pickupReadyVerifiedSource) !== 'carrier_tracking'
+        || !pickupReadyVerifiedSourceAllowedV168B(shipment?.logistics?.pickupReadyVerifiedSource)
         || shipment?.outcomes?.delivered === true
         || shipment?.outcomes?.pickedUp === true
         || shipment?.outcomes?.returned === true
@@ -189,7 +190,7 @@ export const processShipmentPickupRemindersV188 = async ({
         'logistics.status': 'READY_FOR_PICKUP',
         'logistics.canonicalStatus': 'READY_FOR_PICKUP',
         'logistics.pickupReadyVerified': true,
-        'logistics.pickupReadyVerifiedSource': 'carrier_tracking',
+        'logistics.pickupReadyVerifiedSource': { $in: ['carrier_tracking', 'dropi_orders_api'] },
         'logistics.agencyPickup': true,
         'logistics.trackingNumber': { $exists: true, $ne: '' },
         'automation.readyForPickupNotifiedAt': { $ne: null, $gte: oldest },

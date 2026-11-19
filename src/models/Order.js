@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { prepareConfirmedDropiDispatchV252 } from '../services/confirmedDropiDispatchV252Service.js';
 import { installVitPowerOrderHooksV213 } from '../services/vitPowerMeasurementV213Application.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 
@@ -67,6 +68,12 @@ const orderSchema = new mongoose.Schema({
     },
     previousDeliveredAt: Date,
     confirmedAt: Date,
+    dropiDispatchV252: {
+        version: { type: Number, enum: [252] },
+        status: { type: String, enum: ['pending', 'claimed', 'submitted', 'review'] },
+        requestedAt: Date, startedAt: Date, completedAt: Date,
+        attempts: Number, leaseToken: String, reason: String
+    },
     integration: { type: mongoose.Schema.Types.Mixed, default: null },
     source: {
         type: String,
@@ -211,6 +218,7 @@ orderSchema.pre('save', async function (next) {
     if ((this.isNew || this.isModified('status')) && this.status === 'confirmed' && !this.confirmedAt) {
         this.confirmedAt = new Date();
     }
+    prepareConfirmedDropiDispatchV252(this, { transition: this.isNew || this.isModified('status') });
     // Track last interaction
     this.lastInteractionAt = new Date();
     next();
