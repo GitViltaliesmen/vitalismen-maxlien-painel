@@ -2,6 +2,15 @@
 
 PROJECT=VITALISMEN_EC
 
+## Exceção autorizada Tex V250/V251 — 2026-11-19
+
+- Pedido explícito: retirar o início de checkout antecipado e liberar o convite do chat somente depois de uma mensagem recebida no WhatsApp, sem novo formulário na VSL.
+- Registro operacional: `docs/TEX_CHECKOUT_E_CONVITE_POS_WHATSAPP_V251_20261119.md`; recibo `docs/freeze/tex-postlead-v251-published-20261119.json`; página `docs/freeze/tex-postlead-site-v251-20261119.json`.
+- Preservar a recusa de chat anônimo, o vínculo de navegador verificado pelo convite, o corte prospectivo, a reserva permanente sem reenvio e todos os bloqueios humanos/opt-out existentes. Não usar clique, retorno à aba ou tempo decorrido como prova de mensagem recebida.
+- V250 retira InitiateCheckout da CTA e da fila local Tex. V251 não cria checkout ou compra por acesso ao chat e não autoriza replay ou correlação histórica de anúncios.
+- Fonte/backup/rollback em `ops/publications/tex-postlead-v251/README.md`. Guard Plusmen e guard CTA/QA anteriores mantêm os baselines por inversão exata. A compatibilidade com a edição manual concorrente do painel está em `docs/freeze/panel-manual-edit-compatibility-v251-20261119.json`; esta tarefa não publica alterações no painel. As atualizações concorrentes de status e da rota de Leads estão registradas em `docs/freeze/panel-status-edit-compatibility-v251-20261119.json` e `docs/freeze/ec-leads-route-compatibility-v251-20261119.json`.
+- Demais congelamentos permanecem vigentes. Este registro não pausa a operação, não reabre QA e não libera contatos antigos.
+
 ## Exceção autorizada e congelamento Tex V249 — 2026-11-18
 
 - Pedido explícito do operador: ativar o funil Tex e adaptar a saudação para Ana Lopez/equipe da Dra. María Fernandes, primeiro nome e período do Equador.

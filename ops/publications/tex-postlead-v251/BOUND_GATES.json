@@ -1,0 +1,36 @@
+{
+  "binding": {
+    "project": "VITALISMEN_EC",
+    "candidateCommit": "76dc26f89393d694db9d8b3d95447fc7144f89f6",
+    "hashes": {
+      "docs/freeze/tex-postlead-v251-contract.json": "66a2f00a984f7b3c7de66936780e9e353eef1f2213701b14212af68c84140249",
+      "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "08d45b2a68fb9d94c10d8f2476724bbb44f4341b9fb10b7849d650a51a2b3365",
+      "scripts/lib/sealed-successor-preload-v1.mjs": "1a9ba8223de8a3226989bc267a80d5306646a483a2c03a44ccd6d95ee1185f5d",
+      "src/services/customerInviteContextV232Service.js": "0e62f5e94da22adf11b8784f91757a4bb7cf773ddf73ad48c364ba798017f948",
+      "src/services/customerInvitesV232Service.js": "54da966bc20d593ce2fafba963d737c61ad975fb309d9c8f7c67cc56aae92d67",
+      "src/services/texUltraLinkedEntryV242Service.js": "5d7a8c50c68095cb0adf3929623e181d88365732882a1d4b5996cf16366bd255",
+      "src/services/texUltraPostLeadInviteV251Service.js": "df8b1f8a6de304cd6067b3dcd06d556ce8bbb1a08d57ee50364f7d26c8a614f3",
+      "src/services/vitPowerWebChatV220Application.js": "4e1999ab97e14b89fee474c11c1180a675bf3359b851356d7e6c899e7b508168",
+      "tests/tex-postlead-invite-v251.test.mjs": "c4206a5fe103ded5691a71fc4a13d2d82a99d105b16bb0828e975bd3c4659739",
+      "tests/tex-postlead-runtime-v251.mjs": "be94cf7a7929a8bad40ae1a98dc032bf61d0091314a1d0adccbc52f2e21ee2f6"
+    },
+    "approvalSha256": "7980bbb6e3bb7b58f37ccf2bb60324c1b67741ba06dc389366b17dfc3aba4852",
+    "controllerSha256": "d7c9d87c35d16618052365c1cfa968bcd9d48648d4938f3fca65415dad0304c9",
+    "processBaselineSha256": "f8018e798e889f0fdf129b33ddb163d0eb98f52e700d2129cdac2596889a7a0c",
+    "qualificationProvenanceSha256": "45458528f1b5c694a27c291433565b330942a5719d245ca21cfb157f189e8772",
+    "gates": {
+      "QUALIFICATION": "a31ed57283d49de5d60bb11d74902b24b7e84c8559040e2672dd8480771068f3",
+      "RUNTIME_POLICY": "5b0d2b5b3492ac498dbbbcac6a831671c28f0a28feddfc5162f09ccaf530ef85",
+      "INVERSE_TEST": "858a176ed56bff88e9dda581e5a821f41d202723fffb947b39196834ff4751fa",
+      "FEATURE_UNIT": "15fcff70a736d186705be0765b30bc301457fd9456762ed9a76b314e25cfc613",
+      "BROWSER_TEST": "f796e73f3ffc389a70a304d796764e68938401bdd026d9803edd0dd53e6a6bde",
+      "CODE_CONFIG_RECOVERY": "5f94374d96c049dfd6035c2657e405f1c7505e937c9bcc3057c4dc0f4ad57574",
+      "INHERITED_REGRESSION": "56a2152e3444ab7f34081d4f62c4a73996a41089bb9a14472327f1cd6f63ced7",
+      "PUBLIC_BASELINE_CURRENT_R3": "eb19e3ba041f127a87a1a871b2a9bf0fc27d38d088f9fd465fa9fb5daf13786e",
+      "OPERATIONS_TEST": "bb42e755c495e08e78e415d6a79e3521dce947cf68b14717c4f67d8b175ee4bf",
+      "INHERITED_CONTROL": "7592fa0d456ab0f74bd191c7d46d56f72700ec51ca896473fd9a493a50eceaba"
+    }
+  },
+  "gatesValidated": true,
+  "state": "PREPARED_NOT_ACTIVE"
+}

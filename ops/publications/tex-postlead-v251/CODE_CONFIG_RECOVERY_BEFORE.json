@@ -1,0 +1,25 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "PASS_CODE_CONFIG_RECOVERY_ONLY",
+  "results": [
+    {
+      "artifact": "BOOT_BEFORE_V251_R2.vbe",
+      "decrypt": "PASS",
+      "plaintextHash": "PASS",
+      "plaintextWrittenToDisk": false,
+      "filesAndMetadata": "29/ PASS",
+      "tamperRejected": true
+    },
+    {
+      "artifact": "RUNTIME_CONFIG.vbe",
+      "decrypt": "PASS",
+      "plaintextHash": "PASS",
+      "plaintextWrittenToDisk": false,
+      "requiredConfiguration": "PASS",
+      "tamperRejected": true
+    }
+  ],
+  "privateKeyUploaded": false,
+  "productionRestoration": false,
+  "globalDataBackupPass": false
+}

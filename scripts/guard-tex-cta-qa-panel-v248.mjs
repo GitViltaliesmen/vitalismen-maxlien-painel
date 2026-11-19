@@ -34,9 +34,22 @@ if(fs.existsSync(path.join(stage,'built'))){
   assert.equal(sha(b),m[key].beforeSha256);
  }
 }
+const checkout250Bytes=fs.readFileSync(path.join(root,'docs/freeze/tex-checkout-v250-20261118.json'));
+assert.equal(sha(checkout250Bytes),'d6cc2a6c00fa4faa01851ed01a87813abe1b86812a1e652b0cdec6d35c635747');
+const checkout250=JSON.parse(checkout250Bytes);
+const nativeCta250=checkout250.changes.find(record=>record.path===fixed.cta.path);
+assert.equal(nativeCta250.beforeSha256,fixed.cta.after);
+const panelConcurrentBytes=fs.readFileSync(path.join(root,'docs/freeze/panel-manual-edit-compatibility-v251-20261119.json'));
+assert.equal(sha(panelConcurrentBytes),'a344a3a5adaf6592a13ba91f5bf84000fb10cd3aaf8cb283777abd16a613a3f5');
+const panelConcurrent=JSON.parse(panelConcurrentBytes);
+assert.equal(panelConcurrent.beforeSha256,fixed.panel.after);
+const panelConcurrentSecondBytes=fs.readFileSync(path.join(root,'docs/freeze/panel-status-edit-compatibility-v251-20261119.json'));
+assert.equal(sha(panelConcurrentSecondBytes),'290521ec67ce96c76553db043fd3e82877cd87e544edfd170009c2a841741c74');
+const panelConcurrentSecond=JSON.parse(panelConcurrentSecondBytes);
+assert.equal(panelConcurrentSecond.beforeSha256,panelConcurrent.sha256);
 if(process.argv.includes('--production')){
  for(const [key,host] of [['cta','vilaliemen-protocolo-g'],['panel','maxlien-vps-ec']]){
-  const code=`import pathlib,hashlib,stat\np=pathlib.Path(${JSON.stringify(m[key].path)})\ns=p.lstat()\nassert stat.S_ISREG(s.st_mode) and s.st_uid==0 and s.st_gid==0 and s.st_nlink==1 and stat.S_IMODE(s.st_mode)==0o644\nassert hashlib.sha256(p.read_bytes()).hexdigest()==${JSON.stringify(m[key].sha256)}\nprint('V248 ${key}: PASS')\n`;
+  const code=`import pathlib,hashlib,stat,json\np=pathlib.Path(${JSON.stringify(m[key].path)})\ns=p.lstat()\nassert stat.S_ISREG(s.st_mode) and s.st_uid==0 and s.st_gid==0 and s.st_nlink==1 and stat.S_IMODE(s.st_mode)==0o644\ndata=p.read_bytes()\nchanges=json.loads(${JSON.stringify(JSON.stringify(key==='cta'?[nativeCta250]:[panelConcurrentSecond,panelConcurrent]))})\nfor change in changes:\n assert hashlib.sha256(data).hexdigest()==change['sha256'],'EXACT_SUCCESSOR_CHANGED'\n for patch in reversed(change['patches']):\n  old=patch['before'].encode();new=patch['after'].encode();assert data.count(new)==1,'SUCCESSOR_PATCH_NOT_EXACT';data=data.replace(new,old,1)\n assert hashlib.sha256(data).hexdigest()==change['beforeSha256'],'SUCCESSOR_INVERSE_FAILED'\nassert hashlib.sha256(data).hexdigest()==${JSON.stringify(m[key].sha256)}\nprint('V248 ${key}: PASS')\n`;
   const args=['-o','BatchMode=yes','-o','ConnectTimeout=10',...(key==='panel'?['-o','HostName=72.60.137.77']:[]),host,'python3 -I -B -S -'];
   const r=spawnSync('ssh',args,{input:code,encoding:'utf8',timeout:25000,windowsHide:true});if(r.stdout)process.stdout.write(r.stdout);assert.equal(r.status,0,r.stderr||'SOURCE_MISMATCH');
  }

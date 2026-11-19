@@ -1,0 +1,37 @@
+{
+  "pass": true,
+  "at": "2026-11-19T05:25:50.912287+00:00",
+  "checks": [
+    {
+      "url": "https://plusmen.shop/tex-assets/chat-tex-ultra.js",
+      "status": 200,
+      "sha256": "1a56b29ea06f66cff674c55ec03c8b04d5ca1f72dde8fc9b581e8084c1b39d59"
+    },
+    {
+      "surface": "mobile",
+      "status": 200,
+      "privateHeadBeforeMeta": true,
+      "playerPreserved": true
+    },
+    {
+      "surface": "desktop",
+      "status": 200,
+      "originalDocumentPreserved": true
+    },
+    {
+      "action": "start",
+      "status": 403,
+      "error": "tex_link_invitation_required",
+      "sessionCreated": false
+    },
+    {
+      "action": "invite_accept",
+      "status": 403,
+      "error": "tex_link_invitation_unavailable",
+      "sessionCreated": false
+    }
+  ],
+  "validSyntheticInvitationCreated": false,
+  "physicalMessages": 0,
+  "metaEvents": 0
+}

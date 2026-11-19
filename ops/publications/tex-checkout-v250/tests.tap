@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: no checkout before or after WhatsApp invitation: https://plusmen.shop/tex
+ok 1 - no checkout before or after WhatsApp invitation: https://plusmen.shop/tex
+  ---
+  duration_ms: 10.2105
+  type: 'test'
+  ...
+# Subtest: no checkout before or after WhatsApp invitation: https://plusmen.shop/tex/?utm_campaign=cartaz
+ok 2 - no checkout before or after WhatsApp invitation: https://plusmen.shop/tex/?utm_campaign=cartaz
+  ---
+  duration_ms: 4.2299
+  type: 'test'
+  ...
+# Subtest: no checkout before or after WhatsApp invitation: https://www.plusmen.shop/tex
+ok 3 - no checkout before or after WhatsApp invitation: https://www.plusmen.shop/tex
+  ---
+  duration_ms: 2.3482
+  type: 'test'
+  ...
+# Subtest: drop old Tex checkout queue but retain checkout on other routes
+ok 4 - drop old Tex checkout queue but retain checkout on other routes
+  ---
+  duration_ms: 2.7369
+  type: 'test'
+  ...
+# Subtest: other routes preserve checkout event
+ok 5 - other routes preserve checkout event
+  ---
+  duration_ms: 2.5653
+  type: 'test'
+  ...
+# Subtest: tracking denied emits nothing
+ok 6 - tracking denied emits nothing
+  ---
+  duration_ms: 1.6477
+  type: 'test'
+  ...
+# Subtest: whatsapp.js preserves app and fallback, without checkout
+ok 7 - whatsapp.js preserves app and fallback, without checkout
+  ---
+  duration_ms: 2.3521
+  type: 'test'
+  ...
+# Subtest: whatsapp.js ignores disabled or unrelated targets
+ok 8 - whatsapp.js ignores disabled or unrelated targets
+  ---
+  duration_ms: 2.643
+  type: 'test'
+  ...
+# Subtest: whatsapp.js app unavailable uses fallback without checkout
+ok 9 - whatsapp.js app unavailable uses fallback without checkout
+  ---
+  duration_ms: 2.0104
+  type: 'test'
+  ...
+# Subtest: whatsapp-tex-v243.js preserves app and fallback, without checkout
+ok 10 - whatsapp-tex-v243.js preserves app and fallback, without checkout
+  ---
+  duration_ms: 2.0509
+  type: 'test'
+  ...
+# Subtest: whatsapp-tex-v243.js ignores disabled or unrelated targets
+ok 11 - whatsapp-tex-v243.js ignores disabled or unrelated targets
+  ---
+  duration_ms: 2.5328
+  type: 'test'
+  ...
+# Subtest: whatsapp-tex-v243.js app unavailable uses fallback without checkout
+ok 12 - whatsapp-tex-v243.js app unavailable uses fallback without checkout
+  ---
+  duration_ms: 2.4997
+  type: 'test'
+  ...
+# Subtest: all exact patches invert to inspected production bytes
+ok 13 - all exact patches invert to inspected production bytes
+  ---
+  duration_ms: 2.5759
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 225.6048

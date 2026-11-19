@@ -1,0 +1,52 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 251,
+  "authorization": "USER_20261118_WHATSAPP_INBOUND_BEFORE_CHAT_INVITATION",
+  "officialUrl": "https://plusmen.shop/tex",
+  "changes": [
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js",
+      "name": "chat-tex-ultra.js",
+      "beforeSha256": "0d43e20374ea9f2332fd8065b5bc16500a7800f2961bd0744985b818e4b0dfc3",
+      "sha256": "1a56b29ea06f66cff674c55ec03c8b04d5ca1f72dde8fc9b581e8084c1b39d59",
+      "patches": [
+        {
+          "before": "const launcher = element('button', 'Habla con Ana · Tex Ultra', 'tx240-launcher');",
+          "after": "const launcher = element('button', 'Continuar mi atención por chat · Tex Ultra', 'tx240-launcher');"
+        },
+        {
+          "before": "let chatReleasedV244 = false, gateTimerV244 = null, gateRootV244 = null;",
+          "after": "let chatReleasedV244 = false, gateTimerV244 = null, gateRootV244 = null;\n  let invitationVerifiedV251 = false, invitationBusyV251 = false;\n  const invitationNoticeV251 = element('p', '', 'tx240-status'); invitationNoticeV251.hidden = true; invitationNoticeV251.setAttribute('role', 'status'); card.after(invitationNoticeV251);\n  if (window.__texChatInvitationPageV251) { const back = element('a', 'Volver a WhatsApp', 'tx240-continue'); back.href = 'https://wa.me/553171862958'; back.target = '_blank'; back.rel = 'noopener noreferrer'; invitationNoticeV251.after(back); }"
+        },
+        {
+          "before": "    if (!visible(player) || !visible(nativeButton())) return;",
+          "after": "    // V251: neither CTA visibility, a click nor returning from WhatsApp proves receipt.\n    if (!invitationVerifiedV251) return;"
+        },
+        {
+          "before": "identityForm.hidden = !linkedVersion || entryRecorded; linkAgain.hidden = !linkedVersion;",
+          "after": "identityForm.hidden = !linkedVersion || entryRecorded || invitationVerifiedV251; linkAgain.hidden = !linkedVersion || invitationVerifiedV251;"
+        },
+        {
+          "before": "  watchChatReleaseV244();",
+          "after": "  watchChatReleaseV244();\n  async function verifyInvitationV251() {\n    if (invitationBusyV251 || document.hidden) return;\n    invitationBusyV251 = true;\n    const fragment = location.hash || '';\n    const accessToken = window.__texInviteTokenV251 || /^#chat=([a-f0-9]{64})$/.exec(fragment)?.[1] || '';\n    try { delete window.__texInviteTokenV251; } catch (_) {}\n    if (accessToken) {\n      try { history.replaceState(history.state, '', location.pathname + location.search); } catch (_) { invitationBusyV251 = false; return; }\n      invitationNoticeV251.hidden = false; invitationNoticeV251.textContent = 'Verificando tu invitación de WhatsApp…';\n    }\n    try {\n      const data = await (await request(accessToken ? { action: 'invite_accept', accessToken } : { action: 'link_status' })).json();\n      const verified = data.ok === true && data.verified === true && data.humanHold !== true\n        && (accessToken ? data.invitationVersion === 251 && data.firstChannel === 'whatsapp' : true);\n      if (!verified) throw Error('invitation_unavailable');\n      invitationVerifiedV251 = true; invitationNoticeV251.hidden = true;\n      checkChatReleaseV244();\n      if (accessToken) launcher.scrollIntoView({ behavior: 'smooth', block: 'start' });\n    } catch (_) {\n      invitationVerifiedV251 = false; chatReleasedV244 = false;\n      launcher.hidden = true; launcher.style.setProperty('display', 'none', 'important');\n      if (accessToken) { invitationNoticeV251.hidden = false; invitationNoticeV251.textContent = 'La invitación no está disponible o ya está vinculada a otro navegador. Continúa por el WhatsApp oficial donde recibiste el enlace.'; }\n    } finally { invitationBusyV251 = false; }\n  }\n  window.addEventListener('focus', () => { if (card.hidden) verifyInvitationV251(); });\n  document.addEventListener('visibilitychange', () => { if (!document.hidden && card.hidden) verifyInvitationV251(); });\n  window.addEventListener('pageshow', event => { if (event.persisted && card.hidden) verifyInvitationV251(); });\n  verifyInvitationV251();"
+        }
+      ]
+    },
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/index.html",
+      "name": "index.html",
+      "beforeSha256": "abd3ed04ffb8257862dbfb8d0180f77e0f0214fe6b553871d65354fdc06b73b5",
+      "sha256": "3eea708b8708e32a4a472bfb4b85cd681ac3f02fa4db0d54def9f1cddc5fc837",
+      "patches": [
+        {
+          "before": "  <script src=\"/tex-assets/meta-tex-ultra.js?v=20261117-meta-v243-r1\"></script>",
+          "after": "  <script>\n(function () {\n  'use strict';\n  var match = /^#chat=([a-f0-9]{64})$/.exec(window.location.hash || '');\n  if (!match) return;\n  window.__texChatInvitationPageV251 = true;\n  document.documentElement.setAttribute('data-tex-invitation-v251', '');\n  var style = document.createElement('style');\n  style.textContent = 'html[data-tex-invitation-v251] .uihiui{display:none!important}';\n  document.head.appendChild(style);\n  Object.defineProperty(window, '__texInviteTokenV251', { value: match[1], configurable: true });\n  // Remove the private fragment before Meta, video or analytics scripts execute.\n  try { window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search); }\n  catch (_) { window.metaTrackingConsent = false; }\n})();\n</script>\n  <script src=\"/tex-assets/meta-tex-ultra.js?v=20261117-meta-v243-r1\"></script>"
+        },
+        {
+          "before": "var s=document.createElement(\"script\"); s.src=\"https://scripts.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/players/6aafe87d665f0c5b457748ad/v4/player.js\", s.async=!0,document.head.appendChild(s); ",
+          "after": "if (!window.__texChatInvitationPageV251) { var s=document.createElement(\"script\"); s.src=\"https://scripts.converteai.net/f42d75cd-946f-49c8-b0c8-bc4a98fa88fe/players/6aafe87d665f0c5b457748ad/v4/player.js\", s.async=!0,document.head.appendChild(s);  }"
+        }
+      ]
+    }
+  ]
+}

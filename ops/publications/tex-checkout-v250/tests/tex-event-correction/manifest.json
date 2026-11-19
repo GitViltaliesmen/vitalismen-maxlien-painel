@@ -1,0 +1,57 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 250,
+  "authorization": "USER_20261118_REMOVE_PREMATURE_CHECKOUT_AND_SHOW_CHAT_INVITE_AFTER_LEAD",
+  "officialUrl": "https://plusmen.shop/tex",
+  "changes": [
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/assets/whatsapp.js",
+      "name": "whatsapp.js",
+      "beforeSha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+      "sha256": "e3faca1d243749ec0f578c91e2cb767cd803915a34163d11308c5158b5ff97dc",
+      "patches": [
+        {
+          "before": "    // Queue both channels before handing control to the WhatsApp app.\n    try {\n      if (window.VitpowerMeta) window.VitpowerMeta.initiateCheckout();\n    } catch (_) {}\n",
+          "after": "    // Opening WhatsApp is contact intent, not the start of an order checkout.\n"
+        }
+      ]
+    },
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js",
+      "name": "whatsapp-tex-v243.js",
+      "beforeSha256": "deeeb05d598b697762d352f1c47d91d0ed850e57a81a3f4ee70e37118bbdddc7",
+      "sha256": "4a6e5c4017b5cf6e03bdaa37a56a1a7c2db4c86dc9d1544930b1552152a786de",
+      "patches": [
+        {
+          "before": "    // Queue both channels before handing control to the WhatsApp app.\n    try {\n      if (window.VitpowerMeta) window.VitpowerMeta.initiateCheckout();\n    } catch (_) {}\n",
+          "after": "    // Opening WhatsApp is contact intent, not the start of an order checkout.\n"
+        }
+      ]
+    },
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/assets/meta-tex-ultra.js",
+      "name": "meta-tex-ultra.js",
+      "beforeSha256": "b4b78bd34e4787788cb836b4c9e223bb30e33215e9788d42f921bc726db4a959",
+      "sha256": "ac3e522465737cf0dd3be5e7460b5529473d7ef447da34e70444500ed1d334fe",
+      "patches": [
+        {
+          "before": "  function restore() {",
+          "after": "  // Only a real order stage may report checkout. A WhatsApp invitation cannot.\n  function isTexCheckout(item) {\n    if (!item || item.event_name !== 'InitiateCheckout') return false;\n    try {\n      var url = new URL(item.event_source_url);\n      return /^(www\\.)?plusmen\\.shop$/.test(url.hostname) && /^\\/tex\\/?$/.test(url.pathname);\n    } catch (_) { return false; }\n  }\n  function restore() {"
+        },
+        {
+          "before": "        if (!item || !/^vp_",
+          "after": "        if (isTexCheckout(item)) { localStorage.removeItem(name); return; }\n        if (!item || !/^vp_"
+        },
+        {
+          "before": "  function emit(name, urgent) {",
+          "after": "  function emit(name, urgent) {\n    if (isTexCheckout({ event_name: name, event_source_url: source.href })) return;"
+        },
+        {
+          "before": "    initiateCheckout: function () {",
+          "after": "    initiateCheckout: function () {\n      if (isTexCheckout({ event_name: 'InitiateCheckout', event_source_url: source.href })) return;"
+        }
+      ]
+    }
+  ],
+  "predecessorGuardSha256": "e1b1427cf0855343a484876fd28dfb39a90ce1a27c627f1e815a5be1434d7e0e"
+}

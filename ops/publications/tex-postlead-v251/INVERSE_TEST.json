@@ -1,0 +1,18 @@
+{
+  "pass": true,
+  "checks": [
+    "exact_parent_bytes_src/services/texUltraLinkedEntryV242Service.js",
+    "altered_payload_rejected_src/services/texUltraLinkedEntryV242Service.js",
+    "forged_successor_hash_cannot_bypass_parent_bytes_src/services/texUltraLinkedEntryV242Service.js",
+    "exact_parent_bytes_src/services/vitPowerWebChatV220Application.js",
+    "altered_payload_rejected_src/services/vitPowerWebChatV220Application.js",
+    "forged_successor_hash_cannot_bypass_parent_bytes_src/services/vitPowerWebChatV220Application.js",
+    "exact_parent_bytes_src/services/customerInvitesV232Service.js",
+    "altered_payload_rejected_src/services/customerInvitesV232Service.js",
+    "forged_successor_hash_cannot_bypass_parent_bytes_src/services/customerInvitesV232Service.js",
+    "exact_parent_bytes_src/services/customerInviteContextV232Service.js",
+    "altered_payload_rejected_src/services/customerInviteContextV232Service.js",
+    "forged_successor_hash_cannot_bypass_parent_bytes_src/services/customerInviteContextV232Service.js"
+  ],
+  "productionWrites": 0
+}

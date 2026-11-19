@@ -1,0 +1,19 @@
+{
+  "pass": true,
+  "checks": [
+    "Landing, CTA visible, click, focus and forced launcher event cannot unlock anonymous chat",
+    "Valid invitation is removed before tracking, private memory is cleared, and chat opens only on user click",
+    "Invalid, expired/unavailable and held invitation cannot release chat; private entry does not start VSL playback",
+    "Verified returning session may resume without exposing a form or opening a new anonymous conversation",
+    "Invitation opened in a background tab is verified only after the page becomes visible"
+  ],
+  "privateInviteDoesNotStartVsl": true,
+  "sourceHashes": {
+    "index": "3eea708b8708e32a4a472bfb4b85cd681ac3f02fa4db0d54def9f1cddc5fc837",
+    "chat": "1a56b29ea06f66cff674c55ec03c8b04d5ca1f72dde8fc9b581e8084c1b39d59",
+    "head": "8d8346c8a1f707f6369359246631d0699fddf0367da77ade5f9c8934abc9feb5",
+    "css": "91a48cfeb0a525f0a38757bf31519eea44a5400fc17dc99883257760f8596b48"
+  },
+  "productionRequests": 0,
+  "physicalMessages": 0
+}

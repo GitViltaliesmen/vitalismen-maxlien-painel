@@ -1,0 +1,21 @@
+{
+  "PUBLICATION_STATUS_ONLY.json": {
+    "old_hashes": {
+      "app.py": "798ef656a7b18dccd5dcf7ce8e2de3917675f5e1e7fa62954c6f51bfab654cf5",
+      "qr.html": "cd7308db85e02fd74e193ce9f525f9f097d5219bf6e32ae7cc0f4cc4ceb66681"
+    },
+    "new_hashes": {
+      "app.py": "4c823b588034863540a917cb5784d48a0ed1641754791bd6662ccea4c2e8bcdd",
+      "qr.html": "f13e08ac4f8a86826f5d17de243e50f39166ad29b6c656e0d3d47a2871714f4f"
+    },
+    "backend_release": "20261118T235313Z_production-20261118-a7f2c6c",
+    "published": true
+  },
+  "PUBLICATION_STATUS_ONLY_R2.json": {
+    "published": true,
+    "old_hash": "f13e08ac4f8a86826f5d17de243e50f39166ad29b6c656e0d3d47a2871714f4f",
+    "new_hash": "4943cf80ef03076463562c2beaebc7ad6d9c8627e4830be2dfecd99ec2af3e05",
+    "backend_release_changed": false,
+    "orders_submitted": 0
+  }
+}

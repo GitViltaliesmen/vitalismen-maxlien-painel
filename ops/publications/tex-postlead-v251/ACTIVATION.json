@@ -1,0 +1,23 @@
+{
+  "status": "PASS_ACTIVE_TEX_POSTLEAD_V251_INHERITED_OPERATIONS_PRESERVED",
+  "at": "2026-11-19T05:24:21.699Z",
+  "release": "/opt/vitalismen-automacao/releases/20261119T031453Z_production-20261119-76dc26f",
+  "commit": "76dc26f89393d694db9d8b3d95447fc7144f89f6",
+  "pidBefore": 4152504,
+  "pidAfter": 4186101,
+  "restartDelta": 1,
+  "actualProcessCwd": "/opt/vitalismen-automacao/releases/20261119T031453Z_production-20261119-76dc26f",
+  "pmCwd": "/opt/vitalismen-automacao/current",
+  "pmExecPath": "/opt/vitalismen-automacao/current/src/index.js",
+  "health": "online",
+  "apiKeyPreserved": true,
+  "postSaleTimerPreserved": true,
+  "burstAudience": "EC_FORWARD_ONLY",
+  "publicAudience": "PRESERVED_EC_FORWARD_ONLY_WEB_PUBLIC_SITE",
+  "voiceId": "qHkrJuifPpn95wK3rm2A",
+  "voiceCredentialValidated": true,
+  "sharedVoiceCredentialPreserved": true,
+  "webVoiceCredentialScoped": true,
+  "globalDataBackupPass": false,
+  "databaseMigrations": 0
+}

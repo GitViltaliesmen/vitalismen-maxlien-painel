@@ -97,6 +97,19 @@ if(ctaUi){
  assert.equal(createHash('sha256').update(Buffer.from(ctaUi.cta.addonBase64,'base64')).digest('hex'),'42f5867800295c7f5f593119fa98d612f3e652491b4761effa222730c82f846f');
 }
 
+const checkout250Path = path.join(root, 'docs/freeze/tex-checkout-v250-20261118.json');
+const checkout250Bytes = fs.readFileSync(checkout250Path);
+assert.equal(createHash('sha256').update(checkout250Bytes).digest('hex'), 'd6cc2a6c00fa4faa01851ed01a87813abe1b86812a1e652b0cdec6d35c635747');
+const checkout250 = JSON.parse(checkout250Bytes);
+assert.equal(checkout250.project, 'VITALISMEN_EC');
+assert.equal(checkout250.version, 250);
+
+const postLead251Bytes = fs.readFileSync(path.join(root, 'docs/freeze/tex-postlead-site-v251-20261119.json'));
+assert.equal(createHash('sha256').update(postLead251Bytes).digest('hex'), '2b4fd5074256cb1a1d0d108c1a9ec792d42b0693ba2ffdc9acf88ff6f55983a5');
+const postLead251 = JSON.parse(postLead251Bytes);
+assert.equal(postLead251.project, 'VITALISMEN_EC');
+assert.equal(postLead251.version, 251);
+
 const ownedPaths = [
   '/etc/nginx/sites-available/plusmen.shop',
   '/etc/nginx/snippets/plusmen-tex-mobile-v1.conf',
@@ -111,6 +124,36 @@ for (const file of ownedPaths) files[file] = manifest.frozenFiles[file].sha256;
 for (const file of desktopPaths) files['/opt/cloaker/' + file] = manifest.frozenDesktopFiles[file].sha256;
 for (const value of Object.values(files)) assert.match(value, /^[a-f0-9]{64}$/);
 const remote = `import hashlib,json,pathlib,base64,stat
+checkout250=json.loads(${JSON.stringify(JSON.stringify(checkout250))})
+_read_bytes_v250=pathlib.Path.read_bytes
+_changes_v250={r['path']:r for r in checkout250['changes']}
+def _read_checked_v250(file):
+ data=_read_bytes_v250(file)
+ record=_changes_v250.get(str(file))
+ if not record:return data
+ assert hashlib.sha256(data).hexdigest()==record['sha256'],'V250_CHANGED: '+str(file)
+ for patch in reversed(record['patches']):
+  old=patch['before'].encode();new=patch['after'].encode()
+  assert data.count(new)==1,'V250_PATCH_NOT_EXACT'
+  data=data.replace(new,old,1)
+ assert hashlib.sha256(data).hexdigest()==record['beforeSha256'],'V250_INVERSE_FAILED'
+ return data
+pathlib.Path.read_bytes=_read_checked_v250
+postLead251=json.loads(${JSON.stringify(JSON.stringify(postLead251))})
+_read_bytes_v251=pathlib.Path.read_bytes
+_changes_v251={r['path']:r for r in postLead251['changes']}
+def _read_checked_v251(file):
+ data=_read_bytes_v251(file)
+ record=_changes_v251.get(str(file))
+ if not record:return data
+ assert hashlib.sha256(data).hexdigest()==record['sha256'],'V251_CHANGED: '+str(file)
+ for patch in reversed(record['patches']):
+  before=patch['before'].encode();after=patch['after'].encode()
+  assert data.count(after)==1,'V251_PATCH_NOT_EXACT'
+  data=data.replace(after,before,1)
+ assert hashlib.sha256(data).hexdigest()==record['beforeSha256'],'V251_INVERSE_FAILED'
+ return data
+pathlib.Path.read_bytes=_read_checked_v251
 files=json.loads(${JSON.stringify(JSON.stringify(files))})
 chat=json.loads(${JSON.stringify(JSON.stringify(chat))})
 linked=json.loads(${JSON.stringify(JSON.stringify(linked))})

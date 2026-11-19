@@ -1,0 +1,58 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "at": "2026-11-19T05:25:15.309028+00:00",
+  "commit": "76dc26f89393d694db9d8b3d95447fc7144f89f6",
+  "release": "/opt/vitalismen-automacao/releases/20261119T031453Z_production-20261119-76dc26f",
+  "pid": 4186101,
+  "observations": [
+    {
+      "pid": 4186101,
+      "restartCount": 60,
+      "health": "online",
+      "zapiConnected": true,
+      "queue": {
+        "pendingTasks": 0
+      }
+    },
+    {
+      "pid": 4186101,
+      "restartCount": 60,
+      "health": "online",
+      "zapiConnected": true,
+      "queue": {
+        "pendingTasks": 0
+      }
+    },
+    {
+      "pid": 4186101,
+      "restartCount": 60,
+      "health": "online",
+      "zapiConnected": true,
+      "queue": {
+        "pendingTasks": 0
+      }
+    },
+    {
+      "pid": 4186101,
+      "restartCount": 60,
+      "health": "online",
+      "zapiConnected": true,
+      "queue": {
+        "pendingTasks": 0
+      }
+    }
+  ],
+  "profilesPreserved": true,
+  "baseEnvPreserved": true,
+  "parentPolicyPreserved": true,
+  "texPostLeadActivatedAt": "2026-11-19T05:23:31.623Z",
+  "texInitialFlagsActive": true,
+  "postSaleTimerPreserved": true,
+  "postSaleExecutorCurrent": true,
+  "publicPanelV248R2Preserved": true,
+  "productionMessagesSentByAudit": 0,
+  "productionDatabaseWrites": 0,
+  "physicalNewCustomerObservation": "PENDING_NATURAL_INBOUND",
+  "globalDataBackupPass": false
+}

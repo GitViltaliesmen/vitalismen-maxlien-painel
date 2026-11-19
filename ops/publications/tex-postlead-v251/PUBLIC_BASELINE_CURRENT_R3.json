@@ -1,0 +1,32 @@
+{
+  "pass": true,
+  "panelSha256": "4943cf80ef03076463562c2beaebc7ad6d9c8627e4830be2dfecd99ec2af3e05",
+  "localFiles": {
+    "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html": "4943cf80ef03076463562c2beaebc7ad6d9c8627e4830be2dfecd99ec2af3e05",
+    "/etc/nginx/sites-enabled/ec.maxlien.shop.clean.conf": "9ffcd81c14ef0d04b22b82f52530bc7aa5c1bddc7116ee1458da027a6bc21a1e"
+  },
+  "urls": {
+    "https://plusmen.shop/tex-assets/whatsapp.js": "e3faca1d243749ec0f578c91e2cb767cd803915a34163d11308c5158b5ff97dc",
+    "https://plusmen.shop/tex-assets/whatsapp-tex-v243.js": "4a6e5c4017b5cf6e03bdaa37a56a1a7c2db4c86dc9d1544930b1552152a786de",
+    "https://plusmen.shop/tex-assets/meta-tex-ultra.js": "ac3e522465737cf0dd3be5e7460b5529473d7ef447da34e70444500ed1d334fe",
+    "https://plusmen.shop/tex-assets/chat-tex-ultra.js": "0d43e20374ea9f2332fd8065b5bc16500a7800f2961bd0744985b818e4b0dfc3"
+  },
+  "concurrentPanelCompatibility": {
+    "predecessorBaselineSha256": "66647e62f7d812122ed1e548f533044c48e51311d80c55fd4ba6a390a160bfcd",
+    "manifestSha256": "a344a3a5adaf6592a13ba91f5bf84000fb10cd3aaf8cb283777abd16a613a3f5",
+    "publishedByThisTask": false,
+    "readOnlyCompatibilityOnly": true
+  },
+  "secondConcurrentPanelCompatibility": {
+    "predecessorBaselineSha256": "3932af43b906a9bb4021e2936ff13d9cc35e34ad3cdeb18caffc4866ad33116b",
+    "manifestSha256": "290521ec67ce96c76553db043fd3e82877cd87e544edfd170009c2a841741c74",
+    "publishedByThisTask": false,
+    "readOnlyCompatibilityOnly": true
+  },
+  "concurrentNginxCompatibility": {
+    "predecessorBaselineSha256": "e408cd94104aae0198edfc424c6467279406cf93f2d3f9c5b3d0d32dfaec665c",
+    "manifestSha256": "d07fbae1447199c4de62c74dc2bb498de404c222b201f0ff4e6dad4f3ac4fcd9",
+    "publishedByThisTask": false,
+    "readOnlyCompatibilityOnly": true
+  }
+}

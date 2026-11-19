@@ -1,0 +1,18 @@
+{
+  "pass": true,
+  "commit": "76dc26f89393d694db9d8b3d95447fc7144f89f6",
+  "parent": "a7f2c6caa30ee9c6bf8cd0bfcf6a46a272ecc88f",
+  "paths": [
+    "docs/freeze/tex-postlead-v251-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/services/customerInviteContextV232Service.js",
+    "src/services/customerInvitesV232Service.js",
+    "src/services/texUltraLinkedEntryV242Service.js",
+    "src/services/texUltraPostLeadInviteV251Service.js",
+    "src/services/vitPowerWebChatV220Application.js",
+    "tests/tex-postlead-invite-v251.test.mjs",
+    "tests/tex-postlead-runtime-v251.mjs"
+  ],
+  "unrelatedWorkingTreeChanged": false
+}

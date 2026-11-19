@@ -1,0 +1,24 @@
+{
+  "project": "VITALISMEN_EC",
+  "kind": "OBSERVED_CONCURRENT_LEADS_STATIC_ROUTE_COMPATIBILITY",
+  "publishedByThisTask": false,
+  "readOnlyCompatibilityOnly": true,
+  "path": "/etc/nginx/sites-enabled/ec.maxlien.shop.clean.conf",
+  "beforeSha256": "1f3e1156302110e76b2d15d5f074d81360736daa9a6cdd63b2cabc700857c9b1",
+  "sha256": "9ffcd81c14ef0d04b22b82f52530bc7aa5c1bddc7116ee1458da027a6bc21a1e",
+  "patches": [
+    {
+      "before": "    location = /leads-window.html {\n        proxy_pass http://127.0.0.1:3001/leads-window.html;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 120s;\n        proxy_send_timeout 120s;\n    }",
+      "after": "    location = /leads-window.html {\n        alias /var/www/vitalismen-panel-phonefix-20261108-r1/leads-window.status-only-20261119.html;\n        default_type text/html;\n        charset utf-8;\n        add_header content-security-policy \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data: blob: https:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests;media-src 'self' data: blob: https:\" always;\n        add_header cross-origin-opener-policy \"same-origin\" always;\n        add_header cross-origin-resource-policy \"cross-origin\" always;\n        add_header origin-agent-cluster \"?1\" always;\n        add_header referrer-policy \"no-referrer\" always;\n        add_header strict-transport-security \"max-age=15552000; includeSubDomains\" always;\n        add_header x-content-type-options \"nosniff\" always;\n        add_header x-dns-prefetch-control \"off\" always;\n        add_header x-download-options \"noopen\" always;\n        add_header x-frame-options \"SAMEORIGIN\" always;\n        add_header x-permitted-cross-domain-policies \"none\" always;\n        add_header x-xss-protection \"0\" always;\n        add_header Cache-Control \"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0\" always;\n        add_header Pragma \"no-cache\" always;\n        add_header Expires \"0\" always;\n        add_header Surrogate-Control \"no-store\" always;\n        add_header X-Vitalismen-Panel-Revision \"phone-canonical-20261108-r1\" always;\n    }"
+    }
+  ],
+  "ownerReceipt": {
+    "published": true,
+    "config_before": "1f3e1156302110e76b2d15d5f074d81360736daa9a6cdd63b2cabc700857c9b1",
+    "config_after": "9ffcd81c14ef0d04b22b82f52530bc7aa5c1bddc7116ee1458da027a6bc21a1e",
+    "leads_html": "e35206ab0505f2f5fca07dbf1cfdf9a30bccab0d54a4dd5900ff75d22be1d727",
+    "backend_release_changed": false,
+    "orders_submitted": 0
+  },
+  "sourceEvidence": "/opt/vitalismen-automacao/backups/ec-panel-status-dropi-repurchase-20261119/PUBLICATION_LEADS_STATIC.json"
+}

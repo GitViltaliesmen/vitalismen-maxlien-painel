@@ -1,0 +1,18 @@
+{
+  "pass": true,
+  "backendCommit": "76dc26f89393d694db9d8b3d95447fc7144f89f6",
+  "manifestSha256": "2b4fd5074256cb1a1d0d108c1a9ec792d42b0693ba2ffdc9acf88ff6f55983a5",
+  "files": [
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js",
+      "sha256": "1a56b29ea06f66cff674c55ec03c8b04d5ca1f72dde8fc9b581e8084c1b39d59"
+    },
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/index.html",
+      "sha256": "3eea708b8708e32a4a472bfb4b85cd681ac3f02fa4db0d54def9f1cddc5fc837"
+    }
+  ],
+  "guardsPassed": true,
+  "physicalMessages": 0,
+  "metaEvents": 0
+}

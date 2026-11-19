@@ -1,0 +1,8 @@
+{
+  "pass": true,
+  "candidateCommit": "76dc26f89393d694db9d8b3d95447fc7144f89f6",
+  "tests": 10,
+  "physicalMessages": 0,
+  "productionWrites": 0,
+  "networkIsolated": true
+}

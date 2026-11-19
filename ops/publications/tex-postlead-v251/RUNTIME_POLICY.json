@@ -1,0 +1,14 @@
+{
+  "pass": true,
+  "activePostLeadCapability": true,
+  "inheritedLinkedValidation": true,
+  "publicTexProxyAuthorized": true,
+  "anonymousTexDenied": true,
+  "physicalMessages": 0,
+  "productionWrites": 0,
+  "exitCode": 0,
+  "candidateCommit": "76dc26f89393d694db9d8b3d95447fc7144f89f6",
+  "networkIsolated": true,
+  "productionUnchanged": true,
+  "privateStoresUnchanged": true
+}

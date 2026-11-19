@@ -1,0 +1,45 @@
+{
+  "project": "VITALISMEN_EC",
+  "kind": "OBSERVED_CONCURRENT_PANEL_COMPATIBILITY",
+  "sourceEvidence": "docs/EC_PANEL_MANUAL_EDIT_20261119.md",
+  "publishedByThisTask": false,
+  "readOnlyCompatibilityOnly": true,
+  "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "beforeSha256": "3b334f0cc5c8da9840fd257c521cdc828e264a8c4f1a814d190e292640a2f1e2",
+  "sha256": "cd7308db85e02fd74e193ce9f525f9f097d5219bf6e32ae7cc0f4cc4ceb66681",
+  "protectedQaBlockSha256": "5c159c538b3632da92ffcc729dec4b4a48baae73d30fd6b857b688a07541b861",
+  "patches": [
+    {
+      "before": "            customerFieldAutoSaveInFlight: false,\r\n            customerFormSaveInFlight: false,\r\n            customerFormEditRevision: 0,\r\n            customerDataSaveQueue: Promise.resolve(),\r\n",
+      "after": "            customerFieldAutoSaveInFlight: false,\r\n            customerFormSaveInFlight: false,\r\n            customerManualSaveInFlight: false,\r\n            customerFormEditRevision: 0,\r\n            customerDataSaveQueue: Promise.resolve(),\r\n"
+    },
+    {
+      "before": "        };\r\n        const customerFormSaveBusy = () => Boolean(\r\n            state.customerFormSaveInFlight || state.customerFieldAutoSaveInFlight\r\n        );\r\n        // BEGIN QA_PANEL_TRUTH_V248\n",
+      "after": "        };\r\n        const customerFormSaveBusy = () => Boolean(\r\n            state.customerFormSaveInFlight || state.customerFieldAutoSaveInFlight || state.customerManualSaveInFlight\r\n        );\r\n        // BEGIN QA_PANEL_TRUTH_V248\n"
+    },
+    {
+      "before": "        async function saveCustomerForm(event) {\r\n            event.preventDefault();\r\n            if (!state.selectedChat || customerFormSaveBusy()) return;\r\n            if (normalizePanelStatus(el('customerStatusInput').value) === 'comprar_depois' && !completeBuyLaterDateV217()) {\r\n                focusBuyLaterDateV218();\r\n",
+      "after": "        async function saveCustomerForm(event) {\r\n            event.preventDefault();\r\n            if (!state.selectedChat || state.customerManualSaveInFlight) return;\r\n            if (normalizePanelStatus(el('customerStatusInput').value) === 'comprar_depois' && !completeBuyLaterDateV217()) {\r\n                focusBuyLaterDateV218();\r\n"
+    },
+    {
+      "before": "            }\r\n            if (!window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) return;\r\n            state.customerFormSaveInFlight = true;\r\n            setSaveCustomerButtonDisabled(true);\r\n            try {\r\n                const contactSave = await persistSelectedCustomerData({ allowPartialConfirmedSave: true });\r\n                const preparation = await prepareConfirmedAdminLeadForDropi({ contactSave });\r\n                const tasks = [loadChats(), loadDashboardMetrics()];\r\n",
+      "after": "            }\r\n            if (!window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) return;\r\n            const selectionScope = captureCustomerSelectionScope();\r\n            window.clearTimeout(state.customerFieldAutoSaveTimer);\r\n            window.clearTimeout(state.statusAutoSaveTimer);\r\n            state.customerFieldAutoSaveSeq += 1;\r\n            state.statusAutoSaveSeq += 1;\r\n            state.customerManualSaveInFlight = true;\r\n            setSaveCustomerButtonDisabled(true);\r\n            try {\r\n                await state.customerDataSaveQueue.catch(() => undefined);\r\n                if (!isCustomerSelectionScopeCurrent(selectionScope)) return;\r\n                const contactSave = await persistSelectedCustomerDataNow({ allowPartialConfirmedSave: true });\r\n                if (contactSave?.preservedNewerEdits) {\r\n                    el('customerSyncHint').textContent = 'Há uma edição mais recente. Salve novamente para fixá-la.';\r\n                    showToast('Uma edição mais recente ficou pendente. Clique em Salvar ficha novamente.');\r\n                    return;\r\n                }\r\n                const preparation = await prepareConfirmedAdminLeadForDropi({ contactSave });\r\n                const tasks = [loadChats(), loadDashboardMetrics()];\r\n"
+    },
+    {
+      "before": "                showToast(error.message);\r\n            } finally {\r\n                state.customerFormSaveInFlight = false;\r\n                setSaveCustomerButtonDisabled(!state.selectedChat);\r\n                el('confirmCustomerDataBtn').disabled = !state.selectedChat || isBrazilBlockedRecord(state.selectedChat);\r\n",
+      "after": "                showToast(error.message);\r\n            } finally {\r\n                state.customerManualSaveInFlight = false;\r\n                setSaveCustomerButtonDisabled(!state.selectedChat);\r\n                el('confirmCustomerDataBtn').disabled = !state.selectedChat || isBrazilBlockedRecord(state.selectedChat);\r\n"
+    },
+    {
+      "before": "                try {\r\n                    const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });\r\n                    const tasks = [loadChats(), loadDashboardMetrics()];\r\n                    if (state.activeModule === 'sales' || state.activeModule === 'review') tasks.push(loadShipments());\r\n",
+      "after": "                try {\r\n                    const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });\r\n                    if (result?.skipped || result?.preservedNewerEdits) {\r\n                        if (isCustomerSelectionScopeCurrent(selectionScope)) {\r\n                            el('customerSyncHint').textContent = 'Edição mais recente pendente; salvando a ficha em seguida.';\r\n                            el('customerSyncBadge').textContent = 'editando';\r\n                            el('customerSyncBadge').className = 'badge orange';\r\n                            scheduleCustomerFieldAutoSave({ delay: 700, source: 'status-retry' });\r\n                        }\r\n                        return;\r\n                    }\r\n                    const tasks = [loadChats(), loadDashboardMetrics()];\r\n                    if (state.activeModule === 'sales' || state.activeModule === 'review') tasks.push(loadShipments());\r\n"
+    },
+    {
+      "before": "                    const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });\r\n                    if (isCustomerSelectionScopeCurrent(selectionScope)) {\r\n                        const newerEdit = result?.preservedNewerEdits === true;\r\n                        el('customerSyncHint').textContent = newerEdit\r\n                            ? 'Nova alteração detectada; mantendo o que você digitou e salvando em seguida.'\r\n",
+      "after": "                    const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });\r\n                    if (isCustomerSelectionScopeCurrent(selectionScope)) {\r\n                        const newerEdit = result?.skipped === true || result?.preservedNewerEdits === true;\r\n                        el('customerSyncHint').textContent = newerEdit\r\n                            ? 'Nova alteração detectada; mantendo o que você digitou e salvando em seguida.'\r\n"
+    },
+    {
+      "before": "                            ? 'editando, sem sobrescrever'\r\n                            : (result?.orderNotice || 'salvo automaticamente');\r\n                    }\r\n                } catch (error) {\r\n",
+      "after": "                            ? 'editando, sem sobrescrever'\r\n                            : (result?.orderNotice || 'salvo automaticamente');\r\n                        if (newerEdit) scheduleCustomerFieldAutoSave({ delay: 700, source: 'newer-edit' });\r\n                    }\r\n                } catch (error) {\r\n"
+    }
+  ]
+}

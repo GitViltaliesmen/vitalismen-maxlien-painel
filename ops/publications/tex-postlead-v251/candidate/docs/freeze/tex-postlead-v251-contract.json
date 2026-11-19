@@ -1,0 +1,124 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "a7f2c6caa30ee9c6bf8cd0bfcf6a46a272ecc88f",
+  "allowedDelta": [
+    "docs/freeze/tex-postlead-v251-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/services/customerInviteContextV232Service.js",
+    "src/services/customerInvitesV232Service.js",
+    "src/services/texUltraLinkedEntryV242Service.js",
+    "src/services/texUltraPostLeadInviteV251Service.js",
+    "src/services/vitPowerWebChatV220Application.js",
+    "tests/tex-postlead-invite-v251.test.mjs",
+    "tests/tex-postlead-runtime-v251.mjs"
+  ],
+  "authorization": "USER_20261118_WHATSAPP_INBOUND_BEFORE_CHAT_INVITATION",
+  "scope": "Tex only, prospective new EC contacts after activation, persisted official Z-API inbound, existing quiet interval and send window, one permanent invite reservation, private browser-bound chat access. No new form, no retrospective dispatch, no changes to initial funnel, prices, other products, Meta or Dropi.",
+  "inverse": {
+    "src/services/texUltraLinkedEntryV242Service.js": {
+      "parentSha256": "fff753305f4015159a1c149392fbe97bc4f47b1b2c5ef25d856752ea97762735",
+      "patches": [
+        {
+          "before": "const dirs = ['pending', 'codes', 'links', 'journeys', 'locks', 'limits'];",
+          "after": "const dirs = ['pending', 'codes', 'links', 'journeys', 'locks', 'limits', 'invitations'];"
+        },
+        {
+          "before": "  return Object.freeze({ identity,",
+          "after": "  return Object.freeze({ identity,\n    async issueWhatsappInvitation({ phone, firstName, inboundId, verifiedInbound }) {\n      if (!validPhone(phone) || verifiedInbound !== true || typeof inboundId !== 'string' || !inboundId || inboundId.length > 250) throw Error('tex_link_invitation_invalid');\n      if (await currentContactHold(phone)) throw Error('tex_link_invitation_unavailable');\n      const journey = await reserveJourney(phone, 'whatsapp', { existingEntry: true });\n      return lock('phone:' + journey.id, async () => {\n        const fresh = await read(file('journeys', journey.id));\n        if (!fresh || fresh.blocked || fresh.firstChannel !== 'whatsapp') throw Error('tex_link_invitation_unavailable');\n        if (fresh.invitationV251) {\n          if (fresh.invitationV251.expiresAt <= now()) throw Error('tex_link_invitation_expired');\n          return { url: 'https://plusmen.shop/tex#chat=' + fresh.invitationV251.token };\n        }\n        const token = randomBytes(32).toString('hex'), expiresAt = now() + 604800000;\n        const name = String(firstName || '').replace(/[\\r\\n\\u0000-\\u001f]/g, ' ').trim().split(/\\s+/)[0].slice(0, 30);\n        await lock('admission', async () => {\n          await capacity('invitations');\n          await write(file('invitations', hash(token)), { version: 251, phone, firstName: name,\n            journeyId: journey.id, inboundId, issuedAt: now(), expiresAt, boundSession: '' });\n        });\n        await write(file('journeys', journey.id), { ...fresh, invitationV251: { token, expiresAt } });\n        return { url: 'https://plusmen.shop/tex#chat=' + token };\n      });\n    },\n    async invitationAvailable(token) {\n      if (!SESSION.test(token || '')) return false;\n      await initialize(); const invitation = await read(file('invitations', hash(token)));\n      return !expired(invitation) && invitation.version === 251 && validPhone(invitation.phone);\n    },\n    async acceptWhatsappInvitation({ token, sessionId }) {\n      if (!SESSION.test(token || '') || !SESSION.test(sessionId || '')) throw Error('tex_link_invitation_invalid');\n      return lock('invitation:' + hash(token), () => lock('session:' + sessionId, async () => {\n        const invitation = await read(file('invitations', hash(token)));\n        if (expired(invitation) || invitation.version !== 251 || !validPhone(invitation.phone)\n          || invitation.boundSession && invitation.boundSession !== sessionId) throw Error('tex_link_invitation_unavailable');\n        const journey = await read(file('journeys', phoneId(invitation.phone)));\n        if (!journey || journey.id !== invitation.journeyId || journey.firstChannel !== 'whatsapp' || journey.blocked\n          || await currentContactHold(invitation.phone)) throw Error('tex_link_invitation_unavailable');\n        const existing = await identity(sessionId);\n        if (existing && existing.phone !== invitation.phone) throw Error('tex_link_invitation_unavailable');\n        if (!invitation.boundSession) await write(file('invitations', hash(token)), { ...invitation, boundSession: sessionId, acceptedAt: now() });\n        await lock('admission', async () => {\n          if (!existing) await capacity('links');\n          await write(file('links', sessionId), { version: 242, sessionId, journeyId: journey.id,\n            phone: invitation.phone, firstName: invitation.firstName, verifiedAt: invitation.issuedAt,\n            expiresAt: invitation.expiresAt, verifiedBy: 'official_zapi_inbound', inboundId: invitation.inboundId });\n        });\n        return { ok: true, verified: true, invitationVersion: 251, firstChannel: 'whatsapp' };\n      }));\n    },\n"
+        }
+      ]
+    },
+    "src/services/vitPowerWebChatV220Application.js": {
+      "parentSha256": "9d2b0800686aa80887dfff2427d8d7d79c8d88df883718dbff7dd38a0dd4fbe7",
+      "patches": [
+        {
+          "before": "now = () => Date.now() } = {})",
+          "after": "now = () => Date.now(), linkedStore = texLinkedStoreV242, postLeadPolicy = texPostLeadPolicyV251 } = {})"
+        },
+        {
+          "before": "links = texLinkedStoreV242();",
+          "after": "links = linkedStore();"
+        },
+        {
+          "before": "await texLinkedStoreV242().identity",
+          "after": "await linkedStore().identity"
+        },
+        {
+          "before": "import { bindTexMeasurementCodeV243 }",
+          "after": "import { texPostLeadPolicyV251 } from './texUltraPostLeadInviteV251Service.js';\nimport { bindTexMeasurementCodeV243 }"
+        },
+        {
+          "before": "'link_status', 'tex_entry'] : ['start'",
+          "after": "'link_status', 'tex_entry', 'invite_accept'] : ['start'"
+        },
+        {
+          "before": "      if (body.action === 'clear')",
+          "after": "      if (tex && postLeadPolicy().required) {\n        if (!postLeadPolicy().enabled) return res.status(503).json({ ok: false, error: 'tex_link_invitation_unavailable' });\n        if (!linkedEntry) return res.status(403).json({ ok: false, error: 'tex_link_invitation_required' });\n        const links = linkedStore();\n        if (body.action === 'invite_accept') {\n          if (!await links.invitationAvailable(body.accessToken)) return res.status(403).json({ ok: false, error: 'tex_link_invitation_unavailable' });\n          const session = await store.open(readToken(), context); writeCookie(session.token);\n          return res.json(await links.acceptWhatsappInvitation({ token: body.accessToken, sessionId: createHash('sha256').update(session.token).digest('hex') }));\n        }\n        if (body.action !== 'clear') {\n          const token = readToken();\n          const identity = token && await links.identity(createHash('sha256').update(token).digest('hex'));\n          if (!identity) return res.status(403).json({ ok: false, error: 'tex_link_invitation_required' });\n          if (identity.blocked && body.action !== 'link_status') return res.status(403).json({ ok: false, error: 'tex_link_human_hold' });\n        }\n      }\n      if (body.action === 'clear')"
+        }
+      ]
+    },
+    "src/services/customerInvitesV232Service.js": {
+      "parentSha256": "e7119298b814600cfa62e98104780967f116d644764cdd5ce7cdf1117592374b",
+      "patches": [
+        {
+          "before": "clock = () => now, dryRun = true })",
+          "after": "clock = () => now, dryRun = true, texPostLeadEligible = texPostLeadEligibleV251 })"
+        },
+        {
+          "before": "import { createHash, randomUUID }",
+          "after": "import { texPostLeadPolicyV251, texPostLeadEligibleV251, buildTexPostLeadInviteV251 } from './texUltraPostLeadInviteV251Service.js';\nimport { createHash, randomUUID }"
+        },
+        {
+          "before": "    const absent = lastActivity",
+          "after": "    if (policy.generalChat === true && !contact.returned && lastActivity > 0 && now - lastActivity >= INVITE_GAP_V232\n      && texPostLeadEligible(contact, now)) stages.push({ stage: 'TEX_CHAT_ACCESS', orderId: '' });\n    const absent = lastActivity"
+        },
+        {
+          "before": "|| (['CHAT_ORDER', 'CHAT_ACCESS'].includes(item.stage) && suppressVitPowerInviteForTexV246(fresh)))",
+          "after": "|| (['CHAT_ORDER', 'CHAT_ACCESS'].includes(item.stage) && suppressVitPowerInviteForTexV246(fresh))\n          || item.stage === 'TEX_CHAT_ACCESS' && !texPostLeadEligible(fresh, clock()))"
+        },
+        {
+          "before": "        const privateInvite = ['CHAT_ORDER'",
+          "after": "        const texInvite = item.stage === 'TEX_CHAT_ACCESS' ? await repository.privateTexInvite(fresh) : null;\n        if (item.stage === 'TEX_CHAT_ACCESS' && !texInvite?.message) throw Error('tex_link_invitation_unavailable');\n        const privateInvite = ['CHAT_ORDER'"
+        },
+        {
+          "before": "        const body = privateInvite?.message ||",
+          "after": "        const body = texInvite?.message || privateInvite?.message ||"
+        },
+        {
+          "before": "body.replace(/#pedido=[a-f0-9]{64}/g, '#pedido=[acceso-privado]')",
+          "after": "body.replace(/#pedido=[a-f0-9]{64}/g, '#pedido=[acceso-privado]').replace(/#chat=[a-f0-9]{64}/g, '#chat=[acceso-privado]')"
+        },
+        {
+          "before": "    async privateOrderInvite(phone) {",
+          "after": "    async privateTexInvite(contact) {\n      const policy = texPostLeadPolicyV251();\n      if (!texPostLeadEligibleV251(contact)) throw Error('tex_link_invitation_unavailable');\n      const inbound = await Messages.findOne({ peerPhone: contact.phoneDigits, provider: 'zapi', sessionId: 'zapi',\n        ownerPhoneDigits: '5531971862958', isFromMe: false, createdAt: { $gte: new Date(policy.cutoff) } }).sort({ createdAt: -1 }).select('_id').lean();\n      if (!inbound) throw Error('tex_link_invitation_unavailable');\n      const { texLinkedStoreV242 } = await import('./texUltraLinkedRuntimeV242Service.js');\n      const name = contact.customerDraft?.name || contact.metadata?.customerDraft?.name || contact.name || contact.metadata?.notifyName || '';\n      const issued = await texLinkedStoreV242().issueWhatsappInvitation({ phone: contact.phoneDigits, firstName: name,\n        inboundId: String(inbound._id), verifiedInbound: true });\n      return { message: buildTexPostLeadInviteV251({ name, url: issued.url }) };\n    },\n    async privateOrderInvite(phone) {"
+        },
+        {
+          "before": "const match = stage === 'CHAT_ACCESS' ?",
+          "after": "const match = stage === 'TEX_CHAT_ACCESS' ? { $or: [{ dedupeKey: key }, { body: /https:\\/\\/plusmen\\.shop\\/tex#chat=/ }] }\n        : stage === 'CHAT_ACCESS' ?"
+        }
+      ]
+    },
+    "src/services/customerInviteContextV232Service.js": {
+      "parentSha256": "7e6961b8b5eb97ad13063535b4aced5dc2522284f3221179e0cd83a17b6ea339",
+      "patches": [
+        {
+          "before": "import { AsyncLocalStorage }",
+          "after": "import { texPostLeadPolicyV251, texPostLeadEligibleV251 } from './texUltraPostLeadInviteV251Service.js';\nimport { AsyncLocalStorage }"
+        },
+        {
+          "before": "!['CHAT_ORDER', 'CHAT_ACCESS', 'PARTNER_1', 'PARTNER_2'].includes(job.stage)",
+          "after": "!['CHAT_ORDER', 'CHAT_ACCESS', 'PARTNER_1', 'PARTNER_2', 'TEX_CHAT_ACCESS'].includes(job.stage)"
+        },
+        {
+          "before": "  const claim = await Ledger.updateOne",
+          "after": "  if (job.stage === 'TEX_CHAT_ACCESS') {\n    const policy = texPostLeadPolicyV251();\n    if (!texPostLeadEligibleV251({ ...recipient, officialInboundVerified: true }) || !policy.enabled\n      || !await Message.exists({ peerPhone: phone, provider: 'zapi', sessionId: 'zapi', ownerPhoneDigits: '5531971862958',\n        isFromMe: false, createdAt: { $gte: new Date(policy.cutoff) } })) throw Error('tex_link_invitation_unavailable');\n  }\n  const claim = await Ledger.updateOne"
+        }
+      ]
+    }
+  },
+  "productionDatabaseMigration": false,
+  "historicalMessagesReplayed": false,
+  "automaticRetryAuthorized": false,
+  "oldLedgerDeletionAuthorized": false
+}
