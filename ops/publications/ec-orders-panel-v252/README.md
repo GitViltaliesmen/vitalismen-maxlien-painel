@@ -29,3 +29,7 @@ Backup de código/configuração e preimagens dos casos autorizados não equival
 ## Rollback
 
 Executar o controlador com `rollback` somente para a versão ativa desta publicação. Ele restaura primeiro os bytes públicos por inversão verificada e depois o release pai, ambiente PM2 e drop-in anterior. Não restaura dados, apaga ledger, reabre QA ou repete envios. Alteração concorrente bloqueia sobrescrita automática.
+
+## Congelamento publicado
+
+Estado real, testes, recuperaÃ§Ã£o e limites em `docs/EC_PEDIDOS_DROPI_POSVENDA_V252_20261119.md` e `docs/freeze/ec-orders-dropi-postsale-v252-published-20261119.json`. A auditoria concluiu dois vÃ­nculos nativos e um reparo administrativo pontual do recibo GINTRACOM com sua guia alfanumÃ©rica original, alÃ©m de um alias de leitura legado; nÃ£o houve alteraÃ§Ã£o de guard, cÃ³digo do bot, preÃ§o, ledger ou criaÃ§Ã£o de venda duplicada. As preimagens e scripts desse reparo ficam na auditoria privada criptografada, identificada por hash no manifesto.

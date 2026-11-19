@@ -1,0 +1,217 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 252,
+  "status": "PUBLISHED_ACTIVE_FROZEN",
+  "recordedAt": "2026-11-19T18:05:57.839054+00:00",
+  "authorization": "USER_20261119_IMPLEMENT_PLAN_ORDERS_DROPI_POSTSALE_QA; Please implement the plan.",
+  "runtime": {
+    "commit": "959674ce88eed400012b57b28fdef4c6838869b5",
+    "tree": "eb5e46f13fade35e45549b479db6ffe6e4fbd7f4",
+    "release": "/opt/vitalismen-automacao/releases/20261119T160921Z_production-20261119-959674c",
+    "sourceRef": "refs/heads/codex/ec-orders-dropi-postsale-v252-20261119-r11",
+    "seal": "dc2afa45ec142ac6994c184f8356cbb2ba7b91c74915e4e450df174f449188ce",
+    "parentCommit": "76dc26f89393d694db9d8b3d95447fc7144f89f6",
+    "parentRelease": "/opt/vitalismen-automacao/releases/20261119T031453Z_production-20261119-76dc26f",
+    "publicationTag": "production-20261119-959674c",
+    "pid": 208122,
+    "actualProcessCwd": "/opt/vitalismen-automacao/releases/20261119T160921Z_production-20261119-959674c",
+    "pmExecPath": "/opt/vitalismen-automacao/current/src/index.js",
+    "restartDelta": 1,
+    "automaticDropiActivatedAt": "2026-11-19T17:41:57.787Z",
+    "zapiConnected": true
+  },
+  "sourcePublication": {
+    "operationsCommit": "c67746881b8b091759e5125ead06de33be61efc9",
+    "operationsRef": "refs/heads/codex/ec-orders-panel-operations-v252-20261119-r6",
+    "productionBranchChanged": false,
+    "localUserIndexPreserved": true
+  },
+  "allowedRuntimeDelta": [
+    "docs/freeze/ec-orders-dropi-postsale-v252-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/models/Order.js",
+    "src/routes/shipments.js",
+    "src/routes/whatsapp.js",
+    "src/services/adminPanelStatusService.js",
+    "src/services/confirmedDropiDispatchV252Service.js",
+    "src/services/droppiEcuadorBrowserService.js",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js",
+    "src/services/ecDropiHumanAuthorizationV138Service.js",
+    "src/services/postSaleDropiTrackingReconcilerV194Service.js",
+    "src/services/postSaleForwardOnlyV194Service.js",
+    "src/services/postSaleFullExecutorV188Service.js",
+    "tests/confirmed-dropi-dispatch-v252.test.mjs",
+    "tests/dropi-session-token-alignment-v252.test.mjs",
+    "tests/historical-dropi-recovery-v252.test.mjs",
+    "tests/post-sale-dropi-tracking-v194.test.mjs",
+    "tests/post-sale-full-operational-v188.test.mjs",
+    "tests/qa-dashboard-metrics-v252.test.mjs"
+  ],
+  "runtimeHashes": {
+    "docs/freeze/ec-orders-dropi-postsale-v252-contract.json": "f900129e501442c32edbb2d2d732c900984509ec90a61dda10689aca7da29d4b",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "74269c9bae1606a7030887216e42ec2818046b2ecf7233af5cd9dba2e7eecb8f",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "c2b1e12c6a0195f3749015f0953e1fbead8a922f32c81bcdd998a3da3e88ab90",
+    "src/models/Order.js": "9bea1849b5c3515804eb0b0a81b3e078c1a4fe4d5437e1f014aa1dc4cb9a1e53",
+    "src/routes/shipments.js": "ad078c08964f363c7b0e679b6d99d5d661bfbea478301179a4df902a4f9862e1",
+    "src/routes/whatsapp.js": "0ce4c0c6998937b8605dd7bfc551044c976857cd878b3e4388730da8b768af3c",
+    "src/services/adminPanelStatusService.js": "b7dc50a82113aadd4fa292e5ee29625fd37bb9aa2659d0f0c43c3ee0ab49872f",
+    "src/services/confirmedDropiDispatchV252Service.js": "2670fad62341199b515b59378049f8d1ec96beb91e8d9377c44abac06232933e",
+    "src/services/droppiEcuadorBrowserService.js": "ec28ad2c1ccf21689781d24cdbd0bf729dcf771bf768b900fa7a0dcd03f27229",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "9d4ec30a977eca4c82fe3ac4e63a9be59075b5562d88b2cf868a540574037456",
+    "src/services/ecDropiHumanAuthorizationV138Service.js": "79c49c13d7bce631a235e354ed2f90817409c6f7593f263f60fdce4eb0d29ba9",
+    "src/services/postSaleDropiTrackingReconcilerV194Service.js": "4144edf7637dd122da9b45166e5239346468106fa273f8c6fa4d536c1e91624c",
+    "src/services/postSaleForwardOnlyV194Service.js": "abb6711e16eea1f16ba436bb7b806c452ad19a6e1961985a8dcc94b059bf85bd",
+    "src/services/postSaleFullExecutorV188Service.js": "50b4c332c38c106984c308a1b0f1663cfa6c4baeca78483ea1378a45239ecc2c",
+    "tests/confirmed-dropi-dispatch-v252.test.mjs": "637f4c113771d1ce74e3722808df786dab8e0cf35b58b3f7818747956b989425",
+    "tests/dropi-session-token-alignment-v252.test.mjs": "7d3f8930db5b2b76c3beb95251b399a3b8b22d9b201503a6d6c0939f4afd8735",
+    "tests/historical-dropi-recovery-v252.test.mjs": "935f9315bae4ad07323306eea0f3fa220b3c673f2ffe45b714af01d095d8afa9",
+    "tests/post-sale-dropi-tracking-v194.test.mjs": "23ee79023a042904054ff31921919e1cb0f82d54b2c8144fcdd50b8343d6ad51",
+    "tests/post-sale-full-operational-v188.test.mjs": "edbfeb037e030f372a7b53aebaf5332429561b9c70862520ab322e5eeb6d7079",
+    "tests/qa-dashboard-metrics-v252.test.mjs": "2ce4b12e193922642271ec3540828bf8eac6e22cfa0aed1493c4b3a2aca34613"
+  },
+  "protectedFilesUnchanged": 136,
+  "publicFiles": [
+    {
+      "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+      "sha256": "d2e619d758b2b423c8a7fad124da8aee18ae29434ee2bf28bd8b634a8dcf2eef",
+      "beforeSha256": "4943cf80ef03076463562c2beaebc7ad6d9c8627e4830be2dfecd99ec2af3e05"
+    },
+    {
+      "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/leads-window.status-only-20261119.html",
+      "sha256": "f1a7dbcc8c3110eaf70b1fa8d57d6798cbaf7cb878dfd3c08d250db9ac332e02",
+      "beforeSha256": "e35206ab0505f2f5fca07dbf1cfdf9a30bccab0d54a4dd5900ff75d22be1d727"
+    },
+    {
+      "path": "/opt/maxlien-mvp/app.py",
+      "sha256": "25c40226f1ada65fe95453c5f6f2cd28d55f37b6e2f53291b1b79761a76e923a",
+      "beforeSha256": "4c823b588034863540a917cb5784d48a0ed1641754791bd6662ccea4c2e8bcdd"
+    }
+  ],
+  "verification": {
+    "completeRegressionPassed": 547,
+    "focusedPassed": 109,
+    "preservationV219Passed": 66,
+    "nativeIntegrationPassed": 15,
+    "nativeFullPipelinePassed": 3,
+    "nativeProviderBoundarySimulated": true,
+    "actualReadOnlyCatalogQuoteCasesPassed": 2,
+    "browserChecksPassed": 8,
+    "operationsChecksPassed": 45,
+    "negativeGateChecksPassed": 31,
+    "mandatoryFrozenGuardsPassed": true
+  },
+  "existingSales": {
+    "verifiedSubmitted": 3,
+    "nativeOrderIdentitiesPreserved": 2,
+    "externalSaleWithoutHistoricalMongoOrder": 1,
+    "nativeAuthenticatedReceiptLinks": 2,
+    "targetedRootAdministrativeReceiptLink": 1,
+    "legacyReadAliasCorrected": 1,
+    "newRemoteOrders": 0,
+    "newMongoOrders": 0,
+    "metaReplay": false,
+    "humanHoldOptoutHistoryMemoryPreserved": true,
+    "gintracomOriginalAlphanumericGuidePreserved": true,
+    "botCodeOrGuardsChangedByDataRepair": false
+  },
+  "postSale": {
+    "existingTimer": "vitalismen-postsale-full-v203.timer",
+    "newCron": false,
+    "maximumPhysicalPerCycle": 1,
+    "snapshot": "PASS_SNAPSHOT",
+    "dryRun": "PASS_DRY_RUN",
+    "operationalRun": "PASS_BATCH",
+    "manualAuditedCyclePhysicalOutbound": 0,
+    "manualAuditedCycleDropiRecordsRefreshed": 5,
+    "allObservedCycles": [
+      {
+        "at": "2026-11-19T17:46:21.979Z",
+        "status": "PASS_BATCH",
+        "physicalOutboundCount": 0,
+        "sha256": "9104496ab6178e255a092c0366c690acf2d944ba9980c34d412e644ceebb32b2"
+      },
+      {
+        "at": "2026-11-19T17:58:31.676Z",
+        "status": "PASS_BATCH",
+        "physicalOutboundCount": 0,
+        "sha256": "7c508c43755b26a0ca2bacdca99760df3d3972ca895721e31ecc161da5bdfbda"
+      },
+      {
+        "at": "2026-11-19T18:01:56.917Z",
+        "status": "PASS_BATCH",
+        "physicalOutboundCount": 0,
+        "sha256": "593473673e6747e2113e789f0ff8fb42dac8ee6e812ee9f650713d49df61388d"
+      }
+    ],
+    "actualCustomerReceiptOrDeliveryNotSimulated": true
+  },
+  "qa": {
+    "identity": "PERMANENT_8637_ONLY",
+    "visibleIn": "Testes",
+    "excludedFromCommercialNewAndMetrics": true,
+    "historyLedgerAndActualWindowPreserved": true,
+    "windowReopened": false,
+    "reset": false
+  },
+  "recovery": {
+    "beforeAndAfterCodeConfig": "PASS",
+    "scopedData": "PASS; 5 Orders / 6 Shipments / 7 ContactStates and 3 EC leads in after archive",
+    "auditArchive": "PASS; 44 files",
+    "afterBootstrapArchive": "PASS; 97 files plus runtime environment",
+    "decryptionHashesMetadataTamperRejection": "PASS",
+    "privateKeyUploaded": false,
+    "plaintextWrittenLocally": false,
+    "globalMongoBackup": "FAIL_SEPARATE; no full global consistent restoration demonstrated"
+  },
+  "preserved": [
+    "V251 post-WhatsApp invitation and no early checkout",
+    "V249 Tex greeting",
+    "V248 CTA and actual QA window",
+    "V245 clean WhatsApp message",
+    "V244 remaining freezes",
+    "VSL/player/timing/Turbo/phones",
+    "prices/products/media/voice",
+    "human/opt-out/history/dedupe/locks",
+    "Z-API and Meta/CAPI"
+  ],
+  "limits": [
+    "No new physical QA WhatsApp entry or actual new customer order was fabricated. Native full dispatch was simulated only at the provider browser boundary.",
+    "Historical existing sales were linked without replaying Purchase. First new real attributed Meta conversion remains observationally pending.",
+    "GINTRACOM receipt retains the actual carrier and alphanumeric guide. No Servientrega guide or delivery evidence was invented.",
+    "Global MongoDB backup remains FAIL; code/configuration, scoped data and audit archives have separately verified recovery."
+  ],
+  "evidenceRoot": "C:\\Users\\Wolfe\\Backups\\VITALISMEN_EC\\ORDER_DROPI_POSTSALE_V252\\20261119T124919Z",
+  "remoteEvidenceRoot": "/opt/vitalismen-automacao/backups/ec-orders-dropi-postsale-v252-20261119-r11",
+  "evidenceHashes": {
+    "QUALIFICATION.json": "5151c66416bb7dd6ed57ec08f1dddfbd2f339379660ed3e03610824c915bd846",
+    "PRESERVED_V219_TESTS.json": "4161462e9dc4d1717078f62345217d7f52661f3a087f89e1acd35a932ac774c1",
+    "NATIVE_QUEUE-complete.json": "b0e9f545c142062e9ea3e5598ff28e5c3f801789251ec775d76e281dea92cca6",
+    "NATIVE_FULL_PIPELINE.json": "315da18836915edcd9c6ba3d320fe649bd85787d98e217b0f3486ceeb759c429",
+    "NATIVE_READONLY_PREFLIGHT.json": "45eccafa89a501a615f42dc18da3cddc0e7b85172e537063883c74118f802be7",
+    "PANEL_BROWSER_TEST.json": "f63797ae6db396667ef2e37e07d246e0f02fe0c18976ef0accf17a471f58a1b7",
+    "OPERATIONS_TEST.json": "a52e456c8f4fda54e4bf9019561cf8ec27048e53651a3cf216aad14cbc345e6f",
+    "GATES_SEMANTIC_TEST.json": "b8901473780ea216411013ecdc57ab95ceaa5d4fdde78b623693e1265ad7cb42",
+    "INVERSE_TEST.json": "723463e0203da2d5ab0fb75af28b7c6cec027bdf7edc8dff22382d31288d5db6",
+    "STATIC_TEST.json": "e8337b408e79676ec72be372940f4588b023dae72b280c5b93fd315e258f8ffc",
+    "ACTIVATION.json": "17e86c766b4dcc7640b4212e901a1cbe656e8139691dfcf42edca60fa6f8e39c",
+    "PUBLICATION.json": "5c90c09a6785be50088dd590884d27b14265b035db24f968e0900a53811f51a8",
+    "EXISTING_LINK_VERIFICATION_AFTER_POSTSALE.json": "51ba960210da99afc0b597e1c79a5abb914e64a2e0e735a049ce9a8deca282b9",
+    "GINTRACOM_RECEIPT_REPAIR.json": "00eac172ca9ccf47e4e1139385869f26fb4cd8360c639e885fe62240eb11c383",
+    "EXTERNAL_RECEIPT_ALIAS_REPAIR_CANONICAL.json": "9152f8e60242f5beb612db7cdfc897dfd1ce3f716b7cc1759ae147f32c2713ea",
+    "POSTSALE_AUDIT_SUMMARY.json": "819d55d68ea234cc6bbd1b64fcf5a4eb96be65ef5af0181337eae9bf76f88c08",
+    "POSTSALE_COUNTS_AFTER.json": "616f85fa019e457f9cf5e50ecd731a75d1b300bd82de917a225742f640fb8b02",
+    "POSTSALE_FINAL_CYCLES.json": "66719d1005b344e0d83efb89198ea24156e74da911698bf48855a87a8f963bea",
+    "FINAL_RUNTIME_AUDIT.json": "c7689033820221386937dbc3ce50c70d7fa5258bdc9bc1b63dce624df9dc7e0c",
+    "PUBLIC_HTTP_AFTER.json": "2071ac80abd575bcf1fd8fbfe1f85ea663e15fdb0fe30d597b6e71777c42004b",
+    "FROZEN_GUARDS_AFTER.json": "7ee65c69248b38a421fab07471d37e14d98efcb7687c8cc23e1211339a9dd366",
+    "CODE_CONFIG_RECOVERY_BEFORE.json": "40c55289cc4ac99d686140a9aa16ab33d99575b4e4df7b92fee9de23f867ca6e",
+    "CODE_CONFIG_OPERATIONS_RECOVERY_BEFORE.json": "e6841ce580afa2c90a7f686520d2fe92a830ac6b62f55dde3a859b4a01bb88a6",
+    "CODE_CONFIG_RECOVERY_AFTER.json": "b43b8b8a765acd72a745d529f433a6752dae2b42385fd84726ba8897e47764d9",
+    "SCOPED_DATA_RECOVERY_AFTER_R7.json": "59a56ee722710dfef3aef0e2e07fbea45289843092e07d2fd0a7e678562aec77",
+    "GINTRACOM_RECEIPT_RECOVERY_VERIFICATION.json": "f933ee26a974f9aa9cd2e061f546f71e09ea259e56f8dd6ff3bb2e776bbf9535",
+    "EXTERNAL_RECEIPT_ALIAS_RECOVERY_VERIFICATION.json": "cd666d09d0df07f0bd78095d144451f2e3591b4d9f5ee85d642d21edac2c7e60",
+    "AUDIT_ARCHIVE_RECOVERY_AFTER.json": "f0d58fbf9afbb8258539865cbc192d346ade43b5a34c6e2a95f7f98c541def32"
+  },
+  "rollback": "Existing V252 operations-controller.py rollback restores exact public inverse then parent code/config; it does not revert operational orders, erase ledgers, reopen QA or resend messages."
+}

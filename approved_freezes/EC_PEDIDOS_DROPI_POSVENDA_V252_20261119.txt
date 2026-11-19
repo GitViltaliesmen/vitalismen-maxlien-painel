@@ -1,0 +1,12 @@
+PROJECT=VITALISMEN_EC â€” VITALISMEN OFICIAL
+STATUS=PUBLISHED_ACTIVE_FROZEN_V252
+RECORDED_AT=2026-11-19T18:05:57.839054+00:00
+RUNTIME_COMMIT=959674ce88eed400012b57b28fdef4c6838869b5
+RELEASE=/opt/vitalismen-automacao/releases/20261119T160921Z_production-20261119-959674c
+MANIFEST=docs/freeze/ec-orders-dropi-postsale-v252-published-20261119.json
+MANIFEST_SHA256=d173e83aecee2d2709344fbe263f8367137ba2584ed1e8c05aa0861b73d2bac0
+TESTS=547 regression; 109 focused; 66 V219; 15 native; 3 pipeline; 8 browser; 45 operations; 31 negative gates â€” PASS
+EXISTING_SALES=3 submitted; no duplicate remote order or historical Purchase
+POSTSALE=existing timer active; snapshot/dry-run/run PASS; max1 physical per cycle
+RECOVERY=code/configuration, scoped data and audit archive PASS; global MongoDB FAIL separate
+FREEZE=code/configuration preserved; operation continues; no QA reset/rearm
