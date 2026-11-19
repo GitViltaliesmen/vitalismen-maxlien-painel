@@ -1,6 +1,6 @@
 """VITALISMEN_EC V252: confirmed orders, existing-sale recovery, post-sale and permanent QA isolation."""
 import pathlib,os,json,hashlib,subprocess,datetime,fcntl,time,uuid,urllib.request,sys,re
-B=pathlib.Path('/opt/vitalismen-automacao/backups/ec-customer-edit-paquizha-v253-20261119-r2');STATE=pathlib.Path('/var/lib/vitalismen-deploy/ec-customer-edit-paquizha-v253-r2');C=pathlib.Path('/opt/vitalismen-automacao/current');DROPIN=pathlib.Path('\etc\systemd\system\vitalismen-postsale-full-v203.service.d\zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-ec-customer-edit-paquizha-v253-r2.conf')
+B=pathlib.Path('/opt/vitalismen-automacao/backups/ec-customer-edit-paquizha-v253-20261119-r2');STATE=pathlib.Path('/var/lib/vitalismen-deploy/ec-customer-edit-paquizha-v253-r2');C=pathlib.Path('/opt/vitalismen-automacao/current');DROPIN=pathlib.Path('/etc/systemd/system/vitalismen-postsale-full-v203.service.d/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-ec-customer-edit-paquizha-v253-r2.conf')
 read=lambda p:json.loads(pathlib.Path(p).read_text());canon=lambda x:(json.dumps(x,ensure_ascii=False,indent=2)+'\n').encode();sha=lambda p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest();utc=lambda:datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='milliseconds').replace('+00:00','Z')
 def create(p,b,mode=0o400):
  p=pathlib.Path(p);fd=os.open(p,os.O_CREAT|os.O_EXCL|os.O_WRONLY,mode)

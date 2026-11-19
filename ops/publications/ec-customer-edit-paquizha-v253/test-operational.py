@@ -13,6 +13,11 @@ for phrase in ["'automaticDropiV252ActivatedAt':inherited['automaticDropiV252Act
  if phrase=='CONCURRENT_PUBLIC_CHANGE':assert 'CONCURRENT_PUBLIC_CHANGE'in s or'CONCURRENT_PUBLIC_CHANGE'.replace('PUBLIC','PUBLIC')in s or'CONCURRENT_PUBLIC_CHANGE'in s
  else:assert phrase in s,phrase
  checks.append('controller:'+phrase[:65])
+# Parse the actual Linux systemd target; Windows path conversions must never reach VPS.
+from pathlib import PurePosixPath
+assignment=next(n for n in ast.walk(ast.parse(s)) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='DROPIN' for t in n.targets))
+dropin=PurePosixPath(ast.literal_eval(assignment.value.args[0]));assert dropin.is_absolute() and str(dropin.parent)=='/etc/systemd/system/vitalismen-postsale-full-v203.service.d' and '\\'not in str(dropin) and len(dropin.name.encode())<=255
+checks.append('systemd_dropin_is_absolute_linux_path_in_exact_existing_directory')
 # The public change has one file and cannot restart the legacy API.
 f=next(n for n in ast.parse(s).body if isinstance(n,ast.FunctionDef)and n.name=='publish_static');assert "'restart'"not in ast.unparse(f);checks.append('static_publication_does_not_restart_legacy_service')
 assert not 'def reconcile_existing' in s;checks.append('no_historical_repair_action_in_this_scope')
