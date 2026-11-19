@@ -4,6 +4,7 @@ import { validateEcuadorDropiCustomerName, validateEcuadorDropiPhone } from './d
 import { currentEcBotCoreRuntimeContextV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
 import { resolveEcAdminDropiDraftBridgeV128 } from './ecAdminDropiDraftBridgeV128Service.js';
 
+import { integrationDropiOrderAllowedV254 } from './orderIntegrationScopeV254Service.js';
 import { automaticDropiOrderAllowedV252 } from './confirmedDropiDispatchV252Service.js';
 
 const clean = value => String(value ?? '').trim();
@@ -73,7 +74,7 @@ export const ecDropiCurrentDraftDeliveryV138 = (order = {}, state = null) => {
 };
 
 export const ecHumanDropiSubmitBlockV138 = ({ order, shipment } = {}) => {
-    if (automaticDropiOrderAllowedV252(order, shipment)) return null;
+    if (integrationDropiOrderAllowedV254(order, shipment) || automaticDropiOrderAllowedV252(order, shipment)) return null;
     const context = currentEcBotCoreRuntimeContextV78();
     const requestedId = clean(context?.humanDropiRequestedOrderId);
     const requestedMatches = requestedId && [clean(order?.orderId), clean(order?._mappedFromAdminLead?.requestedOrderId)].includes(requestedId);

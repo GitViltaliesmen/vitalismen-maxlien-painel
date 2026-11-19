@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import { integrationPolicyV254 } from '../services/orderIntegrationScopeV254Service.js';
+import { preparePurchaseIntentV254, purchaseProblemsV254 } from '../services/metaPurchaseDeliveryV254Service.js';
 import { prepareConfirmedDropiDispatchV252 } from '../services/confirmedDropiDispatchV252Service.js';
 import { installVitPowerOrderHooksV213 } from '../services/vitPowerMeasurementV213Application.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
@@ -68,6 +70,8 @@ const orderSchema = new mongoose.Schema({
     },
     previousDeliveredAt: Date,
     confirmedAt: Date,
+    purchaseDeliveryV254: { type: mongoose.Schema.Types.Mixed, default: null },
+    integrationIntakeKeyV254: { type: String, default: undefined },
     dropiDispatchV252: {
         version: { type: Number, enum: [252] },
         status: { type: String, enum: ['pending', 'claimed', 'submitted', 'review'] },
@@ -218,10 +222,30 @@ orderSchema.pre('save', async function (next) {
     if ((this.isNew || this.isModified('status')) && this.status === 'confirmed' && !this.confirmedAt) {
         this.confirmedAt = new Date();
     }
-    prepareConfirmedDropiDispatchV252(this, { transition: this.isNew || this.isModified('status') });
+    const currentPlaceholder=integrationPolicyV254()&&this.dropiDispatchV252?.version===254&&this.dropiDispatchV252?.reason==='awaiting_customer_data_v254'&&!this.dropiDispatchV252.attempts&&!this.dropiOrderId&&!this.trackingNumber;
+    let fulfillmentTransition=this.isNew||this.isModified('status');
+    if(currentPlaceholder){this.dropiDispatchV252=null;fulfillmentTransition=true;}
+    try{prepareConfirmedDropiDispatchV252(this,{transition:fulfillmentTransition});}
+    catch(error){
+        if(!integrationPolicyV254()||error.code!=='confirmed_order_incomplete'||purchaseProblemsV254(this).length)throw error;
+        if(this.dropiOrderId||this.trackingNumber)throw error;
+        this.dropiDispatchV252={version:254,status:'review',reason:'awaiting_customer_data_v254',blockedReasons:error.reasons||[],attempts:0};
+    }
+    preparePurchaseIntentV254(this, { transition: this.isNew || this.isModified('status') });
     // Track last interaction
     this.lastInteractionAt = new Date();
     next();
+});
+
+for (const method of ['updateOne','findOneAndUpdate']) orderSchema.pre(method, async function () {
+    if(!integrationPolicyV254())return;
+    const update=this.getUpdate()||{},status=update.$set?.status||update.status;
+    if(status!=='confirmed')return;
+    const before=await this.model.findOne(this.getQuery()).lean();if(!before||before.status==='confirmed')return;
+    const confirmedAt=update.$set?.confirmedAt||update.confirmedAt||before.confirmedAt||new Date();
+    const prospective={...before,...(update.$set||{}),status:'confirmed',confirmedAt};
+    if(!before.confirmedAt&&!update.$set?.confirmedAt&&!update.confirmedAt)update.$set={...(update.$set||{}),confirmedAt};
+    if(preparePurchaseIntentV254(prospective,{transition:true}))this.setUpdate({...update,$set:{...(update.$set||{}),purchaseDeliveryV254:prospective.purchaseDeliveryV254}});
 });
 
 orderSchema.post('save', function (doc) {

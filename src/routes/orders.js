@@ -1,5 +1,6 @@
 import express from 'express';
 import Order from '../models/Order.js';
+import { decoratePurchaseOrdersV254 } from '../services/orderIntegrationWorkerV254Service.js';
 import Shipment from '../models/Shipment.js';
 import Message from '../models/Message.js';
 import { authMiddleware, isPanelAuthDisabled } from '../middleware/auth.js';
@@ -406,6 +407,7 @@ router.get('/', authMiddleware, async (req, res) => {
             Order.countDocuments(query)
         ]);
         const orders = orderDocs.map((order) => order.toObject());
+        await decoratePurchaseOrdersV254(orders);
 
         if (includeShipment && orders.length) {
             const orderIds = orders.map((order) => order.orderId).filter(Boolean);
