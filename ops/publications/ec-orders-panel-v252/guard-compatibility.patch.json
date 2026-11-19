@@ -1,0 +1,14 @@
+{
+  "beforeSha256": "ea9b38ea5f6f44f8385c0955590c9c00378116df0886cc3bdaa5cee551caac6e",
+  "sha256": "d7cb3447f59a2f858341ae26e5baa39e448c77f5e3364e23e6b67d36f184357d",
+  "patches": [
+    {
+      "before": "if(process.argv.includes('--production')){",
+      "after": "const panel252Bytes=fs.readFileSync(path.join(root,'docs/freeze/ec-orders-panel-compatibility-v252-20261119.json'));\nassert.equal(sha(panel252Bytes),'d8f66e80c9cd6b93b25588b802f67c0e93614afa2f8b23ecc8d1c3a1be4c4363');\nconst panel252=JSON.parse(panel252Bytes);assert.equal(panel252.beforeSha256,panelConcurrentSecond.sha256);\nif(process.argv.includes('--production')){"
+    },
+    {
+      "before": "changes=json.loads(${JSON.stringify(JSON.stringify(key==='cta'?[nativeCta250]:[panelConcurrentSecond,panelConcurrent]))})\\nfor change in changes:",
+      "after": "changes=json.loads(${JSON.stringify(JSON.stringify(key==='cta'?[nativeCta250]:[panelConcurrentSecond,panelConcurrent]))})\\nextra=json.loads(${JSON.stringify(JSON.stringify(panel252))})\\nif ${key==='panel'?'True':'False'} and hashlib.sha256(data).hexdigest()==extra['sha256']:changes.insert(0,extra)\\nfor change in changes:"
+    }
+  ]
+}

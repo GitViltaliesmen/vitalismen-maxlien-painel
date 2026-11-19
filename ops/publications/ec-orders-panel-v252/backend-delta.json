@@ -1,0 +1,256 @@
+{
+  "project": "VITALISMEN_EC",
+  "files": {
+    "src/models/Order.js": {
+      "beforeSha256": "cbca2b39212d4c7f834d040b05e3578c5ea1a2a8a89d5b167a8092464933bdbf",
+      "afterSha256": "9bea1849b5c3515804eb0b0a81b3e078c1a4fe4d5437e1f014aa1dc4cb9a1e53",
+      "changes": [
+        {
+          "before": "import mongoose from 'mongoose';",
+          "after": "import mongoose from 'mongoose';\nimport { prepareConfirmedDropiDispatchV252 } from '../services/confirmedDropiDispatchV252Service.js';"
+        },
+        {
+          "before": "    integration: { type: mongoose.Schema.Types.Mixed, default: null },",
+          "after": "    dropiDispatchV252: {\n        version: { type: Number, enum: [252] },\n        status: { type: String, enum: ['pending', 'claimed', 'submitted', 'review'] },\n        requestedAt: Date, startedAt: Date, completedAt: Date,\n        attempts: Number, leaseToken: String, reason: String\n    },\n    integration: { type: mongoose.Schema.Types.Mixed, default: null },"
+        },
+        {
+          "before": "    // Track last interaction\n",
+          "after": "    prepareConfirmedDropiDispatchV252(this, { transition: this.isNew || this.isModified('status') });\n    // Track last interaction\n"
+        }
+      ]
+    },
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": {
+      "beforeSha256": "fcf4184b1721ede6b5207adbbba5fd5deb3440450afa5098279c3c6f5a3c74ae",
+      "afterSha256": "9d4ec30a977eca4c82fe3ac4e63a9be59075b5562d88b2cf868a540574037456",
+      "changes": [
+        {
+          "before": "import { assertBurstEnvelopeV228",
+          "after": "import { isAutomaticDropiContextV252, automaticDropiMongoAllowedV252, automaticDropiExternalAllowedV252 } from './confirmedDropiDispatchV252Service.js';\nimport { assertBurstEnvelopeV228"
+        },
+        {
+          "before": "export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.env) => {",
+          "after": "export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.env) => {\n    if (isAutomaticDropiContextV252()) {\n        if (automaticDropiExternalAllowedV252(effect)) return true;\n        throw new Error('automatic_dropi_external_effect_denied');\n    }"
+        },
+        {
+          "before": "export const isEcManualDropiExternalEffectAllowedV119 = (effect, env = process.env) => (\n",
+          "after": "export const isEcManualDropiExternalEffectAllowedV119 = (effect, env = process.env) => (\n    automaticDropiExternalAllowedV252(effect) ||\n"
+        },
+        {
+          "before": "                const b01ScopeV216 = currentEcBotCoreRuntimeContextV78()?.b01V216;",
+          "after": "                if (isAutomaticDropiContextV252()) {\n                    const collection = String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase();\n                    if (!automaticDropiMongoAllowedV252(collection, method, args)) throw new Error('automatic_dropi_scoped_mongo_write_denied');\n                    return original.apply(this, args);\n                }\n                const b01ScopeV216 = currentEcBotCoreRuntimeContextV78()?.b01V216;"
+        }
+      ]
+    },
+    "src/services/ecDropiHumanAuthorizationV138Service.js": {
+      "beforeSha256": "4353bb007ba9c2b235815508ba3f42c69f1fbf02149a7c6a1a18563c43460494",
+      "afterSha256": "79c49c13d7bce631a235e354ed2f90817409c6f7593f263f60fdce4eb0d29ba9",
+      "changes": [
+        {
+          "before": "const clean = value",
+          "after": "import { automaticDropiOrderAllowedV252 } from './confirmedDropiDispatchV252Service.js';\n\nconst clean = value"
+        },
+        {
+          "before": "export const ecHumanDropiSubmitBlockV138 = ({ order, shipment } = {}) => {",
+          "after": "export const ecHumanDropiSubmitBlockV138 = ({ order, shipment } = {}) => {\n    if (automaticDropiOrderAllowedV252(order, shipment)) return null;"
+        }
+      ]
+    },
+    "src/routes/shipments.js": {
+      "beforeSha256": "8b562c97b3a958c2c9706c5427e62eedb09c846a62debbaddbca3ac238ea080c",
+      "afterSha256": "a29d4b5a4d441ead3a1b4fd72fdd97d1ec669ca4c0825da11c0de88a05578cd4",
+      "changes": [
+        {
+          "before": "import express from 'express';",
+          "after": "import express from 'express';\nimport { automaticDropiPolicyV252, isAutomaticDropiContextV252, processConfirmedDropiDispatchV252 } from '../services/confirmedDropiDispatchV252Service.js';"
+        },
+        {
+          "before": "const enqueueDropiSubmitJob = async ({ order, shipment, user = null }) => {",
+          "after": "const enqueueDropiSubmitJob = async ({ order, shipment, user = null, awaitResultV252 = false }) => {"
+        },
+        {
+          "before": "    const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({\n        order,\n        shipment,\n        dropiResult: result,",
+          "after": "    if (isAutomaticDropiContextV252()) return result;\n    const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({\n        order,\n        shipment,\n        dropiResult: result,"
+        },
+        {
+          "before": "        message: 'Envio iniciado na Dropi. O painel vai atualizar em instantes.'",
+          "after": "        message: 'Envio iniciado na Dropi. O painel vai atualizar em instantes.'"
+        },
+        {
+          "before": "    return {\n        ok: true,\n        success: true,\n        submitQueued: true,\n        processing: true,\n        shipment: queuedShipment,",
+          "after": "    if (awaitResultV252) return dropiSubmitQueue;\n    return {\n        ok: true,\n        success: true,\n        submitQueued: true,\n        processing: true,\n        shipment: queuedShipment,"
+        },
+        {
+          "before": "const getPendingDropiEcOrders = async (limit = 3) => {",
+          "after": "// V252 uses the existing serialized provider queue. No new cron or legacy worker.\nlet confirmedDropiTickV252Busy = false;\nconst confirmedDropiTickV252 = async () => {\n    if (confirmedDropiTickV252Busy || !automaticDropiPolicyV252()) return;\n    confirmedDropiTickV252Busy = true;\n    try {\n        await processConfirmedDropiDispatchV252({ orderModel: Order, shipmentModel: Shipment,\n            readiness: ecDropiOrderReadinessV138, history: assertCustomerHistoryForDropiV203,\n            dispatch: async order => {\n                const shipment = await ensureShipmentForOrder(order, 'EC');\n                const duplicate = await getDropiDuplicateGuardForOrder(order, shipment);\n                if (duplicate?.allowed !== true) return { ok: false, reason: 'duplicate_guard', duplicateBlocked: true };\n                if (shipment.review?.manualOnly === true) return { ok: false, reason: 'existing_manual_review' };\n                shipment.automation.dropiSubmitAuthorizedAt = new Date();\n                shipment.automation.dropiSubmitAuthorizedBy = 'system:confirmed-order-v252';\n                shipment.automation.dropiSubmitAuthorizationNote = 'Confirmação válida posterior à ativação V252; autorização operacional do titular.';\n                await shipment.save();\n                return enqueueDropiSubmitJob({ order, shipment, awaitResultV252: true });\n            }\n        });\n    } catch (error) { console.error('[V252] confirmed Dropi queue:', error.code || error.message); }\n    finally { confirmedDropiTickV252Busy = false; }\n};\nif (automaticDropiPolicyV252()) {\n    const timerV252 = setInterval(confirmedDropiTickV252, 30_000);\n    timerV252.unref();\n}\n\nconst getPendingDropiEcOrders = async (limit = 3) => {"
+        },
+        {
+          "before": "router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req, res) => {\n    try {",
+          "after": "router.post('/droppi/ec/orders/:orderId/authorize-submit', adminOnly, async (req, res) => {\n    try {\n        if (req.body?.reconcileExistingV252 === true) {\n            const grant = historicalDropiRecoveryGrantV252(req.params.orderId);\n            if (!grant) return res.status(409).json({ success: false, error: 'verified_existing_sale_grant_required' });\n            const payload = grant.payload;\n            let existing = await Shipment.findOne({ orderId: payload.orderId, country: 'EC' });\n            if (existing) {\n                const same = String(existing.raw?.manualDropiOrderId) === payload.dropiOrderId\n                    && existing.logistics?.trackingNumber === payload.trackingNumber\n                    && String(existing.client?.phone || '').replace(/\\D/g, '') === String(payload.phone).replace(/\\D/g, '');\n                return res.status(same ? 200 : 409).json({ success: same, reconciled: same, alreadyBound: same,\n                    orderId: payload.orderId, dropiOrderId: payload.dropiOrderId, newRemoteOrders: 0, newOrders: 0 });\n            }\n            const state = await ContactState.findOne({ _id: payload.customerId, countryCode: 'EC',\n                phoneDigits: String(payload.phone).replace(/\\D/g, '') });\n            if (!state || Number(state.updatedAt) !== Date.parse(grant.expectedContactUpdatedAt))\n                return res.status(409).json({ success: false, error: 'existing_sale_contact_changed' });\n            const tail = String(payload.phone).replace(/\\D/g, '').slice(-9);\n            const collision = await Shipment.findOne({ country: 'EC', $or: [\n                { 'client.phone': { $regex: tail + '$' } }, { 'logistics.trackingNumber': payload.trackingNumber },\n                { 'raw.manualDropiOrderId': { $in: [payload.dropiOrderId, Number(payload.dropiOrderId)] } }\n            ] });\n            const oldOrder = await Order.findOne({ country: 'EC', $or: [\n                { 'customer.phone': { $regex: tail + '$' } }, { trackingNumber: payload.trackingNumber },\n                { dropiOrderId: { $in: [payload.dropiOrderId, Number(payload.dropiOrderId)] } }\n            ] });\n            if (collision || oldOrder) return res.status(409).json({ success: false, error: 'existing_sale_binding_conflict' });\n            const shipment = await upsertDroppiEcuadorShipment(payload);\n            shipment.automation.submittedToDroppiAt = new Date(grant.remoteCreatedAt);\n            shipment.raw.latestDroppiPayload = { ...shipment.raw.latestDroppiPayload, status: 'submitted',\n                dropiStatus: payload.dropiRawStatus, dropiOrderId: payload.dropiOrderId,\n                submittedAt: shipment.automation.submittedToDroppiAt };\n            await shipment.save();\n            return res.json({ success: true, reconciled: true, orderId: shipment.orderId,\n                dropiOrderId: payload.dropiOrderId, trackingNumber: payload.trackingNumber,\n                newRemoteOrders: 0, newOrders: 0, metaReplay: false });\n        }\n"
+        },
+        {
+          "before": "import { automaticDropiPolicyV252, isAutomaticDropiContextV252, processConfirmedDropiDispatchV252 }",
+          "after": "import { automaticDropiPolicyV252, isAutomaticDropiContextV252, processConfirmedDropiDispatchV252, historicalDropiRecoveryGrantV252 }"
+        },
+        {
+          "before": "                submittedAt: shipment.automation.submittedToDroppiAt };\n            await shipment.save();",
+          "after": "                submittedAt: shipment.automation.submittedToDroppiAt };\n            shipment.markModified('raw');\n            await shipment.save();"
+        },
+        {
+          "before": "import ContactState from '../models/ContactState.js';",
+          "after": "import ContactState from '../models/ContactState.js';\nimport { historicalExternalPostSaleEvidenceV140 } from '../services/ecDropiStatusPostSaleV139Service.js';"
+        },
+        {
+          "before": "    if (!tail) return { order: null, shipment: null };\n    const orders = await Order.find({",
+          "after": "    if (!tail) return { order: null, shipment: null };\n    const deliveredExternal = async () => {\n        const external = await Shipment.find({ country: 'EC', 'client.phone': { $regex: tail + '$' },\n            'logistics.status': 'ENTREGADO', 'outcomes.delivered': true,\n            'raw.historicalExternalReconciliation.source': 'HISTORICAL_EXTERNAL_RECONCILIATION'\n        }).sort({ 'automation.deliveredConfirmedAt': -1, updatedAt: -1 }).limit(5);\n        const shipment = external.find(item => historicalExternalPostSaleEvidenceV140(item)\n            && String(item.client?.phone || '').replace(/\\D/g, '') === phoneDigits\n            && Number.isFinite(new Date(item.automation?.deliveredConfirmedAt || '').getTime()));\n        if (!shipment) return { order: null, shipment: null };\n        // Immutable prior-sale view only. Do not create an old Order, invent a\n        // commercial snapshot, replay Purchase or reuse this ID for the new sale.\n        return { shipment, order: { orderId: shipment.orderId, country: 'EC', status: 'delivered',\n            customer: { phone: shipment.client.phone }, tracking: {},\n            deliveredAt: shipment.automation.deliveredConfirmedAt,\n            shippingStatus: 'ENTREGADO' } };\n    };\n    const orders = await Order.find({"
+        },
+        {
+          "before": "    if (!orders.length) return { order: null, shipment: null };",
+          "after": "    if (!orders.length) return deliveredExternal();"
+        },
+        {
+          "before": "    return {\n        order,\n        shipment: order ? shipmentByOrderId.get(order.orderId) || null : null\n    };",
+          "after": "    if (!order) return deliveredExternal();\n    return {\n        order,\n        shipment: shipmentByOrderId.get(order.orderId) || null\n    };"
+        },
+        {
+          "before": "            const payload = grant.payload;\n            let existing = await Shipment.findOne({ orderId: payload.orderId, country: 'EC' });",
+          "after": "            const payload = grant.payload;\n            let existing = await Shipment.findOne({ orderId: payload.orderId, country: 'EC' });\n            if (grant.kind === 'VERIFIED_NATIVE_ORDER_DROPI_LINK_V252') {\n                const native = await Order.findOne({ _id: grant.nativeOrderObjectId, orderId: payload.orderId, country: 'EC' });\n                const state = await ContactState.findOne({ _id: payload.customerId, countryCode: 'EC',\n                    phoneDigits: String(payload.phone).replace(/\\D/g, '') });\n                const previousId = String(existing?.raw?.manualDropiOrderId || existing?.raw?.latestDroppiPayload?.dropiOrderId || '');\n                if (!native || !state || String(native.customer?.phone || '').replace(/\\D/g, '') !== state.phoneDigits)\n                    return res.status(409).json({ success: false, error: 'native_link_identity_mismatch' });\n                if (String(native.dropiOrderId || '') === payload.dropiOrderId && previousId === payload.dropiOrderId\n                    && existing?.raw?.latestDroppiPayload?.status === 'submitted')\n                    return res.json({ success: true, reconciled: true, alreadyBound: true, orderId: native.orderId,\n                        dropiOrderId: payload.dropiOrderId, newOrders: 0, newRemoteOrders: 0 });\n                if (!['confirmed','processing'].includes(native.status)\n                    || Number(native.updatedAt) !== Date.parse(grant.expectedOrderUpdatedAt)\n                    || Number(state.updatedAt) !== Date.parse(grant.expectedContactUpdatedAt)\n                    || state.metadata?.customerDraft?.orderId !== native.orderId\n                    || detectExplicitEcuadorProductKey(native) !== grant.nativeProductKey\n                    || Number(native.package?.quantity) !== Number(grant.nativeQuantity) || Number(native.total) !== Number(grant.nativeTotal))\n                    return res.status(409).json({ success: false, error: 'native_link_snapshot_changed' });\n                const ready = ecDropiOrderReadinessV138({ ...native.toObject(), status: 'confirmed' });\n                if (!ready.ready) return res.status(422).json({ success: false, error: 'native_link_order_not_ready' });\n                if ((native.dropiOrderId && String(native.dropiOrderId) !== payload.dropiOrderId)\n                    || (previousId && previousId !== payload.dropiOrderId)\n                    || (existing?.logistics?.trackingNumber && existing.logistics.trackingNumber !== payload.trackingNumber))\n                    return res.status(409).json({ success: false, error: 'native_link_existing_receipt_conflict' });\n                if (Number(new Date(existing?.automation?.submitLockedUntil || 0)) > Date.now()\n                    || (native.dropiDispatchV252?.status === 'claimed'\n                        && Number(new Date(native.dropiDispatchV252.startedAt)) > Date.now() - 15 * 60000))\n                    return res.status(409).json({ success: false, error: 'native_link_submission_in_progress' });\n                const resetPreflight = existing?.review?.manualOnly === true\n                    && ['dropi_preflight_failed','dropi_submit_error'].includes(existing.review.reviewReason);\n                if (existing?.review?.manualOnly === true && !resetPreflight)\n                    return res.status(409).json({ success: false, error: 'native_link_explicit_manual_review_preserved' });\n                const ids = [payload.dropiOrderId, Number(payload.dropiOrderId)];\n                const duplicate = await Shipment.findOne({ country: 'EC', orderId: { $ne: native.orderId }, $or: [\n                    { 'raw.manualDropiOrderId': { $in: ids } }, { 'raw.latestDroppiPayload.dropiOrderId': { $in: ids } },\n                    ...(payload.trackingNumber ? [{ 'logistics.trackingNumber': payload.trackingNumber }] : [])\n                ] });\n                const duplicateOrder = await Order.findOne({ country: 'EC', _id: { $ne: native._id }, dropiOrderId: { $in: ids } });\n                if (duplicate || duplicateOrder) return res.status(409).json({ success: false, error: 'native_link_remote_id_already_bound' });\n                const set = { status: 'processing', dropiOrderId: payload.dropiOrderId, shippingStatus: payload.status,\n                    ...(payload.trackingNumber ? { trackingNumber: payload.trackingNumber } : {}) };\n                if (native.dropiDispatchV252?.requestedAt) Object.assign(set, { 'dropiDispatchV252.status': 'submitted',\n                    'dropiDispatchV252.completedAt': new Date(), 'dropiDispatchV252.reason': 'verified_existing_remote_order' });\n                const linked = await Order.findOneAndUpdate({ _id: native._id, country: 'EC', updatedAt: native.updatedAt }, { $set: set }, { new: true });\n                if (!linked) return res.status(409).json({ success: false, error: 'native_link_order_changed_during_reconciliation' });\n                const shipment = await upsertDroppiEcuadorShipment({ ...payload, quantity: native.package.quantity,\n                    productName: native.tracking?.productName || native.package.label, clientName: native.customer.name,\n                    address: native.customer.address, city: native.customer.city, province: native.customer.province,\n                    reference: native.customer.reference || '', agencyPickup: native.delivery?.mode === 'agency' });\n                shipment.automation.submittedToDroppiAt = new Date(grant.remoteCreatedAt);\n                shipment.raw.latestDroppiPayload = { ...shipment.raw.latestDroppiPayload, status: 'submitted',\n                    dropiStatus: payload.dropiRawStatus, dropiOrderId: payload.dropiOrderId, submittedAt: shipment.automation.submittedToDroppiAt };\n                shipment.raw.nativeDropiLinkV252 = { source: 'VERIFIED_NATIVE_DROPI_LINK_V252', observedAt: grant.observedAt,\n                    nativeOrderId: native.orderId, dropiOrderId: payload.dropiOrderId, commercialSnapshotPreserved: true };\n                if (resetPreflight) { shipment.review.manualOnly = false; shipment.review.reviewReason = '';\n                    shipment.review.reviewStatus = 'submitted'; }\n                shipment.events.push({ kind: 'native_order_dropi_link_verified_v252', at: new Date(),\n                    payload: { dropiOrderId: payload.dropiOrderId, newRemoteOrders: 0, priorFailureResolved: resetPreflight } });\n                shipment.events = shipment.events.slice(-60); shipment.markModified('raw'); await shipment.save();\n                const current = await ContactState.findById(state._id);\n                if (current?.metadata?.customerDraft?.orderId === native.orderId) {\n                    current.metadata = { ...current.metadata, dropi: { ...(current.metadata?.dropi || {}),\n                        status: 'submitted_verified', dropiOrderId: payload.dropiOrderId, orderId: native.orderId },\n                        customerDraft: { ...current.metadata.customerDraft, status: 'pedido_enviado' } };\n                    if (!(current.tags || []).includes('FEITO_DROPI')) current.tags.push('FEITO_DROPI');\n                    current.markModified('metadata'); await current.save();\n                }\n                return res.json({ success: true, reconciled: true, nativeOrderPreserved: true, orderId: native.orderId,\n                    dropiOrderId: payload.dropiOrderId, newOrders: 0, newRemoteOrders: 0, metaReplay: false });\n            }\n"
+        },
+        {
+          "before": "                const current = await ContactState.findById(state._id);\n                if (current?.metadata?.customerDraft?.orderId === native.orderId) {\n                    current.metadata = { ...current.metadata, dropi: { ...(current.metadata?.dropi || {}),\n                        status: 'submitted_verified', dropiOrderId: payload.dropiOrderId, orderId: native.orderId },\n                        customerDraft: { ...current.metadata.customerDraft, status: 'pedido_enviado' } };\n                    if (!(current.tags || []).includes('FEITO_DROPI')) current.tags.push('FEITO_DROPI');\n                    current.markModified('metadata'); await current.save();\n                }\n",
+          "after": "                // Atomic dotted writes preserve concurrent inbound memory and a newer repurchase draft.\n                await ContactState.updateOne({ _id: state._id, countryCode: 'EC', phoneDigits: state.phoneDigits,\n                    'metadata.customerDraft.orderId': native.orderId }, { $set: {\n                    'metadata.dropi.status': 'submitted_verified', 'metadata.dropi.dropiOrderId': payload.dropiOrderId,\n                    'metadata.dropi.orderId': native.orderId, 'metadata.customerDraft.status': 'pedido_enviado'\n                }, $addToSet: { tags: 'FEITO_DROPI' } });\n"
+        },
+        {
+          "before": "await ContactState.updateOne({ _id: state._id, countryCode: 'EC', phoneDigits: state.phoneDigits,\n                    'metadata.customerDraft.orderId': native.orderId }",
+          "after": "await ContactState.updateOne({ _id: state._id, countryCode: 'EC', phoneDigits: state.phoneDigits,\n                    updatedAt: state.updatedAt, 'metadata.customerDraft.orderId': native.orderId }"
+        }
+      ],
+      "candidateSha256": "a29d4b5a4d441ead3a1b4fd72fdd97d1ec669ca4c0825da11c0de88a05578cd4"
+    },
+    "src/services/adminPanelStatusService.js": {
+      "beforeSha256": "08eb3f221f996607faa45f290393446d433b1d0f929a173bd233821db40cf4b1",
+      "afterSha256": "b7dc50a82113aadd4fa292e5ee29625fd37bb9aa2659d0f0c43c3ee0ab49872f",
+      "changes": [
+        {
+          "before": "status: adminStatus || normalizeAdminStatus({ status: draft.status || 'draft' }),",
+          "after": "status: adminStatus || (normalizeAdminStatus({ status: draft.status || 'draft' }) === 'novo'\n            ? 'atendendo' : normalizeAdminStatus({ status: draft.status || 'draft' })),"
+        }
+      ]
+    },
+    "src/services/postSaleDropiTrackingReconcilerV194Service.js": {
+      "beforeSha256": "8934da96f48c1902a7182a40b5d7b8c4d07d2554dfe3b9ff401d675659bfbab9",
+      "afterSha256": "cbe64393c73f1c1fa0c913773a31c28e46aa650ca5e738227f10625fb5edfe4b",
+      "changes": [
+        {
+          "before": "import crypto from 'node:crypto';",
+          "after": "import crypto from 'node:crypto';\nimport { canonicalLogisticsProjectionV147 } from './canonicalLogisticsStatusV147Service.js';\nimport { authoritativeDropiPickupReleaseV168B } from './dropiPickupReleaseV168BService.js';"
+        },
+        {
+          "before": "    const normalizedStatus = normalizeDroppiEcuadorStatus(row?.status || 'GUIA_GENERADA')",
+          "after": "    if (clean(shipment?.logistics?.trackingNumber) && clean(shipment.logistics.trackingNumber) !== validated.value) {\n        return classification({ state: POST_SALE_DROPI_TRACKING_V194_STATES.MANUAL_REVIEW, reason: 'persisted_tracking_conflict', row });\n    }\n    const normalizedStatus = normalizeDroppiEcuadorStatus(row?.status || 'GUIA_GENERADA')"
+        },
+        {
+          "before": "nextSyncAt: null, statusChanged",
+          "after": "nextSyncAt: new Date(now.getTime() + 60 * 60_000), statusChanged"
+        },
+        {
+          "before": "        { $or: [\n            { 'logistics.trackingNumber': { $exists: false } },\n            { 'logistics.trackingNumber': null },\n            { 'logistics.trackingNumber': '' }\n        ] },",
+          "after": "        { 'logistics.canonicalStatus': { $nin: ['DELIVERED', 'RETURNED'] } },\n        { 'logistics.status': { $nin: ['ENTREGADO', 'DEVUELTO', 'CANCELADO', 'CANCELADO_SERVIENTREGA'] } },"
+        },
+        {
+          "before": "        if (!clean(shipment?.logistics?.canonicalStatus) || clean(shipment?.logistics?.canonicalStatus) === 'UNKNOWN') {",
+          "after": "        const projection = canonicalLogisticsProjectionV147({ provider: 'dropi', providerStatus: rowStatus });\n        const explicitPickup = authoritativeDropiPickupReleaseV168B({ status: rowStatus,\n            source: 'dropi_orders_api', dropiOrderId, trackingNumber: result.trackingNumber,\n            agencyPickup: shipment.logistics?.agencyPickup === true,\n            distributionCompany: clean(result.row?.distributionCompany || shipment.logistics?.distributionCompany) });\n        if (projection.canonicalStatus !== 'UNKNOWN' && (projection.canonicalStatus !== 'READY_FOR_PICKUP' || explicitPickup)) {\n            for (const field of ['canonicalStatus', 'terminal', 'canPickup', 'reminderEligible', 'reviewRequired', 'panelLabel']) set['logistics.' + field] = projection[field];\n            set['logistics.canonicalEvidence'] = canonicalGuideEvidence({ row: result.row, dropiOrderId, trackingNumber: result.trackingNumber, now });\n            set['logistics.lastStatusAt'] = now;\n            set['raw.latestDroppiPayload.dropiStatus'] = rowStatus;\n            set['raw.latestDroppiPayload.reconciliationSource'] = 'dropi_orders_api';\n            set['raw.latestDroppiPayload.dropiOrderId'] = dropiOrderId;\n            set['raw.latestDroppiPayload.trackingNumber'] = result.trackingNumber;\n            if (explicitPickup) {\n                set['logistics.pickupReadyVerified'] = true;\n                set['logistics.pickupReadyVerifiedAt'] = now;\n                set['logistics.pickupReadyVerifiedSource'] = 'dropi_orders_api';\n            }\n        } else if (!clean(shipment?.logistics?.canonicalStatus) || clean(shipment?.logistics?.canonicalStatus) === 'UNKNOWN') {"
+        },
+        {
+          "before": ".sort({ createdAt: 1, updatedAt: 1 })",
+          "after": ".sort({ 'raw.postSaleV194DropiSync.lastSyncAt': 1, createdAt: 1 })"
+        },
+        {
+          "before": "        set['logistics.status'] = normalizedStatus;\n",
+          "after": "        const remoteFinal = ['ENTREGADO', 'DEVUELTO', 'CANCELADO', 'CANCELADO_SERVIENTREGA'].includes(normalizedStatus);\n        // Carrier-confirmed terminal delivery drives thank-you/repurchase. A Dropi\n        // final status must not remove this shipment from the carrier sweep.\n        set['logistics.status'] = remoteFinal ? (clean(shipment?.logistics?.status) || 'GUIA_GENERADA') : normalizedStatus;\n        set[`${ROOT}.terminalDeferredToCarrier`] = remoteFinal;\n        set['raw.latestDroppiPayload.dropiStatus'] = rowStatus;\n        set['raw.latestDroppiPayload.reconciliationSource'] = 'dropi_orders_api';\n        set['raw.latestDroppiPayload.dropiOrderId'] = dropiOrderId;\n        set['raw.latestDroppiPayload.trackingNumber'] = result.trackingNumber;\n"
+        },
+        {
+          "before": "if (projection.canonicalStatus !== 'UNKNOWN' && (projection.canonicalStatus !== 'READY_FOR_PICKUP' || explicitPickup)) {",
+          "after": "if (!remoteFinal && projection.terminal !== true && projection.canonicalStatus !== 'UNKNOWN' && (projection.canonicalStatus !== 'READY_FOR_PICKUP' || explicitPickup)) {"
+        }
+      ]
+    },
+    "src/services/droppiEcuadorBrowserService.js": {
+      "beforeSha256": "1c33db3286dcb7638fb598dcdd39896c2011970f8624f67a871ef1d319e5b9b4",
+      "afterSha256": "91bd43980c408e018537e14ca5baffdd0d63e1d28726f4b468b3ba6b61e9f254",
+      "changes": [
+        {
+          "before": "import { giraDropiOffer }",
+          "after": "import { isAutomaticDropiContextV252 } from './confirmedDropiDispatchV252Service.js';\nimport { giraDropiOffer }"
+        },
+        {
+          "before": "    const query = buildContactLookupForShipment(shipment);",
+          "after": "    const query = isAutomaticDropiContextV252()\n        ? { countryCode: 'EC', phoneDigits: String(shipment?.client?.phone || '').replace(/\\D/g, '') }\n        : buildContactLookupForShipment(shipment);"
+        },
+        {
+          "before": "const performOfficialBffLogin = async",
+          "after": "const alignValidatedDropiSessionTokenV252 = async (page, expectedLoginResult = {}) => {\n    const auth = await getDropiBrowserAuth(page);\n    if (!isUnexpiredDropiToken(auth.token) || !dropiAccountIdentityIsPresent(auth.loginResult)\n        || (dropiAccountIdentityIsPresent(expectedLoginResult) && !sameDropiAccountIdentity(expectedLoginResult, auth.loginResult))) {\n        throw new Error('DROPI_AUTH_FAILED ACCOUNT_IDENTITY_MISMATCH');\n    }\n    const aligned = { ...auth.loginResult, token: auth.token, isSuccess: true };\n    if (!isFinalDropiLoginResult(aligned)) throw new Error('DROPI_AUTH_FAILED SESSION_NOT_PERSISTABLE');\n    if (auth.token === auth.loginResult.token) return false;\n    await page.evaluate(value => window.localStorage.setItem('DROPI_LoginResult', JSON.stringify(value)), aligned);\n    return true;\n};\n\nconst performOfficialBffLogin = async"
+        },
+        {
+          "before": "if (dropiAccountIdentityIsPresent(pageLoginResult)) expectedLoginResult = pageLoginResult;",
+          "after": "if (!dropiAccountIdentityIsPresent(expectedLoginResult) && dropiAccountIdentityIsPresent(pageLoginResult)) expectedLoginResult = pageLoginResult;"
+        },
+        {
+          "before": "        if (storedProbe.ok) return;",
+          "after": "        if (storedProbe.ok) {\n            await alignValidatedDropiSessionTokenV252(page, expectedLoginResult);\n            return;\n        }"
+        },
+        {
+          "before": "    if (!finalProbe.ok) throw new Error(`DROPI_AUTH_FAILED BFF_HTTP_${finalProbe.status || 0}`);",
+          "after": "    if (!finalProbe.ok) throw new Error(`DROPI_AUTH_FAILED BFF_HTTP_${finalProbe.status || 0}`);\n    await alignValidatedDropiSessionTokenV252(page, expectedLoginResult);"
+        },
+        {
+          "before": "country: ['COLOM', 'BIA'].join('')",
+          "after": "country: 'ECUADOR'"
+        }
+      ]
+    },
+    "src/routes/whatsapp.js": {
+      "beforeSha256": "6570041166d27297a73dcbb5b5c4ae2558708b8048b7f701e44cd8384d72ab21",
+      "afterSha256": "0ce4c0c6998937b8605dd7bfc551044c976857cd878b3e4388730da8b768af3c",
+      "changes": [
+        {
+          "before": "            const dataFields = state.customerDataResolution?.fields || {};",
+          "after": "            if (!internalOrTest && normalizePanelStatus(cleanDraft.status) === 'confirmado'\n                && (customerDataBlockedResponse || !isValidPanelPackageQuantity(cleanDraft.quantity) || !(Number(cleanDraft.total) > 0))) {\n                cleanDraft.status = 'atendendo';\n                customerDataBlockedResponse = customerDataBlockedResponse || { error: 'confirmed_order_incomplete',\n                    message: 'Ficha salva em Atendendo. Complete quantidade e valor antes de confirmar o pedido.', customerDraft: cleanDraft };\n            }\n            const dataFields = state.customerDataResolution?.fields || {};"
+        },
+        {
+          "before": "const realContacts = contacts.filter((contact) => realPhoneFromState(contact));",
+          "after": "const realContacts = contacts.filter((contact) => realPhoneFromState(contact)\n            && digitsOnly(realPhoneFromState(contact)) !== '5515998038637');"
+        }
+      ]
+    },
+    "src/services/postSaleFullExecutorV188Service.js": {
+      "beforeSha256": "dec0dfd7806125094a7867489cab03b21c5408f2449749931bdc1442f7c92d2e",
+      "changes": [
+        {
+          "before": "import Shipment from '../models/Shipment.js';",
+          "after": "import Shipment from '../models/Shipment.js';\nimport { pickupReadyVerifiedSourceAllowedV168B } from './dropiPickupReleaseV168BService.js';"
+        },
+        {
+          "before": "clean(shipment?.logistics?.pickupReadyVerifiedSource) !== 'carrier_tracking'",
+          "after": "!pickupReadyVerifiedSourceAllowedV168B(shipment?.logistics?.pickupReadyVerifiedSource)"
+        },
+        {
+          "before": "'logistics.pickupReadyVerifiedSource': 'carrier_tracking'",
+          "after": "'logistics.pickupReadyVerifiedSource': { $in: ['carrier_tracking', 'dropi_orders_api'] }"
+        }
+      ]
+    },
+    "src/services/postSaleForwardOnlyV194Service.js": {
+      "beforeSha256": "0797c02899686ddde2912a3f5acb88a4f30f9e9e756a9f919bea211dfbec1d32",
+      "changes": [
+        {
+          "before": "'logistics.pickupReadyVerifiedSource': 'carrier_tracking'",
+          "after": "'logistics.pickupReadyVerifiedSource': { $in: ['carrier_tracking', 'dropi_orders_api'] }"
+        },
+        {
+          "before": "    if (!cutoff) return false;\n    if (shipment?.review?.manualOnly === true) return false;",
+          "after": "    if (!cutoff) return false;\n    if (shipment?.raw?.postSaleV194DropiSync?.terminalDeferredToCarrier === true) {\n        // Keep carrier polling alive while suppressing stale guide/transit/retirement\n        // messages after a final Dropi observation. Completion still needs real carrier proof.\n        const evidence = shipment?.logistics?.canonicalEvidence || {};\n        const carrierFinal = evidence.source === 'carrier_tracking' && /^servientrega$/i.test(clean(evidence.provider))\n            && afterOrEqual(evidence.observedAt, asDate(shipment.raw.postSaleV194DropiSync.lastSyncAt) || cutoff);\n        const delivered = shipment?.logistics?.canonicalStatus === 'DELIVERED' && [POST_SALE_STAGES.DELIVERED_THANK_YOU,\n            POST_SALE_STAGES.PICKUP_BONUS, POST_SALE_STAGES.PRODUCT_USAGE, POST_SALE_STAGES.TREATMENT_REFILL_REMINDER].includes(stage);\n        const returned = shipment?.logistics?.canonicalStatus === 'RETURNED' && stage === POST_SALE_STAGES.RETURNED;\n        if (!carrierFinal || (!delivered && !returned)) return false;\n    }\n    if (shipment?.review?.manualOnly === true) return false;"
+        }
+      ]
+    }
+  }
+}
