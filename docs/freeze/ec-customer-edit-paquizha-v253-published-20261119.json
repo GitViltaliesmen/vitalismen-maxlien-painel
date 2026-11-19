@@ -1,0 +1,154 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 253,
+  "status": "PUBLISHED_ACTIVE_FROZEN",
+  "recordedAt": "2026-11-19T20:16:49.731970+00:00",
+  "authorization": "USER_20261119_EDIT_CUSTOMER_CARD_ADD_PAQUIZHA_SAVE_FREEZE",
+  "runtime": {
+    "commit": "c0664818c7468b9e7dfd55e320f77fcb273b77e5",
+    "tree": "a56ef74767d360dee430b3932129bafc5969946e",
+    "release": "/opt/vitalismen-automacao/releases/20261119T183818Z_production-20261119-c066481",
+    "sourceRef": "refs/heads/codex/ec-customer-edit-paquizha-v253-20261119-r2",
+    "seal": "ef6d01bdc21f8bd5520e97101cf7edfcd74cb4957929d32dea90e3d16f50bcdf",
+    "parentCommit": "959674ce88eed400012b57b28fdef4c6838869b5",
+    "parentRelease": "/opt/vitalismen-automacao/releases/20261119T160921Z_production-20261119-959674c",
+    "pid": 260377,
+    "actualProcessCwd": "/opt/vitalismen-automacao/releases/20261119T183818Z_production-20261119-c066481",
+    "pmExecPath": "/opt/vitalismen-automacao/current/src/index.js",
+    "restartDelta": 1,
+    "publicationTag": "production-20261119-c066481"
+  },
+  "sourcePublication": {
+    "artifactCommit": "caece68af16d585bda0691e193885faaed726bdb",
+    "artifactRef": "refs/heads/codex/ec-customer-edit-paquizha-v253-artifacts-20261119-r2",
+    "productionBranchChanged": false,
+    "localUserIndexPreserved": true
+  },
+  "allowedRuntimeDelta": [
+    "docs/freeze/ec-customer-edit-paquizha-v253-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/data/agencia_LISTA.json",
+    "tests/customer-edit-paquizha-v253.test.mjs"
+  ],
+  "runtimeHashes": {
+    "docs/freeze/ec-customer-edit-paquizha-v253-contract.json": "861c8fe8dad8184ecb473a810bc626fdd10795fdbfadbb76264b60aa69ce8612",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "243a73b3fb464276e3d314dc559beb952b077adee75438c4dd2483d27b188b95",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "1446170db1afcba1743058e93ae934774d2f31884bbb8a1146497ea1171aae95",
+    "src/data/agencia_LISTA.json": "0b3a6dc90fc347452bc63d5f244ba4adc2cfa83f5e03c80b49a57751c637ebc1",
+    "tests/customer-edit-paquizha-v253.test.mjs": "c689725afcc9cb60e07d0a8b03922ea4e8ec77f71dc16a5a11ccfd1aeba4920c"
+  },
+  "protectedFilesUnchanged": 2202,
+  "publicFiles": [
+    {
+      "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+      "sha256": "ee2b8473767300ee0e95b30d882676040fdb0f82288d5dfbc4401c840015765a",
+      "beforeSha256": "d2e619d758b2b423c8a7fad124da8aee18ae29434ee2bf28bd8b634a8dcf2eef"
+    }
+  ],
+  "customerCard": {
+    "fixes": [
+      "persisted name survives rehydration and full reload",
+      "save control finds the actual visible button",
+      "manual Save can wait for preceding autosave without losing the click"
+    ],
+    "verifiedFields": [
+      "name",
+      "city",
+      "province",
+      "agency",
+      "deliveryMode",
+      "address",
+      "reference"
+    ],
+    "realBrowserAndNativeRoutes": true,
+    "privateMongoAndSQLite": true,
+    "productionCustomerWrites": 0,
+    "savingDataCreatesNoOrder": true
+  },
+  "catalog": {
+    "before": 591,
+    "after": 592,
+    "existingRecordsBytePreserved": 591,
+    "citiesBefore": 219,
+    "citiesAfter": 220,
+    "provinceFormatPreserved": "ZAMORA",
+    "addedAgency": {
+      "nome": "PAQUIZHA_MARTHA BUCARAM",
+      "provincia": "ZAMORA",
+      "ciudad": "PAQUIZHA",
+      "sector": "SUR",
+      "endereco": "MARTHA BUCARAM DE ROLDOS Y PIO JARAMILLO ALVARADO",
+      "horario_semana": "",
+      "horario_fds": ""
+    },
+    "dropiCity1327Department60Verified": true,
+    "paquishaIsSeparateRecord": true
+  },
+  "verification": {
+    "completeRegressionPassed": 547,
+    "focusedPassed": 123,
+    "nativeChecksPassed": 25,
+    "browserChecksPassed": 9,
+    "operationsChecksPassed": 23,
+    "negativeGateChecksPassed": 34,
+    "mandatoryFrozenGuardsPassed": true,
+    "physicalTestMessages": 0,
+    "productionCustomerWrites": 0
+  },
+  "preserved": [
+    "V252 orders, duplicate guards and post-sale",
+    "all 591 original agencies",
+    "QA 8637 identity, history and actual window",
+    "human holds and opt-out",
+    "forward-only cutoffs for Dropi, Tex post-lead and burst",
+    "prices, products, phone identities, Meta, voice, VSL/player/CTA/Turbo",
+    "all earlier frozen baselines through exact inverse"
+  ],
+  "operations": {
+    "existingPostSaleTimer": "vitalismen-postsale-full-v203.timer",
+    "newCron": false,
+    "cutoffsPreserved": [
+      "automaticDropiV252ActivatedAt",
+      "texPostLeadActivatedAt",
+      "burstActivatedAt"
+    ],
+    "readOnlyPostSaleSnapshot": "PASS",
+    "legacyApiRestarted": false,
+    "controlledAutomationRestart": 1
+  },
+  "recovery": {
+    "beforeCodeConfig": "PASS including supplemental corrected Linux controller",
+    "afterCodeConfig": "PASS",
+    "decryptionHashesMetadataTamperRejection": "PASS",
+    "privateKeyUploaded": false,
+    "plaintextWrittenLocally": false,
+    "globalMongoBackup": "FAIL_SEPARATE; no global restoration claimed"
+  },
+  "limits": [
+    "No real customer data, provider order or WhatsApp message was fabricated for these tests.",
+    "The full customer save/reload was verified in Chromium against native routes and private persistence. Live source, runtime and agency API were verified separately.",
+    "Global Mongo backup remains separate from verified code/configuration recovery."
+  ],
+  "evidenceHashes": {
+    "POSTSALE_SNAPSHOT_AFTER.json": "05befbef495a3134967dc0c71bb2169c709f76d6d837193f1e293f9dba50497b",
+    "DROPI_CITY_REFERENCE.json": "4ce5efd36aa391e0a854207d679234a0fb1d2ee8bb0b3a1d742c3cf76f1f8e1c",
+    "AGENCY_REFERENCE.json": "8199598ba580e2183f67e417b0d67fb387fed11360873c6becb0ff893fc01fad",
+    "QUALIFICATION.json": "9fdc3b03f537e6ccb5681a69ce1cf879f801e23a0cfb4018ecb232d089226c3a",
+    "NATIVE_QUEUE-complete.json": "046c558030ce27851f9f01c0004f3b49b0b7e1d214f77bced67b7253d0d38688",
+    "BROWSER_NATIVE_TEST.json": "b218cfe6b0947243a9def5525ff6ab315c0b5a6aa9fd16a73d909a4fbfad3b78",
+    "OPERATIONS_TEST.json": "8b4015b042a21378741c73d850252720317bc30fa9bd0dd79af273074c914720",
+    "GATES_SEMANTIC_TEST.json": "5f4234b69a0e1f99243440e93fcd2aee44e2e96173cf843a0bbad29d783ed1d6",
+    "FINAL_GATES.json": "3a7596bc51d603e859dbaa5b7ff1783912675ccd80d918d644c3c3d6ef8dce13",
+    "GIT_SOURCE_PUBLICATION.json": "d5a8ec7d58553b6c13ebf51aa2e1aff216ceb53a128f5a37725b886af25a1160",
+    "ACTIVATION.json": "264204bf50126b3f7368e6acd5ccf093fdbccb1a4ce656d62b0ed8d31cd1e1c5",
+    "PUBLICATION.json": "a11f0e14b1ad12d281fee85476e59af9e485b65b1a78604d04e0e8aec611a426",
+    "FINAL_RUNTIME_AUDIT.json": "cc87404fbaa9c3811d183ca62916e25701092b492a4d511f99b819d21cdd69ae",
+    "PUBLIC_HTTP_AFTER.json": "ef8d49773cfc6143c98452199687c021d2448e478c493eda8a393e54873ee5b6",
+    "FROZEN_GUARDS_AFTER.json": "faaee4a61bb4290ab64d7621094f8f54dc0e70b1426d47e2c019d4bdc0a5fb28",
+    "CODE_CONFIG_RECOVERY_BEFORE.json": "6317f6606dbd7374e88ef39dde1b6e2e77416e60f1ef41d6de2f136997c79593",
+    "CODE_CONFIG_RECOVERY_AFTER.json": "57690f7b4a5d103de065424ea29fe5b1dcbc0e1578fd88352b6c28df5aa1d681"
+  },
+  "remoteEvidenceRoot": "/opt/vitalismen-automacao/backups/ec-customer-edit-paquizha-v253-20261119-r2",
+  "rollback": "V253 operations-controller.py rollback restores exact public inverse and V252 code/config while leaving operational data, memory and ledgers intact. Concurrent public changes block overwrite."
+}

@@ -1,0 +1,9 @@
+PROJECT=VITALISMEN_EC — VITALISMEN OFICIAL
+STATUS=PUBLISHED_ACTIVE_FROZEN_V253
+RUNTIME_COMMIT=c0664818c7468b9e7dfd55e320f77fcb273b77e5
+MANIFEST=docs/freeze/ec-customer-edit-paquizha-v253-published-20261119.json
+MANIFEST_SHA256=045fc71abab5e166eae91ec730c0cd03d30b4f09488ca839a234abe5175fe526
+REGRESSION=547 PASS; focused=123 PASS; native=25 PASS; browser=9 PASS
+CATALOG=592 agencies; 220 cities; original591 byte-preserved; PAQUIZHA_MARTHA BUCARAM added
+RECOVERY=code/config before and after PASS; global Mongo separate FAIL
+FREEZE=code/configuration; operational data and service continue
