@@ -1,3 +1,4 @@
+import { texPostLeadPolicyV251 } from './texUltraPostLeadInviteV251Service.js';
 import { bindTexMeasurementCodeV243 } from './texUltraMeasurementV243Service.js';
 import { startTexUltraEntryV242, texUltraPreferredNameV242, withTexModelContextV242 } from './texUltraEntryBlockV242Service.js';
 import { texLinkedStoreV242 } from './texUltraLinkedRuntimeV242Service.js';
@@ -17,7 +18,7 @@ export function webChatRequestAllowedV220(req) {
 const cookieName = '__Host-vpchat-v220';
 function tokenFrom(req) { const match = String(req.headers.cookie || '').match(/(?:^|;\s*)__Host-vpchat-v220=([a-f0-9]{64})(?:;|$)/); return match?.[1] || ''; }
 const setCookie = (res, token, maxAge = 604800) => res.setHeader('Set-Cookie', cookieName + '=' + token + '; Path=/; Max-Age=' + maxAge + '; Secure; HttpOnly; SameSite=Lax');
-export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.__VITALISMEN_EC_WEB_CHAT_V220, store: providedStore, agent: providedAgent, now = () => Date.now() } = {}) {
+export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.__VITALISMEN_EC_WEB_CHAT_V220, store: providedStore, agent: providedAgent, now = () => Date.now(), linkedStore = texLinkedStoreV242, postLeadPolicy = texPostLeadPolicyV251 } = {}) {
   let store = providedStore, agent = providedAgent, active = 0;
   let texAgent;
   const voice = createWebVoiceV231({ apiKey: process.env.VITALISMEN_WEB_ELEVENLABS_API_KEY });
@@ -34,7 +35,7 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
     if (!req.is?.('application/json') || Number(req.headers['content-length'] || 0) > 4096) return res.status(415).json({ ok: false, error: 'invalid_request' });
     const body = req.body;
     const linkedEntry = tex && cap.entryV242Allowed?.(req) === true;
-    if (!body || Array.isArray(body) || Object.keys(body).some(k => !(linkedEntry ? ['action', 'requestId', 'message', 'accessToken', 'firstName', 'phone', 'measurementRef'] : ['action', 'requestId', 'message', 'accessToken']).includes(k)) || !(linkedEntry ? ['start', 'message', 'clear', 'voice', 'order_status', 'link_start', 'link_status', 'tex_entry'] : ['start', 'message', 'clear', 'voice', 'order_status']).includes(body.action)) return res.status(400).json({ ok: false, error: 'invalid_request' });
+    if (!body || Array.isArray(body) || Object.keys(body).some(k => !(linkedEntry ? ['action', 'requestId', 'message', 'accessToken', 'firstName', 'phone', 'measurementRef'] : ['action', 'requestId', 'message', 'accessToken']).includes(k)) || !(linkedEntry ? ['start', 'message', 'clear', 'voice', 'order_status', 'link_start', 'link_status', 'tex_entry', 'invite_accept'] : ['start', 'message', 'clear', 'voice', 'order_status']).includes(body.action)) return res.status(400).json({ ok: false, error: 'invalid_request' });
     const ip = String(req.headers['x-vitalismen-chat-ip'] || '');
     if (!isIP(ip)) return res.status(403).json({ ok: false, error: 'invalid_request' });
     const key = createHash('sha256').update(ip).digest('hex'), window = Math.floor(now() / 600000);
@@ -45,6 +46,22 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
     if (rate.count > 30 || rates.size > 3000) { res.setHeader('Retry-After', '600'); return res.status(429).json({ ok: false, error: 'chat_busy', whatsappAvailable: true }); }
     try {
       if (!store) store = createVitPowerWebStoreV220({ directory: cap.storeDirectory });
+      if (tex && postLeadPolicy().required) {
+        if (!postLeadPolicy().enabled) return res.status(503).json({ ok: false, error: 'tex_link_invitation_unavailable' });
+        if (!linkedEntry) return res.status(403).json({ ok: false, error: 'tex_link_invitation_required' });
+        const links = linkedStore();
+        if (body.action === 'invite_accept') {
+          if (!await links.invitationAvailable(body.accessToken)) return res.status(403).json({ ok: false, error: 'tex_link_invitation_unavailable' });
+          const session = await store.open(readToken(), context); writeCookie(session.token);
+          return res.json(await links.acceptWhatsappInvitation({ token: body.accessToken, sessionId: createHash('sha256').update(session.token).digest('hex') }));
+        }
+        if (body.action !== 'clear') {
+          const token = readToken();
+          const identity = token && await links.identity(createHash('sha256').update(token).digest('hex'));
+          if (!identity) return res.status(403).json({ ok: false, error: 'tex_link_invitation_required' });
+          if (identity.blocked && body.action !== 'link_status') return res.status(403).json({ ok: false, error: 'tex_link_human_hold' });
+        }
+      }
       if (body.action === 'clear') { await store.clear(readToken(), context); writeCookie('', 0); return res.json({ ok: true, cleared: true }); }
       if (body.action === 'start') {
         const session = await store.open(readToken(), context); writeCookie(session.token);
@@ -53,7 +70,7 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
       if (linkedEntry && ['link_start', 'link_status', 'tex_entry'].includes(body.action)) {
         const token = readToken(); if (!token) return res.status(401).json({ ok: false, error: 'session_expired' });
         const session = await store.open(token, context); if (session.fresh) return res.status(401).json({ ok: false, error: 'session_expired' });
-        const sessionId = createHash('sha256').update(token).digest('hex'), links = texLinkedStoreV242();
+        const sessionId = createHash('sha256').update(token).digest('hex'), links = linkedStore();
         if (body.action === 'link_start') {
           const firstName = texUltraPreferredNameV242(body.firstName);
           if (!firstName || typeof body.phone !== 'string' || !/^\+?\d{10,15}$/.test(body.phone)) return res.status(400).json({ ok: false, error: 'tex_link_input_invalid' });
@@ -90,7 +107,7 @@ export function createVitPowerWebChatHandlerV220({ authority = () => globalThis.
       }
       if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 700 || typeof body.requestId !== 'string') return res.status(400).json({ ok: false, error: 'invalid_message' });
       if (tex && linkedEntry && readToken()) {
-        const identity = await texLinkedStoreV242().identity(createHash('sha256').update(readToken()).digest('hex'));
+        const identity = await linkedStore().identity(createHash('sha256').update(readToken()).digest('hex'));
         if (identity?.blocked) return res.json(await store.transact(readToken(), body.requestId, body.message.trim(), saved => ({
           reply: 'Tu atención está reservada para una persona del equipo. Puedes continuar por el WhatsApp oficial; no reiniciaré la presentación automática.',
           draft: { ...saved.draft, texUltraStage: 'human_requested' }, handoff: true, modelUsed: false

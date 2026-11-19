@@ -26,7 +26,7 @@ export function texExistingEntryV242(state = {}) {
 export function createTexUltraLinkedEntryV242({ directory, now = Date.now, minFreeBytes = 250 * 1024 * 1024,
   maxRecords = 10000, officialPhone, allowQa = () => false, currentContactHold = async () => false } = {}) {
   if (!path.isAbsolute(directory || '') || !/^\d{10,15}$/.test(officialPhone || '')) throw Error('tex_link_configuration');
-  const dirs = ['pending', 'codes', 'links', 'journeys', 'locks', 'limits'];
+  const dirs = ['pending', 'codes', 'links', 'journeys', 'locks', 'limits', 'invitations'];
   const file = (kind, id) => path.join(directory, kind, id + '.json');
   const phoneId = phone => hash('VITALISMEN_EC:tex_ultra_ec:zapi:' + officialPhone + ':' + phone);
   const validPhone = value => /^593[2-79]\d{8}$/.test(value || '') || value === '5515998038637' && allowQa(value) === true;
@@ -97,6 +97,55 @@ export function createTexUltraLinkedEntryV242({ directory, now = Date.now, minFr
     return { ...link, firstChannel: journey.firstChannel, entryAttempted: journey.entryAttempted, blocked: journey.blocked || liveHold === true };
   }
   return Object.freeze({ identity,
+    async issueWhatsappInvitation({ phone, firstName, inboundId, verifiedInbound }) {
+      if (!validPhone(phone) || verifiedInbound !== true || typeof inboundId !== 'string' || !inboundId || inboundId.length > 250) throw Error('tex_link_invitation_invalid');
+      if (await currentContactHold(phone)) throw Error('tex_link_invitation_unavailable');
+      const journey = await reserveJourney(phone, 'whatsapp', { existingEntry: true });
+      return lock('phone:' + journey.id, async () => {
+        const fresh = await read(file('journeys', journey.id));
+        if (!fresh || fresh.blocked || fresh.firstChannel !== 'whatsapp') throw Error('tex_link_invitation_unavailable');
+        if (fresh.invitationV251) {
+          if (fresh.invitationV251.expiresAt <= now()) throw Error('tex_link_invitation_expired');
+          return { url: 'https://plusmen.shop/tex#chat=' + fresh.invitationV251.token };
+        }
+        const token = randomBytes(32).toString('hex'), expiresAt = now() + 604800000;
+        const name = String(firstName || '').replace(/[\r\n\u0000-\u001f]/g, ' ').trim().split(/\s+/)[0].slice(0, 30);
+        await lock('admission', async () => {
+          await capacity('invitations');
+          await write(file('invitations', hash(token)), { version: 251, phone, firstName: name,
+            journeyId: journey.id, inboundId, issuedAt: now(), expiresAt, boundSession: '' });
+        });
+        await write(file('journeys', journey.id), { ...fresh, invitationV251: { token, expiresAt } });
+        return { url: 'https://plusmen.shop/tex#chat=' + token };
+      });
+    },
+    async invitationAvailable(token) {
+      if (!SESSION.test(token || '')) return false;
+      await initialize(); const invitation = await read(file('invitations', hash(token)));
+      return !expired(invitation) && invitation.version === 251 && validPhone(invitation.phone);
+    },
+    async acceptWhatsappInvitation({ token, sessionId }) {
+      if (!SESSION.test(token || '') || !SESSION.test(sessionId || '')) throw Error('tex_link_invitation_invalid');
+      return lock('invitation:' + hash(token), () => lock('session:' + sessionId, async () => {
+        const invitation = await read(file('invitations', hash(token)));
+        if (expired(invitation) || invitation.version !== 251 || !validPhone(invitation.phone)
+          || invitation.boundSession && invitation.boundSession !== sessionId) throw Error('tex_link_invitation_unavailable');
+        const journey = await read(file('journeys', phoneId(invitation.phone)));
+        if (!journey || journey.id !== invitation.journeyId || journey.firstChannel !== 'whatsapp' || journey.blocked
+          || await currentContactHold(invitation.phone)) throw Error('tex_link_invitation_unavailable');
+        const existing = await identity(sessionId);
+        if (existing && existing.phone !== invitation.phone) throw Error('tex_link_invitation_unavailable');
+        if (!invitation.boundSession) await write(file('invitations', hash(token)), { ...invitation, boundSession: sessionId, acceptedAt: now() });
+        await lock('admission', async () => {
+          if (!existing) await capacity('links');
+          await write(file('links', sessionId), { version: 242, sessionId, journeyId: journey.id,
+            phone: invitation.phone, firstName: invitation.firstName, verifiedAt: invitation.issuedAt,
+            expiresAt: invitation.expiresAt, verifiedBy: 'official_zapi_inbound', inboundId: invitation.inboundId });
+        });
+        return { ok: true, verified: true, invitationVersion: 251, firstChannel: 'whatsapp' };
+      }));
+    },
+
     async issue({ sessionId, requestId, phone, firstName }) {
       if (!SESSION.test(sessionId || '') || !/^[a-zA-Z0-9_-]{12,80}$/.test(requestId || '')) throw Error('tex_link_request_invalid');
       if (!validPhone(phone) || typeof firstName !== 'string' || !firstName || firstName.length > 30) throw Error('tex_link_input_invalid');

@@ -1,4 +1,5 @@
 // PROJECT=VITALISMEN_EC. Partner URLs are message content only; no partner integration.
+import { texPostLeadPolicyV251, texPostLeadEligibleV251, buildTexPostLeadInviteV251 } from './texUltraPostLeadInviteV251Service.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { suppressVitPowerInviteForTexV246 } from './texUltraEntryClassificationV246Service.js';
 export const INVITE_GAP_V232 = 600000;
@@ -30,7 +31,7 @@ export function buildChatAccessInviteV236({ name } = {}) {
   const first = String(name || '').replace(/[\r\n\u0000-\u001f]/g, ' ').trim().split(/\s+/)[0].slice(0,35);
   return 'Hola' + (first ? ', ' + first : '') + '. Soy Ana Lopez, del equipo Vitalismen Ecuador. 💬\nAhora también puedes conversar con nosotros desde nuestra página y aclarar tus dudas sobre Vit Power.\nAbre aquí: ' + INVITE_SITE_V232 + '#chat\nToca Hablar con Ana y escribe tu pregunta. Para consultar un pedido, pide tu enlace privado por este WhatsApp; no necesitas copiar códigos.\nSi no deseas recibir estas invitaciones, responde STOP.';
 }
-export async function runCustomerInviteV232({ repository, send, mirror, policy, now = Date.now(), clock = () => now, dryRun = true }) {
+export async function runCustomerInviteV232({ repository, send, mirror, policy, now = Date.now(), clock = () => now, dryRun = true, texPostLeadEligible = texPostLeadEligibleV251 }) {
   if (!policy?.enabled) return { status: 'DISABLED', sent: 0, physicalOutboundCount: 0 };
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Guayaquil', hour: '2-digit', hourCycle: 'h23' }).format(now));
   if (hour < 8 || hour >= 19) return { status: 'OUTSIDE_EC_WINDOW', sent: 0, physicalOutboundCount: 0 };
@@ -46,6 +47,8 @@ export async function runCustomerInviteV232({ repository, send, mirror, policy, 
     if (!suppressVitPowerInviteV246 && order && !contact.returned && !contact.deliveredVerified && order.productKey === 'vit_power_ec' && ['confirmed', 'processing', 'shipped'].includes(order.status)) stages.push({ stage: 'CHAT_ORDER', orderId: order.orderId });
     const lastActivity = Math.max(millis(contact.lastInboundAt), millis(contact.lastOutboundAt));
     if (!suppressVitPowerInviteV246 && policy.generalChat === true && !contact.returned && lastActivity > 0 && now - lastActivity >= INVITE_GAP_V232) stages.push({ stage: 'CHAT_ACCESS', orderId: '' });
+    if (policy.generalChat === true && !contact.returned && lastActivity > 0 && now - lastActivity >= INVITE_GAP_V232
+      && texPostLeadEligible(contact, now)) stages.push({ stage: 'TEX_CHAT_ACCESS', orderId: '' });
     const absent = lastActivity > 0 && now - lastActivity >= PARTNER_GAP_V232;
     const delivered = (order?.status === 'delivered' || contact.deliveredVerified === true) && !contact.returned;
     if (!contact.returned && (delivered || absent)) {
@@ -64,13 +67,16 @@ export async function runCustomerInviteV232({ repository, send, mirror, policy, 
       try {
         const fresh = await repository.refresh(contact);
         if (!inviteEligibilityV232(fresh, clock()) || await repository.stopped(phone)
-          || (['CHAT_ORDER', 'CHAT_ACCESS'].includes(item.stage) && suppressVitPowerInviteForTexV246(fresh))) {
+          || (['CHAT_ORDER', 'CHAT_ACCESS'].includes(item.stage) && suppressVitPowerInviteForTexV246(fresh))
+          || item.stage === 'TEX_CHAT_ACCESS' && !texPostLeadEligible(fresh, clock())) {
           await repository.finish(key, lockToken, { state: 'suppressed', reason: 'recipient_became_ineligible' });
           return { status: 'RECIPIENT_CHANGED', sent: 0, physicalOutboundCount: 0 };
         }
+        const texInvite = item.stage === 'TEX_CHAT_ACCESS' ? await repository.privateTexInvite(fresh) : null;
+        if (item.stage === 'TEX_CHAT_ACCESS' && !texInvite?.message) throw Error('tex_link_invitation_unavailable');
         const privateInvite = ['CHAT_ORDER', 'CHAT_ACCESS'].includes(item.stage) && order?.productKey === 'vit_power_ec' && repository.privateOrderInvite
           ? await repository.privateOrderInvite(phone) : null;
-        const body = privateInvite?.message || (item.stage === 'CHAT_ACCESS' ? buildChatAccessInviteV236({ name: fresh.customerDraft?.name || fresh.name || order?.name })
+        const body = texInvite?.message || privateInvite?.message || (item.stage === 'CHAT_ACCESS' ? buildChatAccessInviteV236({ name: fresh.customerDraft?.name || fresh.name || order?.name })
           : item.stage === 'CHAT_ORDER' ? buildChatInviteV232({ name: order.name })
           : item.stage === 'PARTNER_1' ? PARTNER_FIRST_V232 : PARTNER_SECOND_V232);
         // Both the permanent reservation and attempt marker precede the external effect.
@@ -80,7 +86,7 @@ export async function runCustomerInviteV232({ repository, send, mirror, policy, 
         if (!providerMessageId) throw Error('invite_provider_receipt_missing');
         await repository.finish(key, lockToken, { state: 'sent', sentAt: new Date(clock()), providerMessageId });
         // Bearer links never enter the panel history or model context.
-        try { await mirror({ phone, body: body.replace(/#pedido=[a-f0-9]{64}/g, '#pedido=[acceso-privado]'), response, key, orderId: item.orderId }); } catch { /* The SENT reservation remains final even if the mirror is unavailable. */ }
+        try { await mirror({ phone, body: body.replace(/#pedido=[a-f0-9]{64}/g, '#pedido=[acceso-privado]').replace(/#chat=[a-f0-9]{64}/g, '#chat=[acceso-privado]'), response, key, orderId: item.orderId }); } catch { /* The SENT reservation remains final even if the mirror is unavailable. */ }
         return { status: 'PASS_SENT_ONCE', stage: item.stage, sent: 1, physicalOutboundCount: 1 };
       } catch {
         await repository.finish(key, lockToken, { state: attempted ? 'ambiguous' : 'suppressed', reason: attempted ? 'no_automatic_retry_after_attempt' : 'pre_send_validation_failed' });
@@ -124,13 +130,26 @@ export async function processCustomerInvitesV232({ dryRun = true, now = new Date
       if (!dryRun) await Ledger.updateOne({ _id: inviteKeyV232(phone, 'OPT_OUT') }, { $setOnInsert: { phone, stage: 'OPT_OUT', state: 'suppressed', reason: 'customer_stop' } }, { upsert: true });
       return true;
     },
+    async privateTexInvite(contact) {
+      const policy = texPostLeadPolicyV251();
+      if (!texPostLeadEligibleV251(contact)) throw Error('tex_link_invitation_unavailable');
+      const inbound = await Messages.findOne({ peerPhone: contact.phoneDigits, provider: 'zapi', sessionId: 'zapi',
+        ownerPhoneDigits: '5531971862958', isFromMe: false, createdAt: { $gte: new Date(policy.cutoff) } }).sort({ createdAt: -1 }).select('_id').lean();
+      if (!inbound) throw Error('tex_link_invitation_unavailable');
+      const { texLinkedStoreV242 } = await import('./texUltraLinkedRuntimeV242Service.js');
+      const name = contact.customerDraft?.name || contact.metadata?.customerDraft?.name || contact.name || contact.metadata?.notifyName || '';
+      const issued = await texLinkedStoreV242().issueWhatsappInvitation({ phone: contact.phoneDigits, firstName: name,
+        inboundId: String(inbound._id), verifiedInbound: true });
+      return { message: buildTexPostLeadInviteV251({ name, url: issued.url }) };
+    },
     async privateOrderInvite(phone) {
       const { productionVerifiedOrderInviteV238 } = await import('./vitPowerWebVoiceStatusV231Service.js');
       return productionVerifiedOrderInviteV238(phone);
     },
     entry: key => Ledger.findById(key).lean(),
     async historyHas({ phone, key, stage, orderId }) {
-      const match = stage === 'CHAT_ACCESS' ? { body: /https:\/\/taviazen\.shop\/vitpower_2026g(?:\/assets\/acesso-pedido\.html[#?\s]|[#?\s]|$)/i }
+      const match = stage === 'TEX_CHAT_ACCESS' ? { $or: [{ dedupeKey: key }, { body: /https:\/\/plusmen\.shop\/tex#chat=/ }] }
+        : stage === 'CHAT_ACCESS' ? { body: /https:\/\/taviazen\.shop\/vitpower_2026g(?:\/assets\/acesso-pedido\.html[#?\s]|[#?\s]|$)/i }
         : stage === 'CHAT_ORDER' ? { $or: [{ dedupeKey: key }, { orderId, body: /Ya puedes consultar el estado registrado de tu pedido|Consulta tu pedido de forma segura/ }] }
         : { body: stage === 'PARTNER_1' ? /gira21x\.com/i : /Nace GIRAUP LATAM|xguISlUDFVM/i };
       return !!await Messages.exists({ peerPhone: phone, isFromMe: true, ...match });

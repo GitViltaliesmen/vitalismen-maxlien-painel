@@ -1,3 +1,4 @@
+import { texPostLeadPolicyV251, texPostLeadEligibleV251 } from './texUltraPostLeadInviteV251Service.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash } from 'node:crypto';
 const context = new AsyncLocalStorage();
@@ -18,7 +19,7 @@ export async function withCustomerInviteDeliveryV232({ phone, key, lockToken }, 
   const numbers = key => String(process.env[key] || '').split(/[,\s]+/).map(digits).filter(Boolean);
   if (numbers('WHATSAPP_BLOCKED_RECIPIENTS').includes(phone) || numbers('WHATSAPP_BLOCKED_SESSION_IDS').includes('5531971862958')) throw Error('invite_existing_outbound_block');
   const job = await Ledger.findOne({ _id: key, phone, lockToken, state: 'attempted', lockedUntil: { $gt: now }, dispatchClaimedAt: { $exists: false } }).lean();
-  if (!job || !['CHAT_ORDER', 'CHAT_ACCESS', 'PARTNER_1', 'PARTNER_2'].includes(job.stage)) throw Error('invite_exact_attempt_required');
+  if (!job || !['CHAT_ORDER', 'CHAT_ACCESS', 'PARTNER_1', 'PARTNER_2', 'TEX_CHAT_ACCESS'].includes(job.stage)) throw Error('invite_exact_attempt_required');
   const expected = createHash('sha256').update('VITALISMEN_EC:V232:' + phone + ':' + job.stage + ':' + (job.orderId || '')).digest('hex');
   if (expected !== key || !await Ledger.exists({ _id: 'GLOBAL_EC_V232', lockToken, lockedUntil: { $gt: now } })) throw Error('invite_global_reservation_required');
   const recipient = await Contact.findOne({ phoneDigits: phone, countryCode: 'EC', 'metadata.testOnly': { $ne: true } }).lean();
@@ -27,6 +28,12 @@ export async function withCustomerInviteDeliveryV232({ phone, key, lockToken }, 
   if (await operatorNoAutoResendForTarget({ recipientDigits: phone })) throw Error('invite_operator_no_auto_resend');
   if (await Ledger.exists({ _id: createHash('sha256').update('VITALISMEN_EC:V232:' + phone + ':OPT_OUT:').digest('hex') })) throw Error('invite_customer_stopped');
   if (!await Message.exists({ peerPhone: phone, provider: 'zapi', sessionId: 'zapi', ownerPhoneDigits: '5531971862958', isFromMe: false })) throw Error('invite_official_inbound_required');
+  if (job.stage === 'TEX_CHAT_ACCESS') {
+    const policy = texPostLeadPolicyV251();
+    if (!texPostLeadEligibleV251({ ...recipient, officialInboundVerified: true }) || !policy.enabled
+      || !await Message.exists({ peerPhone: phone, provider: 'zapi', sessionId: 'zapi', ownerPhoneDigits: '5531971862958',
+        isFromMe: false, createdAt: { $gte: new Date(policy.cutoff) } })) throw Error('tex_link_invitation_unavailable');
+  }
   const claim = await Ledger.updateOne({ _id: key, phone, lockToken, state: 'attempted', dispatchClaimedAt: { $exists: false } }, { $set: { dispatchClaimedAt: now } });
   if (claim.modifiedCount !== 1) throw Error('invite_dispatch_already_claimed');
   return context.run({ phone, used: false, until: Math.min(+job.lockedUntil, +now + 60000) }, work);

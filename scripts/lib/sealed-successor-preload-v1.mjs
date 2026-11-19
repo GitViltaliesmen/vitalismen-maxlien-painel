@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-tex-entry-greeting-sealed-v249-r6.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-tex-entry-greeting-profile-v249-r6.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-tex-postlead-sealed-v251-r2.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-tex-postlead-profile-v251-r2.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';

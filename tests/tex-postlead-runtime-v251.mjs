@@ -1,0 +1,20 @@
+// An active-profile qualification launcher; invoke only in private mount/network namespaces.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+assert.notEqual(fs.readlinkSync('/proc/self/ns/net'),fs.readlinkSync('/proc/1/ns/net'));
+assert.notEqual(fs.readlinkSync('/proc/self/ns/mnt'),fs.readlinkSync('/proc/1/ns/mnt'));
+assert.equal(process.env.GIRA21X_FIXTURE_PROFILE_V1,'false');
+const cap=globalThis.__VITALISMEN_EC_TEX_POSTLEAD_V251;
+assert.equal(cap.required,true);assert.equal(cap.isCurrent(),true);assert.ok(Number.isFinite(cap.activatedAt()));
+const linked=globalThis.__VITALISMEN_EC_TEX_LINKED_ENTRY_V242;
+assert.equal(linked.isStoreCurrent(),true);assert.equal(linked.isCurrent(),true);
+const secret=fs.readFileSync('/var/lib/vitalismen-deploy/ec-tex-postlead-v251-r2/tex-web-proxy.secret','utf8');
+const req={method:'POST',originalUrl:'/api/web-chat/vitpower',body:{action:'start'},headers:{origin:'https://plusmen.shop','content-type':'application/json','x-vitalismen-chat-ip':'192.0.2.251','x-vitalismen-chat-page':'plusmen-tex-v240','x-vitalismen-chat-proxy':secret},is:()=>true};
+const web=globalThis.__VITALISMEN_EC_WEB_CHAT_V220;
+assert.equal(web.requestAllowed(req),true);assert.equal(web.entryV242Allowed(req),true);assert.equal(web.productForRequest(req),'tex_ultra_ec');
+assert.equal(web.entryV242Allowed({...req,headers:{...req.headers,origin:'https://invalid.example'}}),false);
+const {createVitPowerWebChatHandlerV220}=await import('../src/services/vitPowerWebChatV220Application.js');
+const handler=createVitPowerWebChatHandlerV220();let status=200,result;const headers={};
+const res={setHeader:(k,v)=>headers[k]=v,status:s=>{status=s;return res},json:x=>{result=x;return res}};
+await handler(req,res);assert.equal(status,403);assert.equal(result.error,'tex_link_invitation_required');assert.equal(headers['Set-Cookie'],undefined);
+console.log(JSON.stringify({pass:true,activePostLeadCapability:true,inheritedLinkedValidation:true,publicTexProxyAuthorized:true,anonymousTexDenied:true,physicalMessages:0,productionWrites:0}));
