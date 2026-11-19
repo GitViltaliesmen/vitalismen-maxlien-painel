@@ -1,0 +1,15 @@
+# VITALISMEN_EC — Ficha editável e PAQUIZHA V253
+
+Escopo explícito do operador em 19/11/2026: aceitar alterações de dados da ficha, conferir a lista oficial e incluir a agência fornecida, salvar e congelar. A ativação só é comprovada pelo recibo final, não pela existência deste pacote.
+
+A ficha servida em `/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html` conserva todos os bytes da publicação V252 além dos três patches identificados: o nome do rascunho persistido volta à tela após recarregar; o controle de gravação encontra o botão visível; esse botão pode aguardar a fila de gravação automática anterior sem descartar o clique. A identificação do WhatsApp, confirmação explícita de pedido, prevenção de duplicação, humano/opt-out, QA, preços e demais funções permanecem. Salvar dados não equivale a criar ou reenviar pedido.
+
+O catálogo oficial `src/data/agencia_LISTA.json` conserva os 591 registros anteriores byte a byte e acrescenta somente `PAQUIZHA_MARTHA BUCARAM`, cidade `PAQUIZHA`, província `ZAMORA`, setor `SUR`, endereço `MARTHA BUCARAM DE ROLDOS Y PIO JARAMILLO ALVARADO`. Horários não fornecidos ficam vazios. O novo total é 592 agências e 220 cidades. O cache oficial da mesma conta Dropi também contém PAQUIZHA, cidade 1327 no departamento 60 ZAMORA CHINCHIPE; não se deve substituí-la por PAQUISHA, outro registro da API.
+
+O runtime exato e sua lista de cinco arquivos estão no contrato `docs/freeze/ec-customer-edit-paquizha-v253-contract.json`. O HTML público é independente do snapshot histórico do HTML do backend: `public/qr.html` neste pacote de fontes e o arquivo desta pasta contêm os bytes efetivamente publicados no endereço oficial. Não substituir a página pública por um snapshot de release antigo. A referência de artefatos/documentos não é o commit de runtime selado.
+
+O teste de navegador usa Chromium e as rotas nativas reais, com MongoDB/SQLite e rede privados. Prova alteração, gravação e recarga de nome, cidade, província, agência, modalidade, endereço e referência; preserva pausas, opt-out e contagem de pedidos. A bateria de regressão e os backups devem ter recibo PASS do commit exato antes da ativação. Falhas dos ensaios e versões substituídas continuam preservadas.
+
+Publicação condicionada a hash e versão atuais do painel, filas ociosas, processos corretos, fontes exatas, integridade dos arquivos preservados, recuperação criptografada e gates negativos. O executor/timer de pós-venda existente é herdado, incluindo o corte original da fila V252. Não há cron novo, replay, janela QA nova ou migração de dados. A sessão Dropi continua usando o renovador e o registro de tentativas já aprovados.
+
+Rollback: controlador V253 `rollback`, exclusivamente enquanto esta versão estiver ativa. Restaura os bytes anteriores da página por inversão exata e retorna ao runtime, ambiente e executor V252; mudança concorrente bloqueia sobrescrita. Não restaura bancos nem apaga memória ou ledger. Recibos no backup privado V253; backup global MongoDB permanece uma pendência separada.

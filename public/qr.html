@@ -7698,7 +7698,8 @@
                 <span id="statusText" class="zapi-fixed-status">verificando</span>
                 <button id="opsAlertBtn" class="ops-alert-button" type="button" aria-expanded="false">OK</button>
                 <div id="opsAlertPopover" class="ops-alert-popover hidden"></div>
-                <a href="/funnel-metrics.html" target="_blank" rel="noopener noreferrer">Métricas</a>
+                <button id="webChatDashboardBtnV222" type="button" aria-haspopup="dialog" aria-controls="webChatDashboardDialogV222">Chat do site</button>
+                    <a href="/funnel-metrics.html" target="_blank" rel="noopener noreferrer">Métricas</a>
                 <button id="commandCodesBtn" type="button">Códigos</button>
                 <button id="refreshBtn" type="button">Atualizar</button>
                 <button id="logoutBtn" class="danger hidden" type="button">Sair</button>
@@ -7795,6 +7796,7 @@
                     <button class="active" data-chat-filter="all" type="button">Tudo</button>
                     <button id="newMessagesFilterBtn" data-chat-filter="unread" type="button" title="Mostra mensagens novas de todas as filas comerciais, sem incluir AQUECIMENTO">Novas <span id="chatUnreadTabCount" class="tab-unread-count">0</span></button>
                     <button id="readMessagesFilterBtn" type="button" title="Marcar todas as mensagens atuais como lidas e limpar Novas">Lidas</button>
+                    <button data-chat-filter="tests" type="button" title="Contato permanente de teste; separado dos clientes reais">Testes</button>
                     <button data-chat-filter="favorites" type="button">Favoritas</button>
                     <button data-chat-filter="groups" type="button">Grupos</button>
                     <button data-chat-filter="labels" type="button">Etiquetas</button>
@@ -8259,10 +8261,18 @@
                                 </label>
                                 <button id="confirmCustomerDataBtn" class="success" type="button" disabled>Salvar dados</button>
                             </div>
-                            <label id="customerBuyLaterDateField" class="customer-buy-later-date hidden">Data desejada para o pedido
-                                <input id="customerBuyLaterDateInput" type="date" autocomplete="off">
+                            <div id="customerBuyLaterDateField" class="customer-buy-later-date hidden">
+                                <strong>Data desejada para o pedido</strong>
+                                <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr) auto;gap:6px;align-items:end">
+                                    <label>Dia<input id="customerBuyLaterDayInput" type="number" min="1" max="31" inputmode="numeric" placeholder="DD" autocomplete="off"></label>
+                                    <label>Mês<input id="customerBuyLaterMonthInput" type="number" min="1" max="12" inputmode="numeric" placeholder="MM" autocomplete="off"></label>
+                                    <label>Ano (automático)<input id="customerBuyLaterYearInput" type="number" min="1000" max="9999" inputmode="numeric" autocomplete="off"></label>
+                                    <button id="customerBuyLaterCalendarBtn" type="button" aria-label="Escolher data no calendário" title="Escolher data no calendário" style="padding:9px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></button>
+                                </div>
+                                <input id="customerBuyLaterDateInput" class="hidden" type="date" min="1000-01-01" max="9999-12-31" autocomplete="off" aria-label="Data no calendário">
+                                <small>Preencha dia e mês. O ano atual já vem preenchido e pode ser alterado.</small>
                                 <small>O bot enviará uma única mensagem nominal entre 4 e 3 dias antes, perguntando se pode preparar o pedido. Nenhum pedido será criado automaticamente.</small>
-                            </label>
+                            </div>
                             <div id="customerActionHint" class="customer-action-hint">Selecione um cliente para ver a proxima acao.</div>
                         </div>
                         <label>Nome completo
@@ -8379,6 +8389,15 @@
                                 <button class="price-preset" data-price-preset="6:147.99" type="button" disabled><strong>USD 147.99</strong> · 6 frascos</button>
                             </div>
                         </div>
+                        <!-- GIRA_KIT_SHOWCASE_BEGIN: independent read-only consultation -->
+                        <details id="giraKitShowcase">
+                            <summary>Kits GIRA21X · Ecuador</summary>
+                            <p class="gira-kit-note">Programa digital + produto físico: Vit Power, Tex Ultra ou Nitrix Oxide. Frete incluído · Confira a condição de pagamento do pedido recebido.</p>
+                            <div id="giraKitCatalog" aria-label="Quatro kits híbridos GIRA21X"></div>
+                            <p id="giraKitMessage" role="status"></p>
+                            <section id="giraKitReceived" aria-label="Snapshot do pedido GIRA recebido" hidden></section>
+                        </details>
+                        <!-- GIRA_KIT_SHOWCASE_END -->
                         <label>Observacao interna
                             <textarea id="customerNoteInput" placeholder="Anotacoes do atendimento"></textarea>
                         </label>
@@ -8885,7 +8904,216 @@
     <script src="/panel-intelligence/customer-selection-guard-v51.js?v=20260824"></script>
     <script src="/panel-intelligence/customer-form-persistence-guard-v55.js?v=20260824"></script>
     <script src="/panel-intelligence/delivery-status-v115.js?v=20260903"></script>
-    <script>
+    <!-- GIRA_KIT_ASSETS_BEGIN -->
+<style>
+/* Scoped to the independent GIRA consultation block. */
+#giraKitShowcase { box-sizing:border-box; min-width:0; max-width:100%; margin:12px 0; padding:10px; border:1px solid #b5d0b5; border-radius:10px; background:#f3f8f0; color:#173d2e; overflow-wrap:anywhere; }
+#giraKitShowcase * { box-sizing:border-box; min-width:0; }
+#giraKitShowcase summary { cursor:pointer; font-size:14px; font-weight:700; line-height:1.5; }
+#giraKitShowcase .gira-kit-note, #giraKitShowcase .gira-kit-muted, #giraKitMessage { font-size:11px; line-height:1.5; margin:7px 0; }
+#giraKitShowcase .gira-kit-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:3px 8px; padding:9px 6px; border-bottom:1px solid #d4e2d0; font-size:12px; line-height:1.4; }
+#giraKitShowcase .gira-kit-row:last-child { border-bottom:0; }
+#giraKitShowcase .gira-kit-row strong { font-size:12px; }
+#giraKitShowcase .gira-kit-price { white-space:nowrap; text-align:right; }
+#giraKitShowcase .gira-kit-muted { margin:0; }
+#giraKitShowcase .gira-kit-marker { font-size:10px; font-weight:700; text-align:right; align-self:center; }
+#giraKitShowcase .gira-kit-contracted { background:#dcebd5; border-radius:6px; outline:1px solid #8bb286; }
+#giraKitReceived { margin-top:10px; padding-top:10px; border-top:1px solid #8bb286; }
+#giraKitReceived[hidden] { display:none; }
+#giraKitShowcase .gira-kit-received-title { display:block; font-size:12px; line-height:1.5; }
+#giraKitShowcase dl { margin:8px 0; }
+#giraKitShowcase .gira-kit-field { margin:7px 0; }
+#giraKitShowcase dt { font-size:10px; color:#46654f; }
+#giraKitShowcase dd { margin:1px 0 0; font-size:12px; line-height:1.4; white-space:pre-wrap; overflow-wrap:anywhere; }
+
+#giraKitShowcase .gira-kit-actions { display:grid; gap:7px; margin-top:10px; }
+#giraKitShowcase .gira-kit-actions button { width:100%; white-space:normal; font-size:12px; padding:8px; }
+#giraKitShowcase .gira-kit-actions button:disabled { opacity:.55; cursor:not-allowed; }
+</style>
+<script>
+/* VITALISMEN_EC: read-only GIRA kit presentation. No native draft handlers. */
+(function (factory) {
+    const api = factory();
+    if (typeof module === 'object' && module.exports) module.exports = api;
+    if (typeof window !== 'undefined') window.VitalismenGiraKits = api;
+})(function () {
+    'use strict';
+    const KITS = Object.freeze([
+        Object.freeze({ offerId: 'OFFER_COMPLETO_X6_HYB', label: 'Completo 180 — Híbrido', quantity: 6, amountMinor: 18999 }),
+        Object.freeze({ offerId: 'OFFER_DOMINIO_X3_HYB', label: 'Dominio 21X — Híbrido', quantity: 3, amountMinor: 10999 }),
+        Object.freeze({ offerId: 'OFFER_EVOLUCION_X2_HYB', label: 'Evolución 21X — Híbrido', quantity: 2, amountMinor: 7999 }),
+        Object.freeze({ offerId: 'OFFER_INICIO_X1_HYB', label: 'Inicio 21X — Híbrido', quantity: 1, amountMinor: 4999 })
+    ]);
+    const COMPONENTS = Object.freeze({ SKU_VIT_POWERS: 'Vit Power', SKU_TEX_ULTRA: 'Tex Ultra', SKU_NITRIC_OXIDE: 'Nitrix Oxide' });
+    const text = value => String(value ?? '').trim();
+    const digits = value => text(value).replace(/\D/g, '');
+    const nativeId = value => /^EC-G21-[A-F0-9]{24}$/.test(text(value));
+    const money = minor => `USD ${(minor / 100).toFixed(2)}`;
+    function reference(chat) {
+        if (!chat) return null;
+        const current = text(chat.currentNegotiationOrderId || chat.customerDraft?.currentNegotiationOrderId);
+        const id = current || text(chat.orderId || chat.customerDraft?.orderId);
+        const phone = digits(chat.phone || chat.customerDraft?.phone);
+        if (!nativeId(id) || !/^593\d{9}$/.test(phone)) return null;
+        return { id, phone, key: `${text(chat.id)}|${id}|${phone}` };
+    }
+    function snapshot(chat, order) {
+        const ref = reference(chat), i = order?.integration;
+        if (!ref || text(order?.orderId) !== ref.id || i?.origin !== 'GIRA21X') return null;
+        if (order.country !== 'EC' || order.currency !== 'USD' || digits(order.customer?.phone) !== ref.phone) return null;
+        const prepaid = /^g21pre_order_[a-f0-9]{28}$/.test(text(i.gira21xOrderId));
+        if ((!prepaid && !/^g21cod_order_[a-f0-9]{16,64}$/.test(text(i.gira21xOrderId))) || !/^[a-f0-9]{64}$/.test(text(i.payloadHash))) return null;
+        if (!prepaid && (i.schemaVersion === 2 || i.paymentMode === 'PREPAID')) return null;
+        if (prepaid && (i.schemaVersion !== 2 || i.paymentContract !== 'GIRA21X_EC_STRIPE_PREPAID_V1'
+            || i.paymentMode !== 'PREPAID' || i.paymentStatus !== 'PAID' || i.amountToCollectMinor !== 0
+            || i.payment?.provider !== 'STRIPE' || i.payment.status !== 'PAID' || i.payment.currency !== 'USD'
+            || i.payment.amountMinor !== i.amountMinor || !/^cs_live_[A-Za-z0-9]+$/.test(i.payment.checkoutSessionId || '')
+            || !/^pi_[A-Za-z0-9]+$/.test(i.payment.paymentIntentId || ''))) return null;
+        const kit = KITS.find(k => k.offerId === i.offerId), component = COMPONENTS[i.sku];
+        if (!kit || !component || !Number.isInteger(i.quantity) || i.quantity < 1 || i.quantity > 100) return null;
+        if (!Number.isSafeInteger(i.amountMinor) || i.amountMinor <= 0) return null;
+        if (order.package?.quantity != null && Number(order.package.quantity) !== i.quantity) return null;
+        if (order.total == null || Math.round(Number(order.total) * 100) !== i.amountMinor) return null;
+        // Snapshot amounts/quantities win over today's consultation catalog.
+        return Object.freeze({ ...(prepaid ? { prepaid: true, paymentMode: 'PREPAID', amountToCollectMinor: 0,
+            currentPaymentStatus: text(i.currentPaymentStatus || i.paymentStatus),
+            fulfillmentHold: i.fulfillmentHold === true || text(i.currentPaymentStatus || i.paymentStatus) !== 'PAID',
+            email: text(order.customer?.email) } : {}), offerId: i.offerId, kit: kit.label, program: text(i.program), component,
+            quantity: i.quantity, amountMinor: i.amountMinor, total: money(i.amountMinor),
+            nativeOrderId: ref.id, giraOrderId: text(i.gira21xOrderId), payloadHash: text(i.payloadHash),
+            name: text(order.customer?.name), phone: text(order.customer?.phone),
+            city: text(order.customer?.city), province: text(order.customer?.province),
+            address: text(order.customer?.address), reference: text(order.customer?.reference),
+            deliveryMode: text(order.delivery?.mode), agencyName: text(order.delivery?.agencyName) });
+    }
+    function createController(doc) {
+        let sequence = 0, selectedKey = '', currentView = null, currentOptions = {};
+        const cache = new Map();
+        const node = (tag, value, className) => { const n = doc.createElement(tag); if (value != null) n.textContent = value; if (className) n.className = className; return n; };
+        function buildCatalog(host) {
+            if (host.dataset.giraBuilt === '1') return;
+            const list = doc.getElementById('giraKitCatalog');
+            for (const kit of KITS) {
+                const row = node('div', null, 'gira-kit-row'); row.dataset.giraOffer = kit.offerId;
+                const title = node('strong', kit.label), cost = node('strong', money(kit.amountMinor), 'gira-kit-price');
+                const qty = node('span', `${kit.quantity} ${kit.quantity === 1 ? 'frasco' : 'frascos'}`, 'gira-kit-muted');
+                const marker = node('span', '', 'gira-kit-marker'); marker.dataset.giraMarker = kit.offerId;
+                row.append(title, cost, qty, marker); list.append(row);
+            }
+            host.dataset.giraBuilt = '1';
+        }
+        function addDispatchControls(view) {
+            const info = doc.getElementById('giraKitReceived');
+            const options = currentOptions, key = selectedKey, ticket = sequence;
+            const group = node('div', null, 'gira-kit-actions');
+            const status = node('p', 'Consultando a preparação do envio…', 'gira-kit-note');
+            const authorize = node('button', 'Autorizar envio do kit'); authorize.type = 'button'; authorize.disabled = true;
+            const submit = node('button', 'Enviar kit autorizado à Dropi'); submit.type = 'button'; submit.disabled = true;
+            const refresh = node('button', 'Atualizar situação'); refresh.type = 'button';
+            group.append(status, authorize, submit, refresh); info.append(group);
+            let busy = false;
+            const current = () => ticket === sequence && key === selectedKey && currentView === view;
+            const block = text => { status.textContent = text; authorize.disabled = true; submit.disabled = true; };
+            async function reload() {
+                if (!current() || busy) return;
+                if (view.prepaid && view.fulfillmentHold) { block('PRÉ-PAGO · BLOQUEIO FINANCEIRO: envio suspenso. Confira o estorno ou a disputa antes de qualquer ação.'); return; }
+                if (typeof options.getDropiStatus !== 'function') { block('Envio do kit: consulte um operador autenticado.'); return; }
+                try {
+                    const result = await options.getDropiStatus(view.nativeOrderId);
+                    if (!current()) return;
+                    authorize.disabled = true; submit.disabled = true;
+                    if (result.status === 'submitted' || result.alreadySubmitted) { status.textContent = 'Kit já enviado à Dropi. Pós-venda GIRA acompanha os dados oficiais, com consentimento e sem pausa humana.'; return; }
+                    if (result.status === 'processing') { status.textContent = 'Envio em processamento. Atualize a situação antes de outra ação.'; return; }
+                    if (result.giraReadiness?.ready !== true) { block('Complete antes do envio: ' + (result.giraReadiness?.reasons || ['validação do pedido GIRA no servidor']).join(', ') + '.'); return; }
+                    if (!['authorized', 'authorization_required'].includes(result.status)) { block(result.message || 'Pedido exige revisão do operador antes do envio.'); return; }
+                    const canAct = typeof options.postDropiAction === 'function' && typeof options.confirm === 'function';
+                    authorize.disabled = !canAct || result.status !== 'authorization_required';
+                    submit.disabled = !canAct || result.status !== 'authorized';
+                    status.textContent = result.status === 'authorized' ? 'Kit autorizado. Confira os dados contratados antes de enviar.' : 'Kit preenchido pelo snapshot. Requer autorização do operador para envio.';
+                } catch { if (current()) block('Não foi possível conferir o envio. Entre como operador autenticado e atualize a situação.'); }
+            }
+            async function action(event, operation) {
+                event.preventDefault(); event.stopPropagation();
+                if (!current() || busy || view.prepaid && view.fulfillmentHold || typeof options.postDropiAction !== 'function' || typeof options.confirm !== 'function') return;
+                const button = operation === 'submit' ? submit : authorize; if (button.disabled) return;
+                const prompt = (operation === 'submit' ? 'Enviar este kit à Dropi?' : 'Autorizar o envio deste kit?') + '\n' + view.nativeOrderId + '\n' + view.kit + ' · ' + view.component + ' · ' + view.quantity + ' frasco(s) · ' + view.total + (view.prepaid ? '\nPré-pago Stripe · cobrar na entrega USD 0.00.' : '');
+                if (!options.confirm(prompt) || !current()) return;
+                busy = true; authorize.disabled = true; submit.disabled = true; refresh.disabled = true;
+                try {
+                    const order = await options.getOrder(view.nativeOrderId);
+                    if (!current()) return;
+                    const checked = snapshot({ id: key.split('|')[0], orderId: view.nativeOrderId, phone: view.phone }, order);
+                    if (!checked || JSON.stringify(checked) !== JSON.stringify(view)) { block('O pedido mudou. Reabra a ficha e confira o snapshot antes de enviar.'); return; }
+                    const result = await options.postDropiAction(view.nativeOrderId, operation);
+                    if (!current()) return;
+                    if (result.success === false || result.ok === false) { block(result.message || result.error || 'Envio não autorizado pelo servidor.'); return; }
+                    status.textContent = operation === 'submit' ? 'Solicitação recebida. Acompanhe a situação; não repita o envio.' : 'Autorização recebida pelo servidor.';
+                } catch (error) { if (current()) block(error.message || 'Operação não confirmada. Confira a situação antes de repetir.'); }
+                finally { busy = false; refresh.disabled = false; }
+                await reload();
+            }
+            authorize.onclick = event => action(event, 'authorize-submit');
+            submit.onclick = event => action(event, 'submit');
+            refresh.onclick = event => { event.preventDefault(); event.stopPropagation(); return reload(); };
+            void reload();
+        }
+        function draw(view, message, open) {
+            const host = doc.getElementById('giraKitShowcase'); if (!host) return;
+            buildCatalog(host); host.open = open;
+            doc.getElementById('giraKitMessage').textContent = message;
+            const info = doc.getElementById('giraKitReceived'); info.replaceChildren(); info.hidden = !view;
+            for (const row of doc.getElementById('giraKitCatalog').children) {
+                const selected = Boolean(view && row.dataset.giraOffer === view.offerId);
+                row.classList.toggle('gira-kit-contracted', selected);
+                row.lastElementChild.textContent = selected ? 'Kit contratado' : '';
+            }
+            if (!view) return;
+            info.append(node('strong', 'Pedido recebido · dados contratados', 'gira-kit-received-title'));
+            const fields = [ ['Kit', view.kit], ['Programa', view.program], ['Componente escolhido', view.component],
+                ['Quantidade', `${view.quantity} ${view.quantity === 1 ? 'frasco' : 'frascos'}`], ['Total contratado', view.total],
+                ['Cliente', view.name], ['Telefone', view.phone], ['Cidade / província', [view.city, view.province].filter(Boolean).join(' / ')],
+                ['Entrega', view.deliveryMode === 'agency' ? 'Retirada em agência' : view.deliveryMode === 'home' ? 'Domicílio' : ''],
+                ['Agência', view.agencyName], ['Endereço', view.address], ['Referência', view.reference],
+                ...(view.prepaid ? [ ['Pagamento', 'PRÉ-PAGO · Stripe'], ['Cobrar na entrega', 'USD 0.00'],
+                    ['Situação financeira atual', view.fulfillmentHold ? 'BLOQUEADO · ' + view.currentPaymentStatus : 'Pago'], ['E-mail', view.email] ] : []),
+                ['ID GIRA', view.giraOrderId], ['Pedido Vitalismen', view.nativeOrderId] ];
+            const dl = node('dl');
+            for (const [label, value] of fields) { const pair = node('div', null, 'gira-kit-field'); pair.append(node('dt', label), node('dd', value || 'Não informado')); dl.append(pair); }
+            info.append(dl, node('p', view.prepaid
+                ? 'Frete incluído · Pré-pago Stripe · Não cobrar na entrega. O servidor confirma a elegibilidade financeira antes do envio. Acesso digital exige entrega verificada e liberação protegida.'
+                : 'Frete incluído · Pagamento contraentrega. Esta consulta não confirma cobrança, despacho ou acesso digital.', 'gira-kit-note'));
+            addDispatchControls(view);
+        }
+        async function render(chat, options = {}) {
+            const ticket = ++sequence, ref = reference(chat);
+            currentOptions = options;
+            if (!ref) { selectedKey = ''; currentView = null; draw(null, 'Consulta de kits. Dados do parceiro aparecem somente com um pedido GIRA vinculado.', false); return; }
+            if (selectedKey !== ref.key) { selectedKey = ref.key; currentView = null; draw(null, 'Consultando o pedido GIRA vinculado…', true); }
+            const cached = cache.get(ref.id);
+            if (cached && Date.now() - cached.at < 30000) {
+                const view = snapshot(chat, cached.order); currentView = view;
+                draw(view, view ? 'Kit identificado pelo pedido recebido. Valores contratados preservados.' : 'Pedido GIRA não vinculado ou dados divergentes. Nenhum campo foi alterado.', true); return;
+            }
+            if (typeof options.getOrder !== 'function') { draw(null, 'Pedido GIRA não vinculado. Nenhum campo foi alterado.', true); return; }
+            try {
+                const order = await options.getOrder(ref.id);
+                if (ticket !== sequence || selectedKey !== ref.key) return;
+                const view = snapshot(chat, order); currentView = view;
+                if (view) { cache.set(ref.id, { at: Date.now(), order }); if (cache.size > 20) cache.delete(cache.keys().next().value); }
+                draw(view, view ? 'Kit identificado pelo pedido recebido. Valores contratados preservados.' : 'Pedido GIRA não vinculado ou dados divergentes. Nenhum campo foi alterado.', true);
+            } catch {
+                if (ticket === sequence && selectedKey === ref.key) { currentView = null; draw(null, 'Não foi possível consultar o pedido vinculado. Nenhum campo foi alterado.', true); }
+            }
+        }
+        return Object.freeze({ render, inspect: () => currentView });
+    }
+    let controller;
+    return Object.freeze({ KITS, COMPONENTS, reference, snapshot, money, createController,
+        render: (chat, options) => { if (typeof document === 'undefined') return; controller ||= createController(document); return controller.render(chat, options); } });
+});
+</script>
+<!-- GIRA_KIT_ASSETS_END -->
+<script>
         const tokenKey = 'vitalismen_admin_token';
         const params = new URLSearchParams(window.location.search);
         const sessionId = params.get('sessionId') || '';
@@ -9035,6 +9263,7 @@
             customerFieldAutoSaveSeq: 0,
             customerFieldAutoSaveInFlight: false,
             customerFormSaveInFlight: false,
+            customerManualSaveInFlight: false,
             customerFormEditRevision: 0,
             customerDataSaveQueue: Promise.resolve(),
             customerCorrectedFields: new Set(),
@@ -9145,7 +9374,7 @@
         const mergeSavedCustomerDraftIntoChat = (chat = {}) => {
             const saved = savedCustomerDraftForChat(chat);
             const editing = editingCustomerDraftForChat(chat);
-            return [saved, editing].filter(Boolean).reduce((merged, draft) => applyCustomerDraftToChat(merged, draft), chat);
+            return persistedCustomerStateV204.project([saved, editing].filter(Boolean).reduce((merged, draft) => applyCustomerDraftToChat(merged, draft), chat));
         };
         const chatIdentityDigits = (chat = {}) => [
             chat.phone,
@@ -9319,19 +9548,19 @@
             });
             return deduped.filter(Boolean);
         };
-        const allowedBrazilTestPhones = new Set(['5515991418416', '5515998038637']);
+        const allowedBrazilTestPhones = new Set(['5515998038637']);
 
         const isBrazilTestRecord = (record = {}) => {
             const customer = record.customer || record.client || {};
-            const phone = record.phone || customer.phone || record.phoneDigits || '';
+            const phone = record.phone || customer.phone || record.phoneDigits || record.id || '';
             const country = String(record.country || customer.country || '').trim().toUpperCase();
-            return country === 'BR';
+            return country === 'BR' || /^55\d{10,11}$/.test(digitsOnlyText(phone));
         };
 
         const isBrazilAllowedTestRecord = (record = {}) => {
             const customer = record.customer || record.client || {};
             const phone = digitsOnlyText(record.phone || customer.phone || record.phoneDigits || record.id || '');
-            return Boolean(phone && [...allowedBrazilTestPhones].some((allowed) => phone === allowed || phone.endsWith(allowed) || allowed.endsWith(phone)));
+            return allowedBrazilTestPhones.has(phone);
         };
 
         const isBrazilBlockedRecord = (record = {}) => isBrazilTestRecord(record) && !isBrazilAllowedTestRecord(record);
@@ -9357,6 +9586,7 @@
             && a.getDate() === b.getDate()
         );
         const chatEntryInfo = (chat = {}) => {
+            if (isBrazilAllowedTestRecord(chat)) return { className: 'unknown', badge: 'TESTE QA', label: 'Contato de teste permanente', header: 'teste controlado', title: 'Fora da fila e das métricas comerciais; não é cliente novo' };
             const raw = chatEntryAtRaw(chat);
             const ms = parsePanelDateMs(raw);
             if (!ms) {
@@ -9482,7 +9712,7 @@
         const selectedPanelCountry = () => 'EC';
         const panelCountryName = () => 'Equador';
         function setSaveCustomerButtonDisabled(disabled) {
-            const button = el('saveCustomerBtn');
+            const button = el('saveCustomerBtn') || el('confirmCustomerDataBtn');
             if (button) button.disabled = disabled;
         }
         function updateNewContactButtonLabel() {
@@ -9543,7 +9773,7 @@
             };
         };
 
-        const syncAdminLeadStatus = async ({ orderId, country, status, customerDraft = null }) => {
+        const syncAdminLeadStatus = async ({ orderId, country, status, customerDraft = null, statusOnly = false }) => {
             const lead = adminLeadFromOrderId(orderId);
             if (!lead) return { skipped: true, reason: 'not_admin_lead' };
             const nextStatus = normalizePanelStatus(status);
@@ -9555,6 +9785,7 @@
                     id: lead.id,
                     country: lead.country || country || selectedPanelCountry(),
                     status: nextStatus,
+                    status_only: statusOnly,
                     followup_at: nextStatus === 'comprar_depois'
                         ? (customerDraft?.buyLaterFollowupAt || '')
                         : '',
@@ -10655,7 +10886,113 @@
             };
             return aliases[value] || (PANEL_STATUSES.includes(value) ? value : 'novo');
         };
+        // BEGIN EC_PERSISTED_CUSTOMER_STATE_V204
+        const persistedCustomerStateV204 = (() => {
+            const records = new Map();
+            const statuses = new Set(['novo', 'atendendo', 'comprar_depois', 'confirmado', 'pedido_enviado', 'entregue', 'recompra', 'cancelado', 'devolvido']);
+            const phone = value => {
+                const digits = String(value || '').replace(/\D/g, '');
+                return /^5939\d{8}$/.test(digits) ? digits : '';
+            };
+            const at = value => Number.isFinite(Date.parse(value)) ? Date.parse(value) : 0;
+            const remember = record => {
+                const peer = phone(record?.phoneDigits);
+                const draft = record?.metadata?.customerDraft;
+                if (!peer || record.countryCode !== 'EC' || !draft || phone(draft.phone) !== peer
+                    || !statuses.has(draft.status) || !at(draft.updatedAt)) return false;
+                const old = records.get(peer);
+                if (old && at(old.metadata.customerDraft.updatedAt) > at(draft.updatedAt)) return false;
+                records.set(peer, JSON.parse(JSON.stringify(record)));
+                return true;
+            };
+            const project = chat => {
+                const peer = phone(chat?.phone || String(chat?.id || '').split('@')[0]);
+                const record = records.get(peer);
+                if (!record || chat?.vslPrelead === true || (chat.country && chat.country !== 'EC')) return chat;
+                const draft = record.metadata.customerDraft;
+                // The list draft can be stamped when the response is assembled.
+                // Only a previously accepted persisted timestamp proves a newer save.
+                if (at(draft.updatedAt) < at(chat.persistedCustomerStatusV204?.recordedAt)) return chat;
+                const orderId = String(draft.currentNegotiationOrderId || draft.orderId || '');
+                // V205: the authenticated saved draft may retain the historical orderId
+                // while currentNegotiationOrderId already identifies the new purchase.
+                const currentPointerTransition = Boolean(
+                    /^EC-[A-Za-z0-9-]+$/.test(orderId)
+                    && draft.currentNegotiationOrderId === orderId
+                    && [draft.orderId, draft.previousOrderId, draft.sourceOrderId, draft.historicalOrderId].includes(chat.orderId)
+                );
+                if (chat.orderId && chat.orderId !== orderId
+                    && !currentPointerTransition
+                    && !(draft.newCommercialCycle === true && /^EC-RECOMPRA-/.test(orderId))) return chat;
+                const audit = record.metadata.manualHistoricalStatusV203;
+                const auditedTerminal = audit?.version === 203 && audit.source === 'authenticated_operator'
+                    && /^[a-f0-9]{24}$/i.test(String(audit.actorId || '')) && phone(audit.phone) === peer
+                    && audit.orderId === orderId && at(audit.recordedAt)
+                    && ({ delivered: 'entregue', returned: 'devolvido' })[audit.status] === draft.status;
+                const logisticsAt = at(chat.operationalStatus?.updatedAt);
+                const manualAt = at(record.human?.lastManualAt);
+                const operatorStatus = (auditedTerminal && at(audit.recordedAt) >= logisticsAt)
+                    || (Boolean(record.human?.lastManualBy) && manualAt > 0
+                        && manualAt >= logisticsAt && at(draft.updatedAt) >= logisticsAt);
+                const status = operatorStatus ? draft.status : (chat.customerDraft?.status || chat.orderStatus || draft.status);
+                const projected = {
+                    ...chat,
+                    customerDraft: { ...(chat.customerDraft || {}), ...draft, orderId: orderId || draft.orderId, status },
+                    customerDataResolution: record.customerDataResolution || chat.customerDataResolution || null,
+                    orderStatus: operatorStatus ? status : chat.orderStatus,
+                    orderId: orderId || chat.orderId,
+                    currentNegotiationOrderId: orderId,
+                    persistedCustomerStatusV204: operatorStatus ? { phone: peer, orderId, status,
+                        source: auditedTerminal ? 'authenticated_operator_v203' : 'persisted_operator_draft',
+                        recordedAt: auditedTerminal ? audit.recordedAt : draft.updatedAt } : null
+                };
+                for (const key of ['name', 'city', 'province', 'address', 'reference', 'deliveryMode', 'agencyId', 'agencyName', 'quantity', 'total']) {
+                    if (Object.prototype.hasOwnProperty.call(draft, key)) projected[key] = draft[key];
+                }
+                return projected;
+            };
+            const status = chat => {
+                const saved = chat?.persistedCustomerStatusV204;
+                return saved && saved.phone === phone(chat.phone || String(chat.id || '').split('@')[0])
+                    && saved.orderId === String(chat.orderId || '') && saved.status === chat.customerDraft?.status
+                    && statuses.has(saved.status) ? saved.status : '';
+            };
+            return Object.freeze({ remember, project, status });
+        })();
+
+        async function loadPersistedCustomerStateV204({ render = true } = {}) {
+            const chat = state.selectedChat;
+            if (!state.token || !chat || chat.vslPrelead === true || chat.country !== 'EC' || customerFormSaveBusy()) return;
+            const scope = captureCustomerSelectionScope();
+            const revision = state.customerFormEditRevision;
+            let record;
+            try {
+                record = await api(`/api/whatsapp/contact-state/${encodeURIComponent(currentContactStateKey())}`);
+            } catch (error) {
+                if (isCustomerSelectionScopeCurrent(scope) && !customerFormSaveBusy()) {
+                    el('customerDataQualityScore').textContent = 'Consulta falhou';
+                    el('customerDataQualityBlockers').textContent = error.message || 'Não foi possível consultar a ficha salva.';
+                }
+                throw error;
+            }
+            if (!isCustomerSelectionScopeCurrent(scope) || !persistedCustomerStateV204.remember(record)) return;
+            // Keep an accepted server snapshot even if a field save/edit started
+            // during the read. The form keeps its editing guard; the next list
+            // refresh must not lose the saved state because of that race.
+            if (customerFormSaveBusy() || state.customerFormEditRevision !== revision) return;
+            state.selectedChat = mergeSavedCustomerDraftIntoChat(state.selectedChat);
+            state.chats = state.chats.map(item => persistedCustomerStateV204.project(item));
+            if (render) {
+                state.chatSignature = '';
+                renderChats();
+                renderSelectedDetails();
+            }
+        }
+        // END EC_PERSISTED_CUSTOMER_STATE_V204
+
         const authoritativePanelStatusForChat = (chat = {}) => {
+            const persistedStatus = persistedCustomerStateV204.status(chat);
+            if (persistedStatus) return normalizePanelStatus(persistedStatus);
             const operational = chat.operationalStatus || {};
             if (String(operational.source || '').toLowerCase() === 'shipment') {
                 const shipmentStatus = normalizePanelStatus(operational.key || '');
@@ -10696,7 +11033,12 @@
             const dateField = el('customerBuyLaterDateField');
             const dateInput = el('customerBuyLaterDateInput');
             dateField?.classList.toggle('hidden', !buyLater);
-            if (dateInput) dateInput.required = buyLater;
+            if (dateInput) dateInput.required = false;
+            ['Day', 'Month', 'Year'].forEach((part) => {
+                const field = el(`customerBuyLater${part}Input`);
+                if (field) field.required = buyLater;
+            });
+            if (!el('customerBuyLaterYearInput').value) el('customerBuyLaterYearInput').value = String(new Date().getFullYear());
         };
         const customerPricePresetsEc = [
             ['1', '39.99', 'USD 39.99', '1 frasco'],
@@ -10765,6 +11107,7 @@
                     : (value ?? '');
                 input.value = id === 'customerStatusInput' ? normalizePanelStatus(value) : normalizedValue;
             }
+            if (id === 'customerBuyLaterDateInput') syncBuyLaterDatePartsV218();
             if (id === 'customerStatusInput') {
                 input.dataset.prevStatus = input.value || 'novo';
                 updateCustomerStatusStyle();
@@ -10814,6 +11157,7 @@
             return /^user[_-]?\d{11,}$/i.test(raw) || /^chat[_-]?\d{11,}$/i.test(raw);
         };
         const chatDisplayName = (chat = {}) => {
+            if (isBrazilAllowedTestRecord(chat)) return 'Teste QA 8637';
             const name = String(chat.name || chat.customerDraft?.name || chat.profileName || '').trim();
             if (name && !looksLikeInternalNameId(name)) return compact(name, 'Cliente');
             const phone = String(chat.phone || chat.id || '').trim();
@@ -11037,8 +11381,58 @@
             return chat?.human?.mode === 'manual' ? `atendente no comando: ${owner}` : 'automacao ativa';
         };
         const customerFormSaveBusy = () => Boolean(
-            state.customerFormSaveInFlight || state.customerFieldAutoSaveInFlight
+            state.customerFormSaveInFlight || state.customerFieldAutoSaveInFlight || state.customerManualSaveInFlight
         );
+        // BEGIN QA_PANEL_TRUTH_V248
+function createQaPanelUiV248({ api, getChat, getScope, refresh, now = () => Date.now() }) {
+    const phone = '5515998038637';
+    let cache = null, pending = null, requestedAt = 0;
+    const exact = chat => {
+        const raw = String(chat?.phone || chat?.id || '').split('@')[0];
+        return raw.replace(/\D/g, '') === phone;
+    };
+    function status(chat) {
+        if (!exact(chat)) return null;
+        if (!cache) return { badge: 'TESTE: CONSULTANDO JANELA', kind: 'loading' };
+        if (cache.error) return { badge: 'TESTE: CONSULTA INDISPONÍVEL', kind: 'error' };
+        const permit = cache.metadata?.qaTestContextV78;
+        const until = Date.parse(permit?.expiresAt || '');
+        if (permit?.version === 78 && permit.phone === phone && permit.status === 'armed' && until > now()) {
+            return { badge: 'TESTE: JANELA ATIVA', kind: 'active' };
+        }
+        return { badge: 'TESTE: JANELA ENCERRADA', kind: 'closed' };
+    }
+    function emptyHtml(chat) {
+        const value = status(chat);
+        if (!value) return '<div class="empty">Sem mensagens salvas para este cliente.</div>';
+        const explanation = value.kind === 'active'
+            ? 'Janela de teste ativa. Aguardando uma nova mensagem enviada pelo WhatsApp 8637.'
+            : value.kind === 'loading' ? 'Consultando a janela autorizada do teste 8637.'
+            : value.kind === 'error' ? 'Não foi possível consultar a janela de teste. Atualize a página para conferir o estado atual.'
+            : 'A janela anterior terminou. Uma nova mensagem de teste precisa de uma janela autorizada ativa.';
+        return '<div class="empty" data-qa-empty-v248="true"><strong>Teste 8637: nenhuma mensagem nesta rodada.</strong><br>' + explanation + '</div>';
+    }
+    async function load() {
+        if (!exact(getChat()) || pending || now() - requestedAt < 15000) return;
+        const scope = getScope(); requestedAt = now();
+        pending = (async () => {
+            let record;
+            try {
+                record = await api('/api/whatsapp/contact-state/' + phone);
+                if (record?.phoneDigits !== phone || record?.metadata?.testOnly !== true) throw Error('qa_identity_mismatch');
+            } catch (_) { record = { error: true }; }
+            if (getScope() !== scope || !exact(getChat())) return;
+            cache = record; refresh();
+        })();
+        try { await pending; } finally { pending = null; }
+    }
+    return Object.freeze({ status, emptyHtml, load });
+}
+
+        const qaPanelUiV248 = createQaPanelUiV248({ api, getChat: () => state.selectedChat,
+            getScope: () => String(state.selectedChatEpoch) + "|" + currentContactStateKey(),
+            refresh: () => { setAttendancePulse(state.selectedChat); renderMessages(state.currentMessages, { preserveScroll: true }); } });
+        // END QA_PANEL_TRUTH_V248
         const setAttendancePulse = (chat) => {
             const globalOff = !autoReplyGloballyActive();
             const manual = chat?.human?.mode === 'manual';
@@ -11053,7 +11447,7 @@
                 return;
             }
             if (el('commandStatusBtn')) {
-                el('commandStatusBtn').textContent = globalOff ? automationOffLabel() : (manual ? 'HUMANO NO COMANDO' : 'BOT ONLINE');
+                el('commandStatusBtn').textContent = globalOff ? automationOffLabel() : (manual ? 'HUMANO NO COMANDO' : (qaPanelUiV248.status(chat)?.badge || 'BOT ONLINE'));
                 el('commandStatusBtn').disabled = false;
                 el('commandStatusBtn').classList.add((manual || globalOff) ? 'panel-pulse-human' : 'panel-pulse-bot');
             }
@@ -11147,6 +11541,14 @@
             const score = el('customerDataQualityScore');
             const confirmName = el('confirmCustomerNameBtn');
             if (!card || !list || !blockers || !score || !confirmName) return;
+            if (!resolution || resolution.version !== 28) {
+                score.textContent = 'A consultar';
+                card.classList.remove('is-ready', 'is-blocked');
+                list.textContent = 'Carregando a validação da ficha salva...';
+                blockers.textContent = 'A confirmação de um novo pedido continua sujeita à validação dos dados.';
+                confirmName.hidden = true;
+                return;
+            }
             const fields = resolution?.fields || {};
             const entries = [
                 ['name', 'Nome'], ['phone', 'Telefone'], ['city', 'Cidade'], ['province', 'Provincia'],
@@ -11197,9 +11599,17 @@
                 hint.textContent = 'Numero interno/teste nao confirma cliente real.';
                 return;
             }
+            if (status === 'comprar_depois') {
+                button.textContent = 'Salvar dados';
+                button.disabled = Boolean(state.customerManualSaveInFlight || state.customerFormSaveInFlight);
+                stateBadge.textContent = completeBuyLaterDateV217() ? 'agendar' : 'aguarda data';
+                stateBadge.className = 'badge orange';
+                hint.textContent = 'Preencha dia e mês; o ano já está preenchido. Clique em Salvar dados para confirmar Comprar depois.';
+                return;
+            }
             if (['confirmado', 'pedido_enviado', 'entregue', 'recompra'].includes(status)) {
                 button.textContent = 'Salvar dados';
-                button.disabled = customerFormSaveBusy();
+                button.disabled = Boolean(state.customerManualSaveInFlight || state.customerFormSaveInFlight);
                 stateBadge.textContent = status === 'confirmado' && (missing.length || qualityBlocked) ? 'dados bloqueados' : status === 'confirmado' ? 'confirmar pedido' : status.replace(/_/g, ' ');
                 stateBadge.className = `badge ${status === 'confirmado' && (missing.length || qualityBlocked) ? 'red' : 'green'}`;
                 hint.textContent = status === 'confirmado' && (missing.length || qualityBlocked)
@@ -11209,7 +11619,7 @@
                     : 'Pedido ja esta em fluxo. Use Salvar dados apenas para corrigir a ficha.';
                 return;
             }
-            button.disabled = customerFormSaveBusy();
+            button.disabled = Boolean(state.customerManualSaveInFlight || state.customerFormSaveInFlight);
             if (missing.length) {
                 button.textContent = 'Salvar dados';
                 stateBadge.textContent = `${missing.length} faltando`;
@@ -11232,6 +11642,12 @@
             }) || null;
         };
         const setPanelMessageFilter = (filter = 'all') => {
+            if (filter === 'tests') {
+                state.chatFilter = 'tests'; state.conversationBucketFilter = '';
+                document.querySelectorAll('[data-chat-filter]').forEach(button => button.classList.toggle('active', button.dataset.chatFilter === 'tests'));
+                document.querySelectorAll('[data-operational-bucket]').forEach(button => button.classList.remove('active'));
+                return;
+            }
             const next = window.VitalismenGlobalNewMessagesV44?.messageFilterState?.({
                 filter,
                 conversationBucketFilter: state.conversationBucketFilter
@@ -11902,7 +12318,9 @@
             `).join('') || '<div class="empty">Sem eventos salvos ainda.</div>';
 
             const shipment = profile.shipment;
-            if (!logisticsBanner || !shipment) {
+            const currentOrderId = String(state.selectedChat?.currentNegotiationOrderId || state.selectedChat?.customerDraft?.currentNegotiationOrderId || state.selectedChat?.orderId || '');
+            const shipmentBelongsToHistoricalOrder = Boolean(currentOrderId && order?.orderId && currentOrderId !== order.orderId);
+            if (!logisticsBanner || !shipment || shipmentBelongsToHistoricalOrder) {
                 if (logisticsBanner) logisticsBanner.hidden = true;
                 return;
             }
@@ -11977,6 +12395,7 @@
             const search = String(options.search || '').trim();
             return dedupeChatsForPanel(panelChatsIncludingRemoteSearch()).filter((chat) => {
                 if (isUncontactableVslPrelead(chat)) return false;
+                if (isBrazilAllowedTestRecord(chat) && options.includeTests !== true) return false;
                 const chatPhone = digitsOnlyText(chat.phone || chat.id || '');
                 const matchesSearch = chatMatchesSearch(chat, search);
                 if (ownZapiPhone && chatPhone && (chatPhone === ownZapiPhone || chatPhone.endsWith(ownZapiPhone) || ownZapiPhone.endsWith(chatPhone)) && !matchesSearch) return false;
@@ -12004,6 +12423,7 @@
         };
 
         const isNewMessagesChatForPanel = (chat = {}) => {
+            if (isBrazilAllowedTestRecord(chat)) return false;
             const commercialNew = window.VitalismenEngagementPriorityV43?.isNewMessagesChat?.(chat, {
                 resolveConversationBucket: chatConversationBucket,
                 isVslAwaitingHuman
@@ -12041,7 +12461,7 @@
         };
 
         const renderOperationalMetrics = () => {
-            const operationalChats = visibleOperationalChats();
+            const operationalChats = visibleOperationalChats().filter(chat => !isBrazilAllowedTestRecord(chat));
             renderConversationBucketCounts(operationalChats);
             const visibleChats = window.VitalismenPanelWarmupIsolationV118?.commercialChats?.(
                 operationalChats,
@@ -12157,11 +12577,14 @@
             if (tags.includes('manual:atendimento_iniciado') || tags.includes('manual:humano_no_comando')) return 'atendendo';
             return '';
         };
-        const chatDisplayStatus = (chat) => orderStatusInfo(
+        const commercialChatDisplayStatusV252 = (chat) => orderStatusInfo(
             authoritativePanelStatusForChat(chat)
             || statusFromChatTags(chat)
             || (chat.human?.mode === 'manual' ? 'atendendo' : 'novo')
         );
+        const chatDisplayStatus = chat => isBrazilAllowedTestRecord(chat)
+            ? { label: 'Teste QA', className: 'orange', closed: false }
+            : commercialChatDisplayStatusV252(chat);
         const isFavoriteChat = (chat) => chatTags(chat).some((tag) => /favorit|favorite|star/i.test(String(tag)));
         const shipmentPanelStatusLabel = (chat) => {
             const shipment = chat?.shipment || {};
@@ -12255,6 +12678,7 @@
             return labels[value] || value.replace(/^manual:/, '').replace(/^auto:/, '').replace(/_/g, ' ');
         };
         const renderChatLabels = (chat) => {
+            if (isBrazilAllowedTestRecord(chat)) return '<div class="chat-labels"><span class="wa-label auto">TESTE PERMANENTE · SEM PEDIDO/DROPI</span></div>';
             const orderedTags = chatTags(chat).sort((a, b) => {
                 const aWarmup = String(a || '').startsWith('warmup:') || String(a || '').includes('aquecimento');
                 const bWarmup = String(b || '').startsWith('warmup:') || String(b || '').includes('aquecimento');
@@ -12325,7 +12749,10 @@
                 && state.chatFilter !== 'unread'
                 && Boolean(state.conversationBucketFilter)
             );
-            const filtered = visibleOperationalChats({ search }).filter((chat) => {
+            const filtered = visibleOperationalChats({ search, includeTests: true }).filter((chat) => {
+                const qa = isBrazilAllowedTestRecord(chat);
+                if (state.chatFilter === 'tests') return qa && chatMatchesSearch(chat, search);
+                if (qa) return searchActive && state.chatFilter !== 'unread' && chatMatchesSearch(chat, search);
                 const warmupIsolationDecision = searchActive
                     ? undefined
                     : window.VitalismenPanelWarmupIsolationV118?.isChatVisibleInOperationalView?.({
@@ -12383,12 +12810,12 @@
                     review: { label: 'REVISAR', className: 'red' }
                 }[bucket] || { label: 'ATENDIMENTO', className: 'orange' };
                 const title = chatDisplayName(chat);
-                const lastTime = chat.lastMessage?.timestamp ? formatTime(chat.lastMessage.timestamp).split(', ').pop() : '';
+                const lastTime = chatTimestampValue(chat) ? formatTime(chatTimestampValue(chat)).split(', ').pop() : '';
                 const unreadCount = Math.max(0, Number(chat.unreadCount || 0));
                 const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
-                const unansweredCount = Math.max(0, Number(chat.unansweredCount || 0));
+                const unansweredCount = isBrazilAllowedTestRecord(chat) ? 0 : Math.max(0, Number(chat.unansweredCount || 0));
                 const unansweredLabel = unansweredCount > 99 ? '99+' : String(unansweredCount);
-                const vslWaiting = isVslAwaitingHuman(chat);
+                const vslWaiting = !isBrazilAllowedTestRecord(chat) && isVslAwaitingHuman(chat);
                 const needsAttention = vslWaiting || unansweredCount > 0;
                 const attentionTitle = chat.vslPrelead === true
                     ? 'Entrada VSL registrada; aguardando o primeiro WhatsApp com telefone real'
@@ -12731,6 +13158,7 @@
             qs.set('fast', '1');
             try {
                 const chats = await api(`/api/whatsapp/chats?${qs.toString()}`);
+                await loadPersistedCustomerStateV204({ render: false }).catch(() => null);
                 const ownZapiPhone = digitsOnlyText(state.zapiDevice?.device?.phone || '');
                 let nextChats = ownZapiPhone
                     ? chats.filter((chat) => {
@@ -12752,6 +13180,7 @@
                 nextChats = dedupeChatsForPanel(nextChats.map(mergeSavedCustomerDraftIntoChat));
                 const signature = getChatSignature(nextChats);
                 state.chats = nextChats;
+                document.dispatchEvent(new CustomEvent('vitalismen:whatsapp-chats-loaded-v226', { detail: chats }));
                 if (state.selectedChat) {
                     const refreshedSelectedChat = state.chats.find((chat) => sameChatIdentity(state.selectedChat, chat));
                     state.selectedChat = refreshedSelectedChat
@@ -12857,7 +13286,7 @@
         const isPendingMediaConfirmed = (pending, message) => {
             if (!pending?.mediaUrl || !message?.isFromMe) return false;
             const pendingAt = Number(pending.localCreatedAt || 0);
-            const messageAt = Number(message.timestamp || 0) * 1000;
+            const messageAt = parsePanelDateMs(message.timestamp || message.createdAt);
             if (pendingAt && messageAt && Math.abs(messageAt - pendingAt) > 300000) return false;
             const messageType = String(message.type || '').toLowerCase();
             return Boolean(message.mediaUrl || message.mediaAttachments?.length)
@@ -12870,7 +13299,7 @@
                 const hasMediaUrl = Boolean(message.mediaUrl || message.mediaAttachments?.length);
                 const messageType = String(message.type || '').toLowerCase();
                 if (hasMediaUrl || !message?.isFromMe || !['audio', 'ptt', 'image', 'video', 'media'].includes(messageType)) return message;
-                const messageAt = Number(message.timestamp || 0) * 1000;
+                const messageAt = parsePanelDateMs(message.timestamp || message.createdAt);
                 const pending = pendingMessages.find((item) => (
                     item.mediaUrl
                     && (!messageAt || Math.abs(messageAt - (item.localCreatedAt || 0)) < 300000)
@@ -12888,14 +13317,14 @@
                         (
                             message?.isFromMe
                             && messageComparableText(message) === pendingText
-                            && Math.abs((Number(message.timestamp || 0) * 1000) - (pending.localCreatedAt || 0)) < 180000
+                            && Math.abs(parsePanelDateMs(message.timestamp || message.createdAt) - (pending.localCreatedAt || 0)) < 180000
                         )
                         || isPendingMediaConfirmed(pending, message)
                     ));
                     return !confirmed && now - (pending.localCreatedAt || 0) < 180000;
                 });
             return [...serverMessages, ...state.pendingLocalMessages]
-                .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
+                .sort((a, b) => parsePanelDateMs(a.timestamp || a.createdAt) - parsePanelDateMs(b.timestamp || b.createdAt));
         };
 
         const appendLocalMessage = (body, options = {}) => {
@@ -13709,10 +14138,7 @@
 
         const WHATSAPP_EDIT_WINDOW_MS = 15 * 60 * 1000;
         const messageTimestampMs = (message = {}) => {
-            const timestamp = Number(message.timestamp || 0);
-            if (timestamp > 0) return timestamp * 1000;
-            const fallback = new Date(message.createdAt || 0).getTime();
-            return Number.isFinite(fallback) ? fallback : 0;
+            return parsePanelDateMs(message.timestamp || message.createdAt);
         };
         const outboundEditAvailability = (message = {}) => {
             if (!message?.isFromMe || message?.isBot || !['chat', 'text'].includes(String(message.type || '').toLowerCase())) {
@@ -14990,7 +15416,7 @@
                         </div>
                     </div>
                 `;
-            }).join('') || '<div class="empty">Sem mensagens salvas para este cliente.</div>';
+            }).join('') || qaPanelUiV248.emptyHtml(state.selectedChat);
             if (options.preserveScroll) {
                 box.scrollTop = Math.max(0, box.scrollHeight - previousBottom);
             } else {
@@ -15281,6 +15707,7 @@
                 const limit = Math.min(Math.max(Number.parseInt(String(options.limit || 80), 10) || 80, 20), 300);
                 const data = await api(`/api/whatsapp/messages/${encodeURIComponent(currentChatPhone())}?fast=1&limit=${limit}&_=${Date.now()}`);
                 if (!state.selectedChat || state.messagesRequestKey !== requestKey || currentContactStateKey() !== requestKey) return;
+                qaPanelUiV248.load().catch(() => null);
                 const messages = mergePendingLocalMessages(data || []);
                 const signature = getMessageSignature(messages);
                 if (options.force || signature !== state.messageSignature) {
@@ -15368,6 +15795,7 @@
             el('conversation').innerHTML = '<div class="empty">Carregando mensagens...</div>';
             if (markRead) markSelectedChatRead().catch(() => null);
             loadSelectedMessages({ force: true, limit: 60, bypassLoading: true }).catch((error) => showToast(error.message));
+            loadPersistedCustomerStateV204().catch(() => null);
             state.selectedChatProfileTimer = window.setTimeout(() => {
                 if (state.selectedChatLoadSeq === loadSeq) loadCustomerProfileForChat(chatKey).catch(() => null);
             }, 180);
@@ -15384,6 +15812,19 @@
 
         const renderSelectedDetails = () => {
             const chat = state.selectedChat;
+            // GIRA_KIT_SNAPSHOT_READONLY: ID-linked authenticated GET; no native draft writes.
+            window.VitalismenGiraKits?.render(chat, {
+                getOrder: async (orderId) => {
+                    const payload = await api(`/api/orders/${encodeURIComponent(orderId)}`, { method: 'GET' });
+                    return payload.order;
+                },
+                getDropiStatus: orderId => api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/submit-status`, { method: 'GET' }),
+                postDropiAction: (orderId, operation) => {
+                    if (!['authorize-submit', 'submit'].includes(operation)) throw new Error('Ação do kit inválida.');
+                    return api(`/api/shipments/droppi/ec/orders/${encodeURIComponent(orderId)}/${operation}`, { method: 'POST', body: JSON.stringify({ note: 'Kit GIRA: dados e valor do snapshot contratado conferidos pelo operador.' }) });
+                },
+                confirm: message => window.confirm(message)
+            });
             if (!chat) {
                 clearReplyToMessage();
                 clearEditingOutboundMessage({ clearInput: true });
@@ -17069,7 +17510,7 @@
                     type: 'block',
                     typeLabel: 'bloco',
                     label: 'Inicio completo Vit Power',
-                    detail: 'Inicio universal 01 + Inicio universal 02 + Prova 1 + Frasco Vit Power',
+                    detail: 'Saudacao personalizada + 4 arquivos; pausas de 18-30s no servidor',
                     value: 'vit_power_inicio_completo',
                     steps: [
                         { type: 'audio', label: 'Inicio universal 01', value: UNIVERSAL_INTRO_AUDIO_01_EC },
@@ -17352,6 +17793,11 @@
             drawer.style.setProperty('--funnel-panel-height', `${Math.round(height)}px`);
             drawer.style.setProperty('--funnel-panel-max-height', `${Math.round(height)}px`);
             drawer.open = true;
+            if (activeFunnelProductKey() === 'vit_power_ec' && currentChatPhone()) {
+                const selected = state.selectedChat;
+                api('/api/whatsapp/b01-v216?phone=' + encodeURIComponent(currentChatPhone()))
+                    .then(r => { if (state.selectedChat === selected) applyB01ProgressV216(r.job); }).catch(() => null);
+            }
             renderFooterAudioQuickList((state.audioTemplates || []).filter((template) => template.country === currentTemplateCountry()));
             window.requestAnimationFrame(() => {
                 restoreFunnelSearchInput({ focus: true });
@@ -17566,6 +18012,29 @@
             renderFunnelProgress();
         };
 
+        const applyB01ProgressV216 = (job) => {
+            if (!job) return;
+            const running = ['pending', 'sending'].includes(job.status);
+            const seconds = job.nextAt ? Math.max(0, Math.ceil((new Date(job.nextAt) - Date.now()) / 1000)) : 0;
+            setFunnelProgress({ status: job.status === 'done' ? 'done' : running ? 'sending' : 'error',
+                sent: job.sent, total: 4, activeType: '',
+                label: job.status === 'done' ? 'B01 concluido; arquivos aceitos pelo provedor'
+                    : running ? `B01: ${job.sent}/4 aceitos. ${seconds ? 'Proximo item em ' + seconds + 's' : 'Aguardando confirmacao'}`
+                    : `B01 pausado para conferencia: ${job.reason || job.status}. Nenhum reenvio automatico.` });
+        };
+        async function sendProtectedB01V216(phone, chatId) {
+            let result = await api('/api/whatsapp/b01-v216', { method: 'POST', body: JSON.stringify({ phone }) });
+            if (!result?.success) throw new Error(result?.error || 'B01 nao confirmado; consulte o progresso');
+            for (let i = 0; i < 144; i += 1) {
+                if (state.selectedChat !== chatId) return;
+                applyB01ProgressV216(result.job);
+                if (!['pending', 'sending'].includes(result.job?.status)) return;
+                await waitFunnelStep(2500);
+                result = await api('/api/whatsapp/b01-v216?phone=' + encodeURIComponent(phone));
+            }
+            showToast('B01 continua no servidor. Abra o funil para consultar o progresso.');
+        }
+
         async function sendFunnelBlock(blockId, button) {
             if (!state.selectedChat || state.funnelBlockSending || !blockId) return;
             const block = footerFunnelBlocks().find((item) => item.value === blockId);
@@ -17597,6 +18066,11 @@
             });
 
             try {
+                if (blockId === 'vit_power_inicio_completo') {
+                    await sendProtectedB01V216(targetPhone, targetChatId);
+                    Promise.all([loadSelectedMessages({ force: true }), loadChats()]).catch(() => null);
+                    return;
+                }
                 const payloads = block.steps.map((step, index) => buildFunnelStepPayload(step, index));
                 for (let index = 0; index < block.steps.length; index += 1) {
                     const step = block.steps[index];
@@ -18892,20 +19366,31 @@
                     });
                 }
             }
+            if (customerDraft.status === 'confirmado' && (missingCustomerFields(customerDraft).length > 0
+                || (resolvedCustomerData?.version === 28 && resolvedCustomerData.orderDataReady !== true))) {
+                customerDraft.status = 'atendendo';
+                if (saveSnapshotIsCurrent()) setInputValue('customerStatusInput', 'atendendo');
+                orderNotice = 'Ficha salva em Atendendo; complete os dados antes de confirmar o pedido.';
+            }
             const apiOrderStatus = orderStatusForApi(customerDraft.status);
             const isAdminLeadOrder = /^[A-Z]{2}-ADMIN-\d+$/i.test(String(chat.orderId || customerDraft.orderId || ''));
             const historicalOrderId = historicalOrderIdFromChat(chat);
             if (historicalOrderId) {
                 customerDraft.previousOrderId = historicalOrderId;
             }
+            const partialConfirmedStatus = customerDraft.status === 'confirmado'
+                && allowPartialConfirmedSave
+                && (missingCustomerFields(customerDraft).length > 0
+                    || (resolvedCustomerData?.version === 28 && resolvedCustomerData.orderDataReady !== true));
             const shouldCreateNewConfirmedOrder = Boolean(
                 customerDraft.status === 'confirmado'
                 && historicalOrderId
+                && !partialConfirmedStatus
             );
             if (shouldCreateNewConfirmedOrder) {
                 customerDraft.orderId = '';
             }
-            if (customerDraft.status === 'confirmado' && !allowPartialConfirmedSave) {
+            if (customerDraft.status === 'confirmado' && !partialConfirmedStatus) {
                 const missing = missingCustomerFields(customerDraft);
                 if (missing.length) {
                     throw new Error(`Complete antes de confirmar: ${missing.map((item) => item.label).join(', ')}.`);
@@ -18915,11 +19400,12 @@
                     throw new Error(`Pedido bloqueado pela qualidade dos dados: ${reasons.join(', ') || 'revisao necessaria'}.`);
                 }
             }
-            if (customerDraft.status === 'comprar_depois' && !/^\d{4}-\d{2}-\d{2}$/.test(customerDraft.buyLaterFollowupAt || '')) {
-                el('customerBuyLaterDateInput').focus();
+            if (customerDraft.status === 'comprar_depois' && !completeBuyLaterDateV217()) {
+                focusBuyLaterDateV218();
                 throw new Error('Informe a data desejada do pedido para usar Comprar depois.');
             }
-            const customerDataAllowsOrderWrite = apiOrderStatus !== 'confirmed' || resolvedCustomerData?.orderDataReady === true;
+            const customerDataAllowsOrderWrite = !partialConfirmedStatus
+                && (apiOrderStatus !== 'confirmed' || resolvedCustomerData?.orderDataReady === true);
             if (synchronizeOrder && chat.orderId && !isAdminLeadOrder && !historicalOrderId && !shouldCreateNewConfirmedOrder && customerDataAllowsOrderWrite) {
                 const payload = {
                     customer: {
@@ -19002,25 +19488,49 @@
                 }
             }
 
+            const previousStatusInChat = normalizePanelStatus(chat.customerDraft?.status || 'atendendo');
+            const previousContactState = partialConfirmedStatus || ['entregue', 'cancelado', 'devolvido', 'recompra'].includes(previousStatusInChat)
+                ? await api(`/api/whatsapp/contact-state/${encodeURIComponent(saveSnapshot.contactStateKey)}`)
+                : null;
+            const previousStatus = normalizePanelStatus(previousContactState?.metadata?.customerDraft?.status || chat.customerDraft?.status || 'atendendo');
+            const contactPatchDraft = partialConfirmedStatus
+                ? { ...customerDraft, status: previousStatus }
+                : customerDraft;
             const contactSave = await api(`/api/whatsapp/contact-state/${encodeURIComponent(saveSnapshot.contactStateKey)}`, {
                 method: 'PATCH',
                 body: JSON.stringify({
                     note,
-                    customerDraft,
+                    customerDraft: contactPatchDraft,
                     customerDataConfirmation: {
                         correctedByHumanFields: saveSnapshot.correctedFields
-                    }
+                    },
+                    manualStatusOnly: partialConfirmedStatus
                 })
             });
-            assertConfirmedPersistenceV158(contactSave, customerDraft);
-            const adminLeadSync = historicalOrderId
+            if (!partialConfirmedStatus) assertConfirmedPersistenceV158(contactSave, customerDraft);
+            persistedCustomerStateV204.remember(contactSave?.state);
+            const syncedLeadId = String(contactSave?.unifiedSync?.lead_id || contactSave?.unifiedSync?.leadId || contactSave?.unifiedSync?.id || '').replace(/\D/g, '');
+            const statusOrderId = partialConfirmedStatus && !adminLeadFromOrderId(chat.orderId || customerDraft.orderId)
+                ? (syncedLeadId ? `EC-ADMIN-${syncedLeadId}` : '')
+                : (chat.orderId || customerDraft.orderId);
+            const adminLeadSync = historicalOrderId && !partialConfirmedStatus
                 ? { skipped: true, reason: 'historical_order_preserved', previousOrderId: historicalOrderId }
                 : await syncAdminLeadStatus({
-                    orderId: chat.orderId || customerDraft.orderId,
+                    orderId: statusOrderId,
                     country: customerDraft.country,
                     status: customerDraft.status,
-                    customerDraft
+                    customerDraft,
+                    statusOnly: partialConfirmedStatus || ['entregue', 'cancelado', 'devolvido', 'recompra'].includes(previousStatus)
                 });
+            if (partialConfirmedStatus) {
+                const verifiedContactState = await api(`/api/whatsapp/contact-state/${encodeURIComponent(saveSnapshot.contactStateKey)}`);
+                const persistedStatus = normalizePanelStatus(verifiedContactState?.metadata?.customerDraft?.status);
+                if (persistedStatus !== 'confirmado' || adminLeadSync?.ok !== true || adminLeadSync?.status_only !== true || adminLeadSync?.whatsapp_panel_sync?.ok !== true) {
+                    throw new Error('A ficha foi preservada, mas o status Confirmado não foi comprovado em ambos os painéis. Atualize e tente novamente.');
+                }
+                if (contactSave?.state?.metadata?.customerDraft) contactSave.state.metadata.customerDraft.status = 'confirmado';
+                orderNotice = 'Status Confirmado salvo; pedido pendente de dados para envio à Dropi.';
+            }
             const syncedDraft = contactSave?.state?.metadata?.customerDraft || {};
             const savedCustomerDataResolution = contactSave?.state?.customerDataResolution || resolvedCustomerData || null;
             if (saveSnapshotIsCurrent()) {
@@ -19042,7 +19552,7 @@
                 }
             }
 
-            const savedChat = {
+            const savedChat = persistedCustomerStateV204.project({
                 ...chat,
                 name: customerDraft.name || chat.name,
                 phone: customerDraft.phone || chat.phone,
@@ -19073,7 +19583,7 @@
                     ...(syncedDraft.flowDataOk ? { flowDataOk: syncedDraft.flowDataOk } : {}),
                     note
                 }
-            };
+            });
             const selectedChatStillMatches = sameChatIdentity(state.selectedChat, chat);
             const saveIsCurrent = selectedChatStillMatches && saveSnapshotIsCurrent();
             const newerManualEditExists = selectedChatStillMatches && !saveIsCurrent;
@@ -19124,14 +19634,77 @@
             return queuedSave;
         }
 
+        // V218: default only the year; day/month remain an explicit operator choice.
+        function syncBuyLaterDatePartsV218() {
+            const value = el('customerBuyLaterDateInput').value;
+            const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+            el('customerBuyLaterDayInput').value = parts ? String(Number(parts[3])) : '';
+            el('customerBuyLaterMonthInput').value = parts ? String(Number(parts[2])) : '';
+            el('customerBuyLaterYearInput').value = parts ? parts[1] : String(new Date().getFullYear());
+        }
+        const updateBuyLaterDatePartsV218 = () => {
+            const day = el('customerBuyLaterDayInput');
+            const month = el('customerBuyLaterMonthInput');
+            const year = el('customerBuyLaterYearInput');
+            const values = [year, month, day];
+            const complete = values.every((field) => field.value && field.validity.valid)
+                && /^\d{4}$/.test(year.value);
+            const iso = complete ? `${year.value}-${month.value.padStart(2, '0')}-${day.value.padStart(2, '0')}` : '';
+            el('customerBuyLaterDateInput').value = iso;
+            stageBuyLaterEditV217();
+        };
+        const focusBuyLaterDateV218 = () => el('customerBuyLaterDayInput').focus();
+
+        // V217: editing the segmented native date must never confirm or persist a status.
+        const completeBuyLaterDateV217 = () => {
+            const input = el('customerBuyLaterDateInput');
+            const value = input?.value || '';
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !input.validity.valid) return false;
+            const [year, month, day] = value.split('-').map(Number);
+            if (year < 1000 || year > 9999) return false;
+            const date = new Date(Date.UTC(year, month - 1, day));
+            return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+        };
+        const stageBuyLaterEditV217 = () => {
+            if (!state.selectedChat || normalizePanelStatus(el('customerStatusInput').value) !== 'comprar_depois') return false;
+            window.clearTimeout(state.statusAutoSaveTimer);
+            window.clearTimeout(state.customerFieldAutoSaveTimer);
+            state.statusAutoSaveSeq += 1;
+            state.customerFieldAutoSaveSeq += 1;
+            markCustomerFormDirty();
+            el('customerSyncHint').textContent = completeBuyLaterDateV217()
+                ? 'Data em edição. Clique em Salvar dados para confirmar o agendamento.'
+                : 'Preencha dia e mês; o ano atual já está preenchido. Depois clique em Salvar dados.';
+            el('customerSyncBadge').textContent = 'aguarda salvar';
+            el('customerSyncBadge').className = 'badge orange';
+            return true;
+        };
+
         async function saveCustomerForm(event) {
             event.preventDefault();
-            if (!state.selectedChat || customerFormSaveBusy()) return;
+            if (!state.selectedChat || state.customerManualSaveInFlight) return;
+            if (normalizePanelStatus(el('customerStatusInput').value) === 'comprar_depois' && !completeBuyLaterDateV217()) {
+                focusBuyLaterDateV218();
+                showToast('Complete dia, mês e ano da data desejada antes de salvar Comprar depois.');
+                return;
+            }
             if (!window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) return;
-            state.customerFormSaveInFlight = true;
+            const selectionScope = captureCustomerSelectionScope();
+            window.clearTimeout(state.customerFieldAutoSaveTimer);
+            window.clearTimeout(state.statusAutoSaveTimer);
+            state.customerFieldAutoSaveSeq += 1;
+            state.statusAutoSaveSeq += 1;
+            state.customerManualSaveInFlight = true;
             setSaveCustomerButtonDisabled(true);
             try {
-                const contactSave = await persistSelectedCustomerData({ allowPartialConfirmedSave: true });
+                await state.customerDataSaveQueue.catch(() => undefined);
+                if (!isCustomerSelectionScopeCurrent(selectionScope)) return;
+                const contactSave = await persistSelectedCustomerDataNow({ allowPartialConfirmedSave: true });
+                if (contactSave?.preservedNewerEdits) {
+                    el('customerSyncHint').textContent = 'Há uma edição mais recente. Salve novamente para fixá-la.';
+                    showToast('Uma edição mais recente ficou pendente. Clique em Salvar ficha novamente.');
+                    return;
+                }
                 const preparation = await prepareConfirmedAdminLeadForDropi({ contactSave });
                 const tasks = [loadChats(), loadDashboardMetrics()];
                 if (state.activeModule === 'sales' || state.activeModule === 'review') tasks.push(loadShipments());
@@ -19143,7 +19716,7 @@
             } catch (error) {
                 showToast(error.message);
             } finally {
-                state.customerFormSaveInFlight = false;
+                state.customerManualSaveInFlight = false;
                 setSaveCustomerButtonDisabled(!state.selectedChat);
                 el('confirmCustomerDataBtn').disabled = !state.selectedChat || isBrazilBlockedRecord(state.selectedChat);
                 updateCustomerPrimaryAction();
@@ -19218,17 +19791,14 @@
             const input = el('customerStatusInput');
             const previousStatus = normalizePanelStatus(input.dataset.prevStatus || state.selectedChat.orderStatus || 'novo');
             const nextStatus = normalizePanelStatus(input.value);
-            if (nextStatus === 'comprar_depois' && !el('customerBuyLaterDateInput').value) {
-                markCustomerFormDirty();
-                el('customerSyncHint').textContent = 'Escolha a data desejada para concluir Comprar depois.';
-                el('customerSyncBadge').textContent = 'aguarda data';
-                el('customerSyncBadge').className = 'badge orange';
-                el('customerBuyLaterDateInput').focus();
+            if (stageBuyLaterEditV217()) {
+                if (!el('customerBuyLaterDateInput').value) focusBuyLaterDateV218();
                 return;
             }
             if (previousStatus !== nextStatus && !window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) {
                 input.value = previousStatus;
                 updateCustomerStatusStyle();
+                rememberEditingCustomerDraft();
                 return;
             }
             const selectionScope = captureCustomerSelectionScope();
@@ -19248,6 +19818,15 @@
                 state.customerFormSaveInFlight = true;
                 try {
                     const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });
+                    if (result?.skipped || result?.preservedNewerEdits) {
+                        if (isCustomerSelectionScopeCurrent(selectionScope)) {
+                            el('customerSyncHint').textContent = 'Edição mais recente pendente; salvando a ficha em seguida.';
+                            el('customerSyncBadge').textContent = 'editando';
+                            el('customerSyncBadge').className = 'badge orange';
+                            scheduleCustomerFieldAutoSave({ delay: 700, source: 'status-retry' });
+                        }
+                        return;
+                    }
                     const tasks = [loadChats(), loadDashboardMetrics()];
                     if (state.activeModule === 'sales' || state.activeModule === 'review') tasks.push(loadShipments());
                     await Promise.all(tasks);
@@ -19273,7 +19852,7 @@
         };
 
         const scheduleCustomerFieldAutoSave = ({ delay = 900, source = 'input' } = {}) => {
-            if (!state.selectedChat) return;
+            if (!state.selectedChat || stageBuyLaterEditV217()) return;
             rememberEditingCustomerDraft();
             const selectionScope = captureCustomerSelectionScope();
             const seq = state.customerFieldAutoSaveSeq + 1;
@@ -19294,7 +19873,7 @@
                 try {
                     const result = await persistSelectedCustomerData({ silent: true, allowPartialConfirmedSave: true });
                     if (isCustomerSelectionScopeCurrent(selectionScope)) {
-                        const newerEdit = result?.preservedNewerEdits === true;
+                        const newerEdit = result?.skipped === true || result?.preservedNewerEdits === true;
                         el('customerSyncHint').textContent = newerEdit
                             ? 'Nova alteração detectada; mantendo o que você digitou e salvando em seguida.'
                             : 'Ficha salva automaticamente.';
@@ -19303,6 +19882,7 @@
                         el('customerFormState').textContent = newerEdit
                             ? 'editando, sem sobrescrever'
                             : (result?.orderNotice || 'salvo automaticamente');
+                        if (newerEdit) scheduleCustomerFieldAutoSave({ delay: 700, source: 'newer-edit' });
                     }
                 } catch (error) {
                     if (!isCustomerSelectionScopeCurrent(selectionScope)) return;
@@ -19705,7 +20285,7 @@
                 const result = await api('/api/whatsapp/send', {
                     method: 'POST',
                     body: JSON.stringify({
-                        phone,
+                        phone: digitsOnlyText(phone),
                         message: text,
                         sessionId,
                         delayTypingSeconds: 0,
@@ -20762,7 +21342,23 @@
             });
         });
         el('customerStatusInput').addEventListener('change', autoSaveCustomerStatusChange);
-        el('customerBuyLaterDateInput').addEventListener('change', autoSaveCustomerStatusChange);
+        ['Day', 'Month', 'Year'].forEach((part) => {
+            const input = el(`customerBuyLater${part}Input`);
+            input.addEventListener('input', updateBuyLaterDatePartsV218);
+            input.addEventListener('change', updateBuyLaterDatePartsV218);
+            input.addEventListener('keydown', (event) => { if (event.key === 'Enter') event.preventDefault(); });
+        });
+        const applyBuyLaterCalendarV218 = () => { syncBuyLaterDatePartsV218(); stageBuyLaterEditV217(); };
+        el('customerBuyLaterDateInput').addEventListener('input', applyBuyLaterCalendarV218);
+        el('customerBuyLaterDateInput').addEventListener('change', applyBuyLaterCalendarV218);
+        el('customerBuyLaterCalendarBtn').addEventListener('click', () => {
+            const input = el('customerBuyLaterDateInput');
+            if (typeof input.showPicker === 'function') input.showPicker();
+            else { input.classList.remove('hidden'); input.focus(); }
+        });
+        el('customerBuyLaterDateInput').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') event.preventDefault();
+        });
         updateCustomerStatusStyle();
         applyCustomerCountryUi();
         el('customerCityInput').addEventListener('input', () => lookupAgencySuggestions().catch((error) => showToast(error.message)));
@@ -21756,6 +22352,474 @@
         bootstrapAuth();
     </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"43bfd4280f8046b7bf2a511a21946254","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<!-- VITALISMEN_EC_WEB_DASHBOARD_V222_START -->
+<style>
+#webChatDashboardDialogV222{width:min(1000px,96vw);height:min(720px,90dvh);padding:0;border:1px solid #b9d9d0;border-radius:16px;color:#172b26;background:#fff;box-shadow:0 20px 70px #0005;overflow:hidden}
+#webChatDashboardDialogV222::backdrop{background:#142c2b85}
+.vpweb222-search{flex:none}.vpweb222-shell{display:flex;flex-direction:column;height:100%;font:14px/1.5 Arial,sans-serif}
+.vpweb222-header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#eaf8f3;border-bottom:1px solid #d9e6e1}
+.vpweb222-header h2{margin:0;font-size:18px}.vpweb222-header p{margin:2px 0 0;font-size:12px;color:#486259}
+.vpweb222-header button{border:1px solid #b9d5cb;border-radius:20px;padding:7px 12px;background:#fff;color:#12664e;cursor:pointer}
+.vpweb222-title{flex:1}.vpweb222-status{margin:0;padding:8px 18px;border-bottom:1px solid #e4ece9;color:#52685f;min-height:36px;font-size:12px}
+.vpweb222-body{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:0;flex:1}
+.vpweb222-list{overflow:auto;border-right:1px solid #e0e9e5;background:#f8fbfa;padding:8px}
+.vpweb222-list button{display:block;text-align:left;width:100%;border:1px solid #dce9e3;border-radius:10px;padding:10px;margin-bottom:7px;background:#fff;color:#203c31;cursor:pointer}
+.vpweb222-list button[aria-pressed=true]{background:#e0f4eb;border-color:#078c66}.vpweb222-list strong,.vpweb222-list small{display:block;overflow-wrap:anywhere}.vpweb222-list small{color:#5b6e65}
+.vpweb222-thread{overflow:auto;padding:16px;background:#f0f4f1}.vpweb222-thread h3{font-size:15px;margin:0 0 12px}.vpweb222-thread p{overflow-wrap:anywhere}
+.vpweb222-bubble{max-width:90%;margin:10px 0;padding:10px 12px;border-radius:12px;background:white;box-shadow:0 1px 2px #0001;white-space:pre-wrap;overflow-wrap:anywhere}
+.vpweb222-bubble[data-role=assistant]{margin-left:auto;background:#dcf6e5}.vpweb222-bubble small{display:block;font-size:11px;color:#52685f;margin-top:5px}
+.vpweb222-footer{font-size:11px;color:#52685f;padding:9px 18px;border-top:1px solid #dfe9e3}
+@media(max-width:600px){#webChatDashboardDialogV222{width:96vw;height:92dvh}.vpweb222-body{grid-template-columns:minmax(0,1fr);grid-template-rows:145px minmax(0,1fr)}.vpweb222-list{border-right:0;border-bottom:1px solid #dfe9e3}.vpweb222-header{padding:10px;gap:6px}.vpweb222-header p{font-size:11px}.vpweb222-header button{padding:7px}.vpweb222-bubble{max-width:95%}}
+</style>
+<dialog id="webChatDashboardDialogV222" aria-labelledby="webChatDashboardTitleV222">
+ <div class="vpweb222-shell">
+  <header class="vpweb222-header"><div class="vpweb222-title"><h2 id="webChatDashboardTitleV222">Chat do site</h2><p>Histórico do site · busca também contatos do WhatsApp</p></div><button id="webChatDashboardRefreshV222" type="button">Atualizar</button><button id="webChatDashboardCloseV222" type="button" aria-label="Fechar chat do site">Fechar ×</button></header>
+  <p id="webChatDashboardStatusV222" class="vpweb222-status" role="status" aria-live="polite"></p>
+  <div class="vpweb232-search" style="display:flex;align-items:center;gap:8px;padding:8px 12px"><input id="webChatDashboardSearchV232" type="search" autocomplete="off" maxlength="100" placeholder="Buscar nome, telefone ou últimos dígitos…" aria-label="Buscar cliente no chat do site" style="min-width:0;flex:1;border:1px solid #cbded7;border-radius:9px;padding:9px"><small id="webChatDashboardSearchCountV232" role="status" aria-live="polite"></small></div>
+  <div class="vpweb222-body"><nav id="webChatDashboardListV222" class="vpweb222-list" aria-label="Conversas do site"></nav><section id="webChatDashboardThreadV222" class="vpweb222-thread" aria-label="Conversa selecionada" aria-live="polite"></section></div>
+  <div id="webChatComposerV235" hidden class="vpweb235-compose"><label id="webChatRecipientV235" for="webChatMessageV235"></label><div class="vpweb235-compose-row"><textarea id="webChatMessageV235" rows="2" maxlength="2000" placeholder="Digite a mensagem para este cliente…" aria-label="Mensagem no popup WhatsApp" aria-describedby="webChatSendStatusV235"></textarea><button id="webChatSendV235" type="button" disabled>Enviar</button></div><small id="webChatSendStatusV235" role="status" aria-live="polite">Enter envia · Shift+Enter quebra a linha.</small></div>
+  <footer class="vpweb222-footer">Horários deste computador. Histórico disponível por até 7 dias. Visitantes sem nome permanecem anônimos. O atendimento por WhatsApp continua na lista principal.</footer>
+ </div>
+</dialog>
+<script>
+(() => {
+ 'use strict';
+ const byId=id=>document.getElementById(id), dialog=byId('webChatDashboardDialogV222'), button=byId('webChatDashboardBtnV222'), list=byId('webChatDashboardListV222'), thread=byId('webChatDashboardThreadV222'), status=byId('webChatDashboardStatusV222'), dashboard=byId('dashboard');
+ let generation=0,controller=null,selected=null,resumeId=null,activity=0;
+ const customerSearch=byId('webChatDashboardSearchV232'),searchCount=byId('webChatDashboardSearchCountV232');let currentRows=[];
+ const searchKey=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ let timer=null,pollController=null,pollBusy=false,initialized=false,watchCredential='',deniedCredential='';
+ const seen=new Map(), unread=new Set(), token=()=>typeof state!=='undefined'?state.token:'';
+ const element=(tag,text,css)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(css)el.className=css;return el};
+ const format=value=>{const d=new Date(value);return value&&Number.isFinite(+d)?d.toLocaleString('pt-BR'):'Horário indisponível'};
+ const label=row=>(row.name||'Visitante · '+String(row.id).slice(0,6))+(row.productKey==='tex_ultra_ec'?' · Tex Ultra':'');
+ const summary=row=>({messageCount:row.messageCount,lastAt:row.lastAt});
+ const eligible=()=>!document.hidden&&!dashboard.classList.contains('hidden')&&!!token()&&typeof state!=='undefined'&&state.user?.role==='admin'&&token()!==deniedCredential;
+ function cancel(){generation++;controller?.abort();controller=null;stopWhatsApp();}
+ function remember(row){if(initialized)seen.set(row.id,summary(row));}
+ async function request(suffix,signal){
+  const credential=token();if(!credential)throw Error('Entre no painel como administrador para consultar as conversas do site.');
+  const response=await fetch('/api/web-chat-admin/vitpower'+suffix,{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+credential},signal});
+  if(response.status===401||response.status===403)throw Object.assign(Error('Acesso restrito a administrador autenticado. Sua conversa atual permanece aberta.'),{authDenied:true});
+  if(response.status===404)throw Object.assign(Error('Esta conversa expirou ou foi removida pelo visitante. Atualize a lista.'),{notFound:true});
+  if(!response.ok)throw Error('Não foi possível consultar o chat do site. Tente atualizar.');
+  return response.json();
+ }
+ // V233: search existing authorized WhatsApp contacts without linking anonymous website visitors.
+ const whatsappPhone=row=>String(row.phone||row.id||'').split('@')[0].replace(/\D/g,'');
+ function whatsappMatches(query){
+  if(!query||!token()||typeof state==='undefined'||state.user?.role!=='admin'||typeof visibleOperationalChats!=='function')return [];
+  const numeric=query.replace(/\D/g,''),onlyPhone=/^[+\d\s().-]+$/.test(query),own=String(state.zapiDevice?.device?.phone||'').replace(/\D/g,''),seenPhones=new Set();
+  return visibleOperationalChats({search:query}).filter(row=>{
+   const phone=whatsappPhone(row),id=String(row.id||'');
+   if(row.isGroup||/@g\.us|status@broadcast/.test(id)||!/^593[2-79]\d{8}$/.test(phone)&&phone!=='5515998038637'||phone===own||seenPhones.has(phone))return false;
+   if(id.endsWith('@lid')&&!row.phone)return false;
+   const match=onlyPhone?numeric.length>=3&&phone.includes(numeric):searchKey([row.name,row.phone,row.customerDraft?.city].filter(Boolean).join(' ')).includes(query);
+   if(match)seenPhones.add(phone);return match;
+  }).slice(0,30);
+ }
+ let selectedWhatsApp=null,resumeWhatsApp=null,waTimer=null,waSignature='';
+ const defaultFooter=dialog.querySelector('.vpweb222-footer').textContent;
+ const compose=byId('webChatComposerV235'),composeInput=byId('webChatMessageV235'),composeSend=byId('webChatSendV235'),composeTarget=byId('webChatRecipientV235'),composeNotice=byId('webChatSendStatusV235');
+ let waAuthorized=false,composePhone='',sendingPopup=false;const popupDrafts=new Map(),popupUncertain=new Set();
+ function savePopupDraft(){if(composePhone)popupDrafts.set(composePhone,composeInput.value);}
+ function updatePopupComposer(){
+  const phone=selectedWhatsApp?whatsappPhone(selectedWhatsApp):'';if(phone!==composePhone){savePopupDraft();composePhone=phone;composeInput.value=popupDrafts.get(phone)||'';composeNotice.textContent=''}
+  compose.hidden=!phone||!dialog.open;dialog.dataset.whatsapp=String(!!phone);composeTarget.textContent=phone?'Para: '+String(selectedWhatsApp.name||phone)+' · +'+phone:'';
+  const allowed=!!phone&&waAuthorized&&eligible()&&!sendingPopup&&!popupUncertain.has(phone);
+  composeInput.disabled=!allowed;composeSend.disabled=!allowed||!composeInput.value.trim();composeSend.textContent=sendingPopup?'Enviando…':'Enviar';applyInviteControls();
+ }
+ composeInput.addEventListener('input',()=>{savePopupDraft();updatePopupComposer()});
+ async function sendPopupMessage(event){
+  event.preventDefault();if(!event.isTrusted||sendingPopup||!dialog.open||!waAuthorized||!eligible()||!selectedWhatsApp)return;
+  const row=selectedWhatsApp,phone=whatsappPhone(row),text=composeInput.value.trim(),credential=token();
+  if(!text||popupUncertain.has(phone)||!whatsappMatches(phone).some(item=>item.id===row.id))return;
+  if(isInternalPanelCommandText(text)){composeNotice.textContent='Use o atendimento principal para comandos operacionais.';return}
+  if(window.VitalismenCleanChatV29?.containsPickupAuthorizationLanguage(text)){composeNotice.textContent='Valide a liberação da retirada no atendimento principal antes de enviar esta orientação.';return}
+  const actionId='popup235-'+crypto.randomUUID();sendingPopup=true;savePopupDraft();stopWhatsApp();updatePopupComposer();composeNotice.textContent='Enviando pelo WhatsApp…';
+  let notice='';
+  try{
+   const response=await fetch('/api/whatsapp/send',{method:'POST',credentials:'same-origin',headers:{Authorization:'Bearer '+credential,'Content-Type':'application/json'},body:JSON.stringify({phone,message:text,sessionId:'zapi',delayTypingSeconds:0,quotedMessageId:'',clientGeneratedId:actionId,manualIntent:{confirmed:true,actionId},sendMode:'manual_panel',country:'EC'})});
+   let result;try{result=await response.json()}catch{throw Error('Resultado incerto. Confira no WhatsApp antes de reenviar.')}
+   if(result?.reconcileRequired||response.status>=500)throw Error('Resultado incerto. Confira no WhatsApp antes de reenviar.');
+   if(!response.ok||result?.success!==true){
+    if(response.status===401||response.status===403){waAuthorized=false;notice='Acesso negado. Entre novamente antes de enviar.'}
+    else notice='Envio não confirmado. Texto preservado. Confira a conversa antes de reenviar.';
+    popupUncertain.add(phone);return;
+   }
+   if(text.includes('https://taviazen.shop/vitpower_2026g'))inviteCache.set(phone,{verified:true,invited:true,pending:false,at:Date.now()});
+   if(popupDrafts.get(phone)?.trim()===text)popupDrafts.delete(phone);
+   if(composePhone===phone&&composeInput.value.trim()===text)composeInput.value='';
+   notice='Mensagem aceita pelo WhatsApp. A entrega será atualizada no histórico.';
+   if(dialog.open&&selectedWhatsApp?.id===row.id&&token()===credential)await openWhatsApp(row,{refresh:true});
+  }catch(error){popupUncertain.add(phone);notice='Resultado incerto. Texto preservado; confira no WhatsApp antes de reenviar. Nenhum reenvio automático.'}
+  finally{
+   sendingPopup=false;
+   if(token()===credential){updatePopupComposer();if(dialog.open&&composePhone===phone){composeNotice.textContent=notice;if(!composeInput.disabled)composeInput.focus()}}
+   scheduleWhatsApp();
+  }
+ }
+ composeSend.addEventListener('click',sendPopupMessage);
+ composeInput.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing)sendPopupMessage(event)});
+ const popupInvite=element('button','Convidar para o chat do site'),mainInvite=element('button','Convidar para o chat do site'),mainInviteBox=element('div',undefined,'vp236-main-invite'),mainInviteHint=element('small');
+ popupInvite.type=mainInvite.type='button';popupInvite.id='webChatInviteV236';mainInvite.id='customerChatInviteV236';
+ compose.insertBefore(popupInvite,compose.firstChild);mainInviteBox.append(mainInvite,mainInviteHint);byId('customerPhoneInput')?.parentElement.append(mainInviteBox);
+ const inviteCache=new Map();let inviteCredential='',mainInvitePhone='';
+ function invitedLabel(record){return record?.invited?'Convite já enviado':record?.pending?'Envio pendente — confira o histórico':record?.checking?'Conferindo convite…':'Convidar para o chat do site'}
+ function applyInviteControls(){
+  const credential=token();if(credential!==inviteCredential){inviteCache.clear();inviteCredential=credential}
+  const phone=selectedWhatsApp?whatsappPhone(selectedWhatsApp):'',record=inviteCache.get(phone);
+  popupInvite.hidden=!phone;popupInvite.textContent=invitedLabel(record);popupInvite.disabled=!phone||!waAuthorized||!eligible()||!record?.verified||record.invited||record.pending||sendingPopup;
+  const mainPhone=typeof currentChatPhone==='function'?digitsOnlyText(currentChatPhone()):'',mainRow=whatsappMatches(mainPhone).find(row=>whatsappPhone(row)===mainPhone),mainRecord=inviteCache.get(mainPhone);
+  mainInviteBox.hidden=!mainRow;mainInvite.textContent=invitedLabel(mainRecord);mainInvite.disabled=!mainRow||!mainRecord?.verified||mainRecord.invited||mainRecord.pending||!eligible();
+  mainInviteHint.textContent=mainRecord?.invited?'Link do chat já registrado no WhatsApp.':mainRecord?.pending?'Confira o envio anterior antes de qualquer nova ação.':mainRecord?.error?'Não foi possível conferir o histórico do convite.':'Prepara o convite no popup. Você revisa e clica em Enviar.';
+ }
+ async function readInviteStatus(row,force=false){
+  const phone=whatsappPhone(row),credential=token(),previous=inviteCache.get(phone);
+  if(!eligible()||!phone)return null;
+  if(!force&&previous&&(previous.checking||Date.now()-previous.at<30000))return previous;
+  const pending={checking:true,at:Date.now()};inviteCache.set(phone,pending);applyInviteControls();
+  try{
+   const response=await fetch('/api/web-chat-admin/vitpower/invite-status/'+encodeURIComponent(phone),{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+credential}});
+   if(!response.ok)throw Error('invite_status_unavailable');const data=await response.json();
+   if(data.version!==236||data.readOnly!==true||typeof data.invited!=='boolean'||typeof data.pending!=='boolean')throw Error('invalid_invite_status');
+   if(token()!==credential)return null;if(inviteCache.get(phone)!==pending)return inviteCache.get(phone);
+   const result={verified:true,invited:data.invited,pending:data.pending,at:Date.now()};inviteCache.set(phone,result);return result;
+  }catch{if(token()===credential)inviteCache.set(phone,{error:true,at:Date.now()});return null}
+  finally{if(token()===credential)applyInviteControls()}
+ }
+ function chatInvitation(row){
+  const raw=String(row.name||'').replace(/[\r\n\u0000-\u001f]/g,' ').trim(),first=/^(?:\+?\d|cliente|visitante)/i.test(raw)?'':raw.split(/\s+/)[0].slice(0,35);
+  return 'Hola'+(first?', '+first:'')+'. Soy Ana Lopez, del equipo Vitalismen Ecuador. 💬\nAhora también puedes conversar con nosotros desde nuestra página y aclarar tus dudas sobre Vit Power.\nAbre aquí: https://taviazen.shop/vitpower_2026g#chat\nToca Hablar con Ana y escribe tu pregunta. Para consultar un pedido, solicita tu código privado por este WhatsApp.\nSi no deseas recibir estas invitaciones, responde STOP.';
+ }
+ async function prepareChatInvitation(event,row){
+  if(!event.isTrusted||!row||sendingPopup)return;
+  const record=await readInviteStatus(row);if(!record?.verified||record.invited||record.pending)return;
+  const text=chatInvitation(row),phone=whatsappPhone(row),draft=popupDrafts.get(phone)||'';
+  if(draft.trim()&&draft.trim()!==text){showToast('Há um rascunho neste popup. Envie ou limpe o texto antes de preparar o convite.');return}
+  if(!dialog.open){document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'website'}}));dialog.show()}
+  customerSearch.value=phone;await openWhatsApp(row);
+  if(!dialog.open||selectedWhatsApp?.id!==row.id)return;
+  composeInput.value=text;savePopupDraft();updatePopupComposer();composeNotice.textContent='Convite preparado para este cliente. Revise o texto e clique em Enviar.';composeInput.focus();
+ }
+ popupInvite.addEventListener('click',event=>prepareChatInvitation(event,selectedWhatsApp));
+ mainInvite.addEventListener('click',event=>{const phone=digitsOnlyText(currentChatPhone());prepareChatInvitation(event,whatsappMatches(phone).find(row=>whatsappPhone(row)===phone))});
+ function synchronizeMainInvite(){
+  applyInviteControls();const phone=digitsOnlyText(currentChatPhone());if(phone===mainInvitePhone)return;mainInvitePhone=phone;
+  const row=whatsappMatches(phone).find(item=>whatsappPhone(item)===phone);if(row)readInviteStatus(row);
+ }
+ new MutationObserver(synchronizeMainInvite).observe(byId('activeName'),{childList:true,subtree:true});
+ document.addEventListener('vitalismen:whatsapp-chats-loaded-v226',synchronizeMainInvite);
+ window.setInterval(synchronizeMainInvite,1000);
+
+
+ function stopWhatsApp(){clearTimeout(waTimer);waTimer=null;}
+ function pausePopupMedia(){thread.querySelectorAll('audio,video').forEach(media=>media.pause());}
+ function scheduleWhatsApp(){stopWhatsApp();if(dialog.open&&selectedWhatsApp&&eligible())waTimer=setTimeout(()=>openWhatsApp(selectedWhatsApp,{refresh:true}),10000);}
+ function renderWhatsApp(row,messages,refresh=false){
+  const signature=JSON.stringify(messages);if(refresh&&signature===waSignature)return;
+  if(refresh&&[...thread.querySelectorAll('audio,video')].some(media=>!media.paused&&!media.ended)){status.textContent='Novas mensagens disponíveis. O áudio em reprodução será preservado.';return}
+  const follow=!refresh||thread.scrollHeight-thread.scrollTop-thread.clientHeight<60,position=thread.scrollTop;
+  pausePopupMedia();waSignature=signature;thread.replaceChildren(element('h3','WhatsApp · '+String(row.name||row.phone)),element('small','+'+whatsappPhone(row)));
+  const orderLinkButton=element('button','Preparar acesso seguro ao pedido');orderLinkButton.type='button';orderLinkButton.style.cssText='position:sticky;top:0;z-index:2;padding:10px;background:#e4f7ee;color:#075e43;border:1px solid #9bcdb8;border-radius:10px;width:100%';thread.append(orderLinkButton);
+  orderLinkButton.addEventListener('click',async event=>{
+   if(!event.isTrusted||!waAuthorized||sendingPopup||selectedWhatsApp?.id!==row.id)return;
+   const phone=whatsappPhone(row),credential=token();
+   if((popupDrafts.get(phone)||'').trim()){showToast('Envie ou limpe o rascunho antes de preparar o acesso.');return;}
+   orderLinkButton.disabled=true;
+   try{const response=await fetch('/api/web-chat-admin/vitpower/whatsapp/order-access',{method:'POST',cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+credential,'Content-Type':'application/json'},body:JSON.stringify({mode:'whatsapp_link',phone})});const data=await response.json();if(!response.ok||!data.ok||data.version!==238||data.recipient!==phone||typeof data.message!=='string')throw Error('Não foi localizado um pedido Vit Power vinculado a este WhatsApp oficial.');if(token()!==credential||selectedWhatsApp?.id!==row.id)return;composeInput.value=data.message;savePopupDraft();updatePopupComposer();composeNotice.textContent='Link privado preparado somente para este WhatsApp. Revise e clique em Enviar.';composeInput.focus();}catch(error){showToast(error.message);}finally{orderLinkButton.disabled=false;}
+  });
+  const cleaned=messages.filter(message=>!isTechnicalZapiAlertMessage(message));
+  const visible=(window.VitalismenCleanChatV29?.presentMessages(cleaned)?.visible||cleaned).filter(message=>!isInternalPanelStatusAuditMessage(message));
+  for(const message of visible){
+   const bubble=element('div',undefined,'vpweb222-bubble vpweb234-wa-bubble');bubble.dataset.role=message.isFromMe?'assistant':'user';
+   const media=renderMessageMedia(message),body=cleanDisplayMessageBody(message,!!media);
+   if(body&&!/^(\[(audio|ptt|image|imagem|video|media|midia)\])$/i.test(body)&&!(media&&isTechnicalMediaReference(message)))bubble.append(element('span',body));
+   if(media){const holder=element('div',undefined,'vpweb234-wa-media');holder.innerHTML=media;bubble.append(holder)}
+   const raw=message.timestamp||message.createdAt,number=Number(raw),at=number>0?(number<1e12?number*1000:number):raw;
+   bubble.append(element('small',(message.isFromMe?'Equipe':'Cliente')+' · '+format(at)));thread.append(bubble);
+  }
+  if(!visible.length)thread.append(element('p','Sem mensagens salvas para este contato.'));
+  hydrateAuthenticatedMedia(thread);
+  status.textContent=visible.length+' mensagem(ns) do WhatsApp no popup.';
+  dialog.querySelector('.vpweb222-footer').textContent='WhatsApp · últimas 60 mensagens · atualização automática enquanto esta conversa estiver aberta.';
+  thread.scrollTop=follow?thread.scrollHeight:position;
+ }
+ async function openWhatsApp(row,{refresh=false}={}){
+  const authorized=whatsappMatches(whatsappPhone(row)).find(item=>item.id===row.id);
+  if(!authorized){stopWhatsApp();status.textContent='Entre como administrador e atualize os contatos para consultar esta conversa.';return}
+  if(!refresh)activity++;
+  const same=selectedWhatsApp?.id===row.id;cancel();const current=generation,credential=token();controller=new AbortController();
+  selectedWhatsApp=authorized;waAuthorized=false;updatePopupComposer();resumeWhatsApp=authorized;selected='wa:'+whatsappPhone(row);resumeId=null;
+  if(!same){waSignature='';pausePopupMedia();thread.replaceChildren(element('h3','WhatsApp · '+String(authorized.name||authorized.phone)),element('p','Carregando conversa…'))}
+  renderList(currentRows);if(!refresh)status.textContent='Carregando WhatsApp no popup…';
+  try{
+   const response=await fetch('/api/whatsapp/messages/'+encodeURIComponent(whatsappPhone(authorized))+'?fast=1&limit=60',{method:'GET',cache:'no-store',credentials:'same-origin',headers:{Authorization:'Bearer '+credential},signal:controller.signal});
+   if(response.status===401||response.status===403)throw Object.assign(Error('Acesso restrito à sessão autenticada. Entre novamente para consultar.'),{authDenied:true});
+   if(!response.ok)throw Error('Não foi possível carregar a conversa. Use Atualizar para tentar novamente.');
+   const messages=await response.json();if(!Array.isArray(messages))throw Error('Formato de histórico inválido.');
+   if(current!==generation||!dialog.open||credential!==token()||selectedWhatsApp?.id!==row.id)return;
+   waAuthorized=true;renderWhatsApp(authorized,messages,refresh&&same);updatePopupComposer();readInviteStatus(authorized);scheduleWhatsApp();
+  }catch(error){if(current!==generation||error.name==='AbortError')return;status.textContent=error.message;waAuthorized=false;updatePopupComposer();if(error.authDenied){pausePopupMedia();thread.replaceChildren()}else scheduleWhatsApp()}
+ }
+ function renderList(rows){
+  currentRows=rows;const query=searchKey(customerSearch.value),visibleRows=query?rows.filter(row=>searchKey([row.name,row.id,row.city,row.productName,row.verifiedWhatsApp].filter(Boolean).join(' ')).includes(query)):rows;
+  const whatsappRows=whatsappMatches(query);
+  if(query&&selected&&(selectedWhatsApp?!whatsappRows.some(row=>row.id===selectedWhatsApp.id):!visibleRows.some(row=>row.id===selected))){cancel();pausePopupMedia();selected=null;resumeId=null;selectedWhatsApp=null;resumeWhatsApp=null;thread.replaceChildren(element('p','Selecione uma conversa para abrir no popup.'))}
+  updatePopupComposer();searchCount.textContent=visibleRows.length+' / '+rows.length+(whatsappRows.length?' · WhatsApp: '+whatsappRows.length:'');list.replaceChildren();
+  if(query&&whatsappRows.length)list.append(element('strong','Conversas do site'));
+  for(const row of visibleRows){const item=element('button');item.type='button';item.dataset.id=row.id;item.setAttribute('aria-pressed',String(row.id===selected));item.append(element('strong',label(row)),element('small',format(row.lastAt)),element('small',row.messageCount+' mensagens'));if(unread.has(row.id))item.append(element('small','Nova mensagem','vp226-new'));item.addEventListener('click',()=>{activity++;select(row)});list.append(item)}
+  if(whatsappRows.length){
+   list.append(element('strong','Contatos do WhatsApp'));
+   for(const row of whatsappRows){const item=element('button');item.type='button';item.dataset.source='whatsapp';item.dataset.id=row.id;item.setAttribute('aria-pressed',String(selectedWhatsApp?.id===row.id));item.append(element('strong','WhatsApp · '+String(row.name||row.phone)),element('small','+'+whatsappPhone(row)),element('small','Abrir conversa neste popup'));item.addEventListener('click',()=>openWhatsApp(row));list.append(item)}
+  }else if(query&&!visibleRows.length)list.append(element('p','Nenhuma conversa do site ou contato WhatsApp carregado corresponde à busca.'));
+ }
+ function appendTexEntryV242(message){
+  const block=message.entryBlock,keys=['greeting','intro','proof','bottle','offer'];
+  const incoming={intro:'/tex-assets/tex-entry-v242/intro.mp3',proof:'/tex-assets/tex-entry-v242/proof.jpeg',bottle:'/tex-assets/tex-entry-v242/bottle.png'};
+  const official={intro:'/media/templates/EC/CONHECER_NECESSIDADES_CLIENTES.mp3',proof:'/media/sales/shared/social_01.jpeg',bottle:'/media/sales/ec/tex_ultra.png'};
+  if(message.role!=='assistant'||block?.id!=='tex_ultra_inicio_completo'||block.version!==242||block.productKey!=='tex_ultra_ec'||!Array.isArray(block.steps)||block.steps.length!==5)return false;
+  if(!block.steps.every((step,i)=>step.key===keys[i]&&typeof step.text==='string'&&step.text.length<=1200&&(incoming[step.key]?step.src===incoming[step.key]&&step.type===(step.key==='intro'?'audio':'image'):step.type==='text'&&!step.src)))return false;
+  for(const step of block.steps){
+   const bubble=element('div',undefined,'vpweb222-bubble');bubble.dataset.role='assistant';bubble.dataset.texEntryStep=step.key;
+   if(step.type==='audio'||step.type==='image'){const holder=element('div',undefined,'vpweb234-wa-media');holder.innerHTML=renderMessageMedia({type:step.type,hasMedia:true,mediaUrl:official[step.key],...(step.type==='audio'?{mediaPreviewUrl:official[step.key]}:{}),body:step.text});bubble.append(element('span',step.text),holder)}
+   else bubble.append(element('span',step.text));
+   bubble.append(element('small','Ana Lopez · '+format(message.at)));thread.append(bubble);
+  }
+  return true;
+ }
+ function renderConversation(conversation,newMessage=false){
+  stopWhatsApp();pausePopupMedia();selectedWhatsApp=null;resumeWhatsApp=null;waSignature='';waAuthorized=false;updatePopupComposer();dialog.querySelector('.vpweb222-footer').textContent=defaultFooter;
+  selected=conversation.id;resumeId=conversation.id;unread.delete(conversation.id);for(const item of list.querySelectorAll('button'))if(item.dataset.id===conversation.id)item.querySelector('.vp226-new')?.remove();thread.replaceChildren(element('h3',label(conversation)));
+  for(const item of list.querySelectorAll('button'))item.setAttribute('aria-pressed',String(item.dataset.id===selected));
+  if(conversation.city||conversation.quantity)thread.append(element('p',[conversation.city,conversation.quantity?conversation.quantity+' frasco(s) informado(s)':''].filter(Boolean).join(' · ')));
+  if(conversation.productKey==='tex_ultra_ec'&&/^593[2-79]\d{8}$/.test(conversation.verifiedWhatsApp||'')){
+   thread.append(element('p','WhatsApp confirmado: +'+conversation.verifiedWhatsApp+' · Início: '+(conversation.firstContactChannel==='whatsapp'?'WhatsApp':'chat da VSL')));
+   const linked=element('button','Abrir WhatsApp vinculado');linked.type='button';linked.addEventListener('click',()=>{const row=whatsappMatches(conversation.verifiedWhatsApp).find(item=>whatsappPhone(item)===conversation.verifiedWhatsApp);if(row)openWhatsApp(row);else status.textContent='O número está confirmado. Atualize a lista de contatos para abrir a conversa WhatsApp.'});thread.append(linked);
+  }
+  for(const message of conversation.history){if(conversation.productKey==='tex_ultra_ec'&&appendTexEntryV242(message))continue;const bubble=element('div',undefined,'vpweb222-bubble');bubble.dataset.role=message.role;bubble.append(element('span',message.content),element('small',(message.role==='assistant'?'Ana Lopez':'Visitante')+' · '+format(message.at)));thread.append(bubble)}
+  thread.append(element('p',conversation.productKey==='tex_ultra_ec'?'Tex Ultra: este chat não cria pedidos. O vínculo exige confirmação pelo próprio WhatsApp; a apresentação continua no primeiro canal, sem reiniciar o bloco.':'O pedido abre automaticamente pelo link privado enviado ao WhatsApp cadastrado. Para preparar esse acesso, busque o telefone do cliente e abra a conversa WhatsApp neste popup.'));
+  hydrateAuthenticatedMedia(thread);remember(conversation);status.textContent=newMessage?'Nova mensagem do site. Você pode continuar o atendimento no painel.':'Consulta atualizada. Nenhuma mensagem é enviada por este chat.';thread.scrollTop=thread.scrollHeight;
+ }
+ async function select(row){
+  stopWhatsApp();selectedWhatsApp=null;resumeWhatsApp=null;waAuthorized=false;updatePopupComposer();pausePopupMedia();
+  cancel();const current=generation;controller=new AbortController();selected=row.id;resumeId=row.id;thread.replaceChildren();status.textContent='Carregando conversa…';
+  for(const item of list.querySelectorAll('button'))item.setAttribute('aria-pressed',String(item.dataset.id===row.id));
+  try{const data=await request('/'+encodeURIComponent(row.id),controller.signal);if(current!==generation||!dialog.open)return;renderConversation(data.conversation)}
+  catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
+ }
+ async function load(){
+  const previousWhatsApp=selectedWhatsApp||resumeWhatsApp;pausePopupMedia();
+  cancel();const current=generation;controller=new AbortController();selected=null;list.replaceChildren();thread.replaceChildren(element('p','Selecione uma conversa do site.'));status.textContent='Consultando conversas…';
+  try{const data=await request('',controller.signal);if(current!==generation||!dialog.open)return;renderList(data.conversations);
+   status.textContent=data.conversations.length?data.conversations.length+' conversa(s) disponível(is). Selecione um visitante.':'Nenhuma conversa do site com mensagens nos últimos 7 dias.';
+   if(previousWhatsApp){await openWhatsApp(previousWhatsApp);return}
+   const previous=data.conversations.find(row=>row.id===resumeId);if(previous)await select(previous);else resumeId=null;
+  }catch(error){if(current===generation&&error.name!=='AbortError')status.textContent=error.message}
+ }
+ function stop(reset=false){stopWhatsApp();if(reset){selectedWhatsApp=null;resumeWhatsApp=null;waAuthorized=false;popupDrafts.clear();popupUncertain.clear();composePhone='';composeInput.value='';updatePopupComposer()}clearTimeout(timer);timer=null;pollController?.abort();if(reset){seen.clear();unread.clear();initialized=false;watchCredential='';deniedCredential='';resumeId=null}}
+ function schedule(delay=10000){clearTimeout(timer);timer=null;if(!document.hidden&&!dashboard.classList.contains('hidden')&&token())timer=setTimeout(tick,delay);}
+ async function tick(){
+  if(pollBusy){schedule();return}
+  if(!eligible()){schedule();return}
+  const credential=token(),epoch=activity;
+  if(watchCredential!==credential){seen.clear();initialized=false;watchCredential=credential}
+  pollBusy=true;pollController=new AbortController();const signal=pollController.signal;
+  try{
+   const data=await request('',signal);if(signal.aborted||token()!==credential||!eligible())return;
+   const rows=data.conversations;
+   if(!initialized){for(const row of rows)seen.set(row.id,summary(row));initialized=true;button.title='Chat do site — avisos ativos';return}
+   const changed=rows.filter(row=>{const old=seen.get(row.id);return !old||old.lastAt!==row.lastAt||old.messageCount!==row.messageCount}).slice(0,5);
+   let incoming=null;const updates=[];
+   for(const row of changed){
+    let detail;try{detail=(await request('/'+encodeURIComponent(row.id),signal)).conversation}catch(error){if(error.notFound)continue;throw error}
+    if(signal.aborted||token()!==credential||!eligible()||activity!==epoch)return;
+    const old=seen.get(row.id),user=detail.history.filter(message=>message.role==='user').at(-1);
+    const newer=!!user&&(!old||Date.parse(user.at)>Date.parse(old.lastAt)||(user.at===old.lastAt&&row.messageCount>=old.messageCount+2));
+    updates.push({row,detail,newer});
+    if(newer&&(!incoming||String(user.at)>String(incoming.at)))incoming={conversation:detail,at:user.at};
+   }
+   for(const update of updates){seen.set(update.row.id,summary(update.row));if(update.newer)unread.add(update.row.id);else if(dialog.open&&selected===update.row.id)renderConversation(update.detail)}
+   const ids=new Set(rows.map(row=>row.id));for(const id of seen.keys())if(!ids.has(id)){seen.delete(id);unread.delete(id)}
+   if(incoming&&eligible()&&activity===epoch){
+    cancel();
+    // Setting open keeps this nonmodal and leaves the operator's keyboard focus untouched.
+    document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'website'}}));
+    if(!dialog.open)dialog.setAttribute('open','');
+    renderList(rows);renderConversation(incoming.conversation,true);
+   }
+   button.title='Chat do site — avisos ativos';
+  }catch(error){if(error.name!=='AbortError'){if(error.authDenied)deniedCredential=credential;button.title='Chat do site — atualização automática indisponível';}}
+  finally{pollBusy=false;pollController=null;schedule();}
+ }
+ button.addEventListener('click',()=>{activity++;document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'website'}}));if(!dialog.open)dialog.show();load()});
+ customerSearch.addEventListener('input',()=>{activity++;renderList(currentRows)});
+ document.addEventListener('vitalismen:whatsapp-chats-loaded-v226',()=>{if(dialog.open&&customerSearch.value.trim())renderList(currentRows)});
+ byId('webChatDashboardRefreshV222').addEventListener('click',()=>{activity++;load()});
+ function clearViewer(){activity++;cancel();pausePopupMedia();selectedWhatsApp=null;waAuthorized=false;updatePopupComposer();waSignature='';selected=null;currentRows=[];searchCount.textContent='';list.replaceChildren();thread.replaceChildren();status.textContent=''}
+ function closeViewer(){if(dialog.open)dialog.close();clearViewer()}
+ byId('webChatDashboardCloseV222').addEventListener('click',closeViewer);
+ dialog.addEventListener('close',()=>{if(!dialog.open)clearViewer()});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&dialog.open&&!event.defaultPrevented)closeViewer();});
+ byId('logoutBtn')?.addEventListener('click',()=>{activity++;stop(true);cancel();closeViewer()});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else{schedule(0);scheduleWhatsApp()}});
+ new MutationObserver(()=>{if(dashboard.classList.contains('hidden')){stop(true);if(dialog.open)closeViewer()}else schedule(0)}).observe(dashboard,{attributes:true,attributeFilter:['class']});
+ window.addEventListener('pagehide',()=>stop());window.addEventListener('pageshow',()=>schedule(0));
+ document.addEventListener('vitalismen:incoming-popup-open-v226',event=>{if(event.detail?.source!=='website'&&dialog.open)closeViewer()});
+ schedule(0);
+})();
+</script>
+<style id="whatsappPopupMediaV234">
+#webChatDashboardDialogV222 .vpweb234-wa-media{overflow:hidden;max-width:100%}
+#webChatDashboardDialogV222 .vpweb234-wa-media img,#webChatDashboardDialogV222 .vpweb234-wa-media video{max-width:100%;max-height:320px;object-fit:contain}
+#webChatDashboardDialogV222 .vpweb234-wa-media audio{display:block;width:100%;min-width:0}
+#webChatDashboardDialogV222 .vpweb234-wa-media .wa-audio-card{display:block;min-width:0}
+#webChatDashboardDialogV222 .vpweb234-wa-media .wa-audio-play,#webChatDashboardDialogV222 .vpweb234-wa-media .wa-waveform-wrap,#webChatDashboardDialogV222 .vpweb234-wa-media .wa-audio-time{display:none}
+</style>
+<style id="whatsappPopupComposerV235">
+#webChatComposerV235{flex:none;border-top:1px solid #cbded7;padding:10px 12px;background:#fff;font-size:12px}
+#webChatComposerV235[hidden]{display:none!important}
+#webChatRecipientV235{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;color:#235342}
+.vpweb235-compose-row{display:flex;align-items:stretch;gap:8px}
+#webChatMessageV235{flex:1;min-width:0;resize:vertical;max-height:120px;min-height:60px;border:1px solid #b9d5cb;border-radius:9px;padding:8px;font:14px/1.4 Arial,sans-serif;background:white;color:#172b26}
+#webChatSendV235{flex:none;border:0;border-radius:9px;padding:8px 12px;background:#07865f;color:white;font-weight:bold;cursor:pointer}
+#webChatSendV235:disabled{opacity:.5;cursor:default}
+#webChatSendStatusV235{display:block;line-height:1.3;margin-top:5px;color:#52685f;overflow-wrap:anywhere}
+#webChatDashboardDialogV222[data-whatsapp=true] .vpweb222-body{grid-template-rows:100px minmax(0,1fr)}
+#webChatDashboardDialogV222[data-whatsapp=true] .vpweb222-footer{padding:5px 12px}
+</style>
+<style id="customerChatInviteStyleV236">
+#customerChatInviteV236,#webChatInviteV236{border:1px solid #b9d5cb;border-radius:8px;background:#eaf8f3;color:#12664e;padding:8px 10px;cursor:pointer;font:600 12px/1.3 Arial,sans-serif}
+#customerChatInviteV236:disabled,#webChatInviteV236:disabled{opacity:.65;cursor:default}
+.vp236-main-invite{display:grid;gap:5px;margin-top:7px}.vp236-main-invite small{font-size:11px;line-height:1.3;color:#52685f}
+.vp236-main-invite[hidden],#webChatInviteV236[hidden]{display:none!important}
+#webChatInviteV236{width:100%;margin-bottom:7px}
+</style>
+<!-- VITALISMEN_EC_WEB_DASHBOARD_V222_END -->
+
+<!-- VITALISMEN_EC_DASHBOARD_FLOATING_CHAT_V224_START -->
+<style>
+#dashboardFloatingChatV224{position:fixed;right:20px;bottom:max(20px,env(safe-area-inset-bottom));z-index:160;display:flex;align-items:center;gap:9px;min-height:48px;padding:12px 18px;border:1px solid #d6eee3;border-radius:999px;background:#087e5b;color:#fff;box-shadow:0 5px 22px #103c353b;font:600 14px/1.3 Arial,sans-serif;cursor:pointer}
+#dashboardFloatingChatV224[hidden]{display:none!important}
+#dashboardFloatingChatV224:hover{background:#06674b}
+#dashboardFloatingChatV224:focus-visible{outline:3px solid #dcaa42;outline-offset:3px}
+#dashboardFloatingChatV224 .vp224-icon{font-size:21px;line-height:1}
+@media(max-width:600px){#dashboardFloatingChatV224{right:12px;bottom:max(14px,env(safe-area-inset-bottom));padding:11px 15px;min-height:46px}}
+</style>
+<button id="dashboardFloatingChatV224" type="button" hidden aria-label="Abrir popup Chat do site" aria-haspopup="dialog" aria-expanded="false" aria-controls="webChatDashboardDialogV222"><span class="vp224-icon" aria-hidden="true">💬</span><span>Chat do site</span></button>
+<script>
+(() => {
+ 'use strict';
+ const launcher=document.getElementById('dashboardFloatingChatV224');
+ const trigger=document.getElementById('webChatDashboardBtnV222');
+ const dialog=document.getElementById('webChatDashboardDialogV222');
+ const dashboard=document.getElementById('dashboard');
+ if(!launcher||!trigger||!dialog||!dashboard)return;
+ const sync=()=>{launcher.hidden=dashboard.classList.contains('hidden')||dialog.open;launcher.setAttribute('aria-expanded',String(dialog.open));};
+ launcher.addEventListener('click',()=>trigger.click());
+ const observer=new MutationObserver(sync);
+ observer.observe(dialog,{attributes:true,attributeFilter:['open']});
+ observer.observe(dashboard,{attributes:true,attributeFilter:['class']});
+ sync();
+})();
+</script>
+<!-- VITALISMEN_EC_DASHBOARD_FLOATING_CHAT_V224_END -->
+
+<!-- VITALISMEN_EC_DASHBOARD_RIGHT_CHAT_V225_START -->
+<style>
+#webChatDashboardDialogV222{position:fixed;inset:12px 12px 12px auto;margin:0;width:min(460px,calc(100vw - 24px));max-width:calc(100vw - 24px);height:calc(100dvh - 24px);max-height:calc(100dvh - 24px);border-radius:16px}
+#webChatDashboardDialogV222 .vpweb222-body{grid-template-columns:minmax(0,1fr);grid-template-rows:135px minmax(0,1fr)}
+#webChatDashboardDialogV222 .vpweb222-list{border-right:0;border-bottom:1px solid #dfe9e3}
+#webChatDashboardDialogV222 .vpweb222-header{padding:12px;gap:8px}
+#webChatDashboardDialogV222 .vpweb222-thread{padding:12px}
+#webChatDashboardDialogV222 .vpweb222-bubble{max-width:96%}
+@media(max-width:600px){#webChatDashboardDialogV222{inset:8px 8px 8px auto;width:calc(100vw - 16px);max-width:calc(100vw - 16px);height:calc(100dvh - 16px);max-height:calc(100dvh - 16px)}#webChatDashboardDialogV222 .vpweb222-body{grid-template-rows:120px minmax(0,1fr)}}
+</style>
+<!-- VITALISMEN_EC_DASHBOARD_RIGHT_CHAT_V225_END -->
+
+<!-- VITALISMEN_EC_DASHBOARD_LIVE_CHAT_V226_START -->
+<style>
+#webChatDashboardDialogV222{z-index:180;width:min(340px,calc(100vw - 24px));box-shadow:0 10px 35px #102c3533}
+#webChatDashboardDialogV222 .vpweb222-header{flex-wrap:wrap;gap:7px}
+#webChatDashboardDialogV222 .vpweb222-title{flex-basis:100%}
+#webChatDashboardDialogV222 .vpweb222-header button{padding:6px 11px}
+#webChatDashboardDialogV222 .vpweb222-header button:first-of-type{margin-left:auto}
+#webChatDashboardDialogV222 .vpweb222-body{grid-template-rows:115px minmax(0,1fr)}
+@media(max-width:600px){#webChatDashboardDialogV222{width:calc(100vw - 16px)}}
+</style>
+<!-- VITALISMEN_EC_DASHBOARD_LIVE_CHAT_V226_END -->
+<!-- VITALISMEN_EC_WHATSAPP_INCOMING_V226_START -->
+<style>
+#waIncomingDialogV226{position:fixed;inset:12px 12px auto auto;margin:0;width:min(340px,calc(100vw - 24px));max-height:calc(100dvh - 24px);box-sizing:border-box;overflow:auto;border:1px solid #a5cabb;border-radius:16px;padding:0;background:#f7fcf9;color:#193d32;box-shadow:0 10px 35px #102c3533;z-index:181;font:14px Arial,sans-serif}
+#waIncomingDialogV226 header{display:flex;align-items:center;justify-content:space-between;padding:14px;gap:8px;background:#e7f6ee}#waIncomingDialogV226 h2{font-size:17px;margin:0}#waIncomingDialogV226 button{cursor:pointer;border:1px solid #a4cebd;border-radius:16px;padding:8px 12px;color:#14533d;background:white;font:inherit}#waIncomingDialogV226 nav{display:flex;gap:6px;overflow:auto;padding:8px 12px}#waIncomingDialogV226 nav button{flex-shrink:0}#waIncomingDialogV226 nav button[aria-pressed=true]{background:#d8f5e4}#waIncomingDialogV226 [data-status],#waIncomingDialogV226 section,#waIncomingDialogV226 footer{padding:10px 14px;margin:0}#waIncomingDialogV226 h3{font-size:15px;margin:0 0 8px}#waIncomingDialogV226 time{font-size:11px;color:#52695f}#waIncomingDialogV226 [data-body]{white-space:pre-wrap;overflow-wrap:anywhere;background:white;border-radius:12px;padding:12px;max-height:45dvh;overflow:auto}#waIncomingDialogV226 footer small{display:block;margin-top:10px;line-height:1.4}#waIncomingLauncherV226{position:fixed;right:12px;bottom:66px;z-index:161;background:#087d52;color:white;padding:12px;border:1px solid white;border-radius:24px;cursor:pointer}#waIncomingLauncherV226[hidden]{display:none}
+@media(max-width:600px){#waIncomingDialogV226{inset:8px 8px auto auto;width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}}
+</style>
+<!-- VITALISMEN_EC_WHATSAPP_INCOMING_V226_END -->
+<script>
+(() => {
+ 'use strict';
+ const dashboard=document.getElementById('dashboard');if(!dashboard)return;
+ const dialog=document.createElement('dialog');dialog.id='waIncomingDialogV226';dialog.setAttribute('aria-labelledby','waIncomingTitleV226');
+ dialog.innerHTML='<header><h2 id="waIncomingTitleV226">WhatsApp recebido</h2><button type="button" data-close>Fechar ×</button></header><p data-status role="status"></p><nav aria-label="Conversas recebidas"></nav><section aria-label="Mensagem recebida"><h3></h3><time></time><p data-body></p></section><footer><button type="button" data-attend>Abrir no atendimento</button><small>O atendimento principal continua disponível. Este aviso não envia mensagens nem marca a conversa como lida.</small></footer>';
+ dashboard.append(dialog);
+ const launcher=document.createElement('button');launcher.type='button';launcher.id='waIncomingLauncherV226';launcher.hidden=true;dashboard.append(launcher);
+ const get=selector=>dialog.querySelector(selector),queue=new Map(),seen=new Map(),signatures=new Map();let credential='',busy=false,pending=null,selected='',controller=null,epoch=0;
+ const token=()=>typeof state!=='undefined'?String(state.token||''):'';
+ const active=()=>!!token()&&!dashboard.classList.contains('hidden')&&!document.hidden;
+ const phone=chat=>String(chat.phone||chat.id||'').replace(/\D/g,'');
+ const valid=chat=>!chat.isGroup&&!/@g\.us|@lid|status@broadcast/.test(String(chat.id||''))&&(/^(593)\d{8,10}$/.test(phone(chat)));
+ const seconds=value=>{const n=Number(value);return Number.isFinite(n)&&n>0?(n>1e12?n/1000:n):Date.parse(value)/1000||0};
+ const meta=message=>({id:String(message._id||message.id?._serialized||message.id||''),at:seconds(message.timestamp),body:String(message.body||'')});
+ const msgKey=m=>m.id||`${m.at}:${m.body}`;
+ const currentPhone=()=>typeof state!=='undefined'&&state.selectedChat?phone(state.selectedChat):'';
+ function close(){if(dialog.open)dialog.close()}
+ function clear(){epoch++;controller?.abort();pending=null;queue.clear();seen.clear();signatures.clear();selected='';close();get('nav').replaceChildren();get('[data-body]').textContent='';get('h3').textContent='';get('time').textContent='';get('[data-status]').textContent='';launcher.hidden=true}
+ function render(){
+  launcher.textContent=`WhatsApp recebido (${queue.size})`;launcher.hidden=queue.size===0;
+  const rows=[...queue.values()].sort((a,b)=>b.message.at-a.message.at);get('nav').replaceChildren();
+  for(const item of rows){const button=document.createElement('button');button.type='button';button.textContent=item.name;button.setAttribute('aria-pressed',String(item.phone===selected));button.addEventListener('click',()=>{selected=item.phone;render()});get('nav').append(button)}
+  const row=queue.get(selected)||rows[0];if(!row)return;selected=row.phone;get('h3').textContent=row.name;get('time').textContent=new Date(row.message.at*1000).toLocaleString();get('time').dateTime=new Date(row.message.at*1000).toISOString();
+  get('[data-body]').textContent=row.message.body||(row.type==='ptt'||row.type==='audio'?'Áudio recebido. Abra no atendimento para ouvir.':'Mídia recebida. Abra no atendimento para visualizar.');get('[data-status]').textContent='Nova mensagem recebida pelo WhatsApp.';
+ }
+ function open(){document.dispatchEvent(new CustomEvent('vitalismen:incoming-popup-open-v226',{detail:{source:'whatsapp'}}));render();if(queue.size&&!dialog.open)dialog.setAttribute('open','')}
+ async function process(chats){
+  if(!active())return;const key=token();if(credential!==key){clear();credential=key}
+  pending=chats;if(busy)return;busy=true;
+  try{while(pending&&active()){
+   const rows=pending;pending=null;const run=epoch;controller=new AbortController();
+   const candidates=rows.filter(valid).filter(c=>(Number(c.unreadCount)>0||seconds(c.lastInboundAt)>Date.now()/1000-900||(c.lastMessage?.isFromMe===false&&seconds(c.lastMessage?.timestamp)>Date.now()/1000-900))&&phone(c)!==currentPhone()).sort((a,b)=>seconds(b.lastMessage?.timestamp)-seconds(a.lastMessage?.timestamp)).slice(0,20);
+   let changed=false;
+   for(const chat of candidates){
+    const p=phone(chat),signature=JSON.stringify([chat.unreadCount,chat.lastInboundAt,chat.lastMessage?.timestamp,chat.lastMessage?.body,chat.lastMessage?.isFromMe]);if(signatures.get(p)===signature)continue;
+    try{
+     const response=await fetch(`/api/whatsapp/messages/${encodeURIComponent(p)}?fast=1&limit=20`,{method:'GET',headers:{Authorization:`Bearer ${key}`},cache:'no-store',signal:controller.signal});
+     if(!response.ok){if(response.status===401||response.status===403){clear();return}continue}
+     const history=await response.json();if(run!==epoch||token()!==key||!active())return;
+     if(!Array.isArray(history))continue;
+     const incoming=history.filter(m=>m.isFromMe===false).sort((a,b)=>seconds(b.timestamp)-seconds(a.timestamp))[0];if(!incoming)continue;
+     const message=meta(incoming),id=msgKey(message);signatures.set(p,signature);
+     if(message.at<Date.now()/1000-86400||seen.get(p)===id)continue;
+     seen.set(p,id);queue.set(p,{phone:p,id:chat.id,name:String(chat.name||chat.phone||p),type:incoming.type,message});changed=true;
+    }catch(error){if(error.name==='AbortError')return}
+   }
+   for(const [p]of queue){const row=rows.find(c=>phone(c)===p);if(!row||p===currentPhone())queue.delete(p)}
+   while(queue.size>20)queue.delete(queue.keys().next().value);
+   if(changed&&queue.size){selected=[...queue.values()].sort((a,b)=>b.message.at-a.message.at)[0].phone;open()}else if(queue.size)render();else{close();launcher.hidden=true}
+  }}finally{busy=false;controller=null}
+ }
+ get('[data-close]').addEventListener('click',close);launcher.addEventListener('click',open);
+ get('[data-attend]').addEventListener('click',async()=>{
+  const item=queue.get(selected);if(!item||!active())return;
+  if(document.getElementById('messageInput')?.value.trim()&&currentPhone()!==item.phone){get('[data-status]').textContent='Há um rascunho no atendimento atual. Conclua ou guarde esse texto antes de trocar de cliente.';return}
+  if(typeof selectChat!=='function')return;close();await selectChat(item.id,{markRead:true});queue.delete(item.phone);render();if(!queue.size)launcher.hidden=true;
+ });
+ document.addEventListener('vitalismen:whatsapp-chats-loaded-v226',event=>process(Array.isArray(event.detail)?event.detail:[]));
+ document.addEventListener('vitalismen:incoming-popup-open-v226',event=>{if(event.detail?.source!=='whatsapp')close()});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&dialog.open)close()});
+ document.getElementById('logoutBtn')?.addEventListener('click',()=>{clear();credential=''});
+ new MutationObserver(()=>{if(dashboard.classList.contains('hidden')){clear();credential=''}}).observe(dashboard,{attributes:true,attributeFilter:['class']});
+})();
+</script>
 </body>
 
 </html>

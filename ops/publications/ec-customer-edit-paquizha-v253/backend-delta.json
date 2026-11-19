@@ -1,0 +1,38 @@
+{
+  "files": {
+    "src/data/agencia_LISTA.json": {
+      "beforeSha256": "d874068b693f90a6518f98fb153883b7b07f8d459a0f63f84884000f62b37cb7",
+      "sha256": "0b3a6dc90fc347452bc63d5f244ba4adc2cfa83f5e03c80b49a57751c637ebc1",
+      "changes": [
+        {
+          "before": "  {\r\n    \"nome\": \"PASAJE_4 DE AGOSTO\"",
+          "after": "  {\r\n    \"nome\": \"PAQUIZHA_MARTHA BUCARAM\",\r\n    \"provincia\": \"ZAMORA\",\r\n    \"ciudad\": \"PAQUIZHA\",\r\n    \"sector\": \"SUR\",\r\n    \"endereco\": \"MARTHA BUCARAM DE ROLDOS Y PIO JARAMILLO ALVARADO\",\r\n    \"horario_semana\": \"\",\r\n    \"horario_fds\": \"\"\r\n  },\r\n  {\r\n    \"nome\": \"PASAJE_4 DE AGOSTO\""
+        }
+      ]
+    },
+    "scripts/lib/sealed-successor-preload-v1.mjs": {
+      "beforeSha256": "c2b1e12c6a0195f3749015f0953e1fbead8a922f32c81bcdd998a3da3e88ab90",
+      "sha256": "1446170db1afcba1743058e93ae934774d2f31884bbb8a1146497ea1171aae95",
+      "changes": [
+        {
+          "before": "ec-orders-dropi-postsale-profile-v252-r11.mjs",
+          "after": "ec-customer-edit-paquizha-profile-v253-r2.mjs"
+        },
+        {
+          "before": "ec-orders-dropi-postsale-sealed-v252-r11.mjs",
+          "after": "ec-customer-edit-paquizha-sealed-v253-r2.mjs"
+        }
+      ]
+    },
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": {
+      "beforeSha256": "74269c9bae1606a7030887216e42ec2818046b2ecf7233af5cd9dba2e7eecb8f",
+      "sha256": "243a73b3fb464276e3d314dc559beb952b077adee75438c4dd2483d27b188b95",
+      "changes": [
+        {
+          "before": "ec-orders-dropi-postsale-sealed-v252-r11.mjs",
+          "after": "ec-customer-edit-paquizha-sealed-v253-r2.mjs"
+        }
+      ]
+    }
+  }
+}

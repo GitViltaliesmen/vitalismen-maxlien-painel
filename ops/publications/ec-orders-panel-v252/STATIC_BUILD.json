@@ -1,0 +1,123 @@
+{
+  "project": "VITALISMEN_EC",
+  "manifestSha256": "d8f66e80c9cd6b93b25588b802f67c0e93614afa2f8b23ecc8d1c3a1be4c4363",
+  "files": [
+    {
+      "kind": "panel",
+      "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+      "source": "ops/publications/ec-orders-panel-v252/qr.html",
+      "beforeSha256": "4943cf80ef03076463562c2beaebc7ad6d9c8627e4830be2dfecd99ec2af3e05",
+      "sha256": "d2e619d758b2b423c8a7fad124da8aee18ae29434ee2bf28bd8b634a8dcf2eef",
+      "patches": [
+        {
+          "before": "<button data-chat-filter=\"favorites\" type=\"button\">Favoritas</button>",
+          "after": "<button data-chat-filter=\"tests\" type=\"button\" title=\"Contato permanente de teste; separado dos clientes reais\">Testes</button>\n                    <button data-chat-filter=\"favorites\" type=\"button\">Favoritas</button>"
+        },
+        {
+          "before": "const chatDisplayName = (chat = {}) => {",
+          "after": "const chatDisplayName = (chat = {}) => {\n            if (isBrazilAllowedTestRecord(chat)) return 'Teste QA 8637';"
+        },
+        {
+          "before": "const chatEntryInfo = (chat = {}) => {",
+          "after": "const chatEntryInfo = (chat = {}) => {\n            if (isBrazilAllowedTestRecord(chat)) return { className: 'unknown', badge: 'TESTE QA', label: 'Contato de teste permanente', header: 'teste controlado', title: 'Fora da fila e das m\u00e9tricas comerciais; n\u00e3o \u00e9 cliente novo' };"
+        },
+        {
+          "before": "const isNewMessagesChatForPanel = (chat = {}) => {",
+          "after": "const isNewMessagesChatForPanel = (chat = {}) => {\n            if (isBrazilAllowedTestRecord(chat)) return false;"
+        },
+        {
+          "before": "const renderOperationalMetrics = () => {\n            const operationalChats = visibleOperationalChats();",
+          "after": "const renderOperationalMetrics = () => {\n            const operationalChats = visibleOperationalChats().filter(chat => !isBrazilAllowedTestRecord(chat));"
+        },
+        {
+          "before": "const chatDisplayStatus = (chat) => orderStatusInfo(",
+          "after": "const commercialChatDisplayStatusV252 = (chat) => orderStatusInfo("
+        },
+        {
+          "before": "        const isFavoriteChat = (chat)",
+          "after": "        const chatDisplayStatus = chat => isBrazilAllowedTestRecord(chat)\n            ? { label: 'Teste QA', className: 'orange', closed: false }\n            : commercialChatDisplayStatusV252(chat);\n        const isFavoriteChat = (chat)"
+        },
+        {
+          "before": "const renderChatLabels = (chat) => {",
+          "after": "const renderChatLabels = (chat) => {\n            if (isBrazilAllowedTestRecord(chat)) return '<div class=\"chat-labels\"><span class=\"wa-label auto\">TESTE PERMANENTE \u00b7 SEM PEDIDO/DROPI</span></div>';"
+        },
+        {
+          "before": "const filtered = visibleOperationalChats({ search }).filter((chat) => {",
+          "after": "const filtered = visibleOperationalChats({ search, includeTests: true }).filter((chat) => {\n                const qa = isBrazilAllowedTestRecord(chat);\n                if (state.chatFilter === 'tests') return qa && chatMatchesSearch(chat, search);\n                if (qa) return searchActive && state.chatFilter !== 'unread' && chatMatchesSearch(chat, search);"
+        },
+        {
+          "before": "const unansweredCount = Math.max(0, Number(chat.unansweredCount || 0));",
+          "after": "const unansweredCount = isBrazilAllowedTestRecord(chat) ? 0 : Math.max(0, Number(chat.unansweredCount || 0));"
+        },
+        {
+          "before": "const vslWaiting = isVslAwaitingHuman(chat);",
+          "after": "const vslWaiting = !isBrazilAllowedTestRecord(chat) && isVslAwaitingHuman(chat);"
+        },
+        {
+          "before": "const setPanelMessageFilter = (filter = 'all') => {",
+          "after": "const setPanelMessageFilter = (filter = 'all') => {\n            if (filter === 'tests') {\n                state.chatFilter = 'tests'; state.conversationBucketFilter = '';\n                document.querySelectorAll('[data-chat-filter]').forEach(button => button.classList.toggle('active', button.dataset.chatFilter === 'tests'));\n                document.querySelectorAll('[data-operational-bucket]').forEach(button => button.classList.remove('active'));\n                return;\n            }"
+        },
+        {
+          "before": "            const apiOrderStatus = orderStatusForApi(customerDraft.status);",
+          "after": "            if (customerDraft.status === 'confirmado' && (missingCustomerFields(customerDraft).length > 0\n                || (resolvedCustomerData?.version === 28 && resolvedCustomerData.orderDataReady !== true))) {\n                customerDraft.status = 'atendendo';\n                if (saveSnapshotIsCurrent()) setInputValue('customerStatusInput', 'atendendo');\n                orderNotice = 'Ficha salva em Atendendo; complete os dados antes de confirmar o pedido.';\n            }\n            const apiOrderStatus = orderStatusForApi(customerDraft.status);"
+        },
+        {
+          "before": "&&(/^(593)\\d{8,10}$/.test(phone(chat))||phone(chat)==='5515998038637');",
+          "after": "&&(/^(593)\\d{8,10}$/.test(phone(chat)));"
+        },
+        {
+          "before": "                if (isUncontactableVslPrelead(chat)) return false;",
+          "after": "                if (isUncontactableVslPrelead(chat)) return false;\n                if (isBrazilAllowedTestRecord(chat) && options.includeTests !== true) return false;"
+        }
+      ]
+    },
+    {
+      "kind": "leads",
+      "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/leads-window.status-only-20261119.html",
+      "source": "ops/publications/ec-orders-panel-v252/leads-window.html",
+      "beforeSha256": "e35206ab0505f2f5fca07dbf1cfdf9a30bccab0d54a4dd5900ff75d22be1d727",
+      "sha256": "f1a7dbcc8c3110eaf70b1fa8d57d6798cbaf7cb878dfd3c08d250db9ac332e02",
+      "patches": [
+        {
+          "before": "            const status = select.value;",
+          "after": "            let status = select.value;"
+        },
+        {
+          "before": "            const shouldStageOperationalConfirmed = lead\n                && status === 'confirmado'\n                && hasAuthToken()\n                && leadReadyForCustomerConfirmation(lead)\n                && !isManualReviewLead(lead)\n                && !isRepurchaseLead(lead)\n                && !isHistoricalLead(lead)\n                && previousOperationalStatus !== 'entregue'\n                && /^EC-ADMIN-\\d+$/i.test(adminOrderId);",
+          "after": "            if (String(country).toUpperCase() === 'EC' && status === 'confirmado' && !leadReadyForCustomerConfirmation(lead)) {\n                status = 'atendendo'; select.value = status;\n            }\n            const shouldStageOperationalConfirmed = lead && String(country).toUpperCase() === 'EC'\n                && status === 'confirmado' && hasAuthToken();"
+        },
+        {
+          "before": "            try {\n                if (shouldStageOperationalConfirmed) {",
+          "after": "            try {\n                if (String(country).toUpperCase() === 'EC' && status === 'confirmado' && !shouldStageOperationalConfirmed) {\n                    throw new Error('Entre novamente no painel para confirmar o pedido operacional. Nenhuma venda foi criada.');\n                }\n                if (shouldStageOperationalConfirmed) {"
+        },
+        {
+          "before": "                ? 'Colocar este cliente em Pedidos Confirmados como pedido operacional novo? Ele nao sera enviado para Dropi ate voce autorizar.'",
+          "after": "                ? 'Confirmar esta recompra como pedido novo? Ap\u00f3s validar os dados, o envio \u00e0 Dropi ser\u00e1 autom\u00e1tico.'"
+        },
+        {
+          "before": "                if (hasAuthToken()) {\n                    const result = await api(`/api/shipments/droppi/ec/admin-leads/${encodeURIComponent(id)}/stage-confirmed`,",
+          "after": "                if (String(country).toUpperCase() === 'EC' && !hasAuthToken()) throw new Error('Entre novamente no painel para confirmar o pedido operacional.');\n                if (hasAuthToken()) {\n                    const result = await api(`/api/shipments/droppi/ec/admin-leads/${encodeURIComponent(id)}/stage-confirmed`,"
+        }
+      ]
+    },
+    {
+      "kind": "legacy",
+      "path": "/opt/maxlien-mvp/app.py",
+      "beforeSha256": "4c823b588034863540a917cb5784d48a0ed1641754791bd6662ccea4c2e8bcdd",
+      "sha256": "25c40226f1ada65fe95453c5f6f2cd28d55f37b6e2f53291b1b79761a76e923a",
+      "patches": [
+        {
+          "before": "    old_status_normalized = (old_status or \"\").strip().lower()\n    if manual_status_only and (status_country",
+          "after": "    old_status_normalized = (old_status or \"\").strip().lower()\n    # EC confirmations are persisted by the native order endpoint first.\n    # Old browser tabs cannot promote an incomplete draft into a sale.\n    if safe_str(row[\"country\"]).strip().upper() == \"EC\" and new_status == \"confirmado\" and old_status_normalized != \"confirmado\":\n        conn.close()\n        return _admin_json_response({\"ok\": False, \"error\": \"operational_confirmation_required\", \"message\": \"Confirme o pedido completo no atendimento antes de alterar para confirmado.\"}, 409)\n    if manual_status_only and (status_country"
+        }
+      ]
+    }
+  ],
+  "sourceFiles": {
+    "docs/freeze/ec-orders-panel-compatibility-v252-20261119.json": "d8f66e80c9cd6b93b25588b802f67c0e93614afa2f8b23ecc8d1c3a1be4c4363",
+    "ops/publications/ec-orders-panel-v252/guard-compatibility.patch.json": "73adca619fd023e3f6e5491b4e85dda854e305e29ca8beaf82b9bf94100031b9",
+    "ops/publications/ec-orders-panel-v252/leads-window.html": "f1a7dbcc8c3110eaf70b1fa8d57d6798cbaf7cb878dfd3c08d250db9ac332e02",
+    "ops/publications/ec-orders-panel-v252/qr.html": "d2e619d758b2b423c8a7fad124da8aee18ae29434ee2bf28bd8b634a8dcf2eef",
+    "scripts/guard-tex-cta-qa-panel-v248.mjs": "d7cb3447f59a2f858341ae26e5baa39e448c77f5e3364e23e6b67d36f184357d"
+  }
+}
