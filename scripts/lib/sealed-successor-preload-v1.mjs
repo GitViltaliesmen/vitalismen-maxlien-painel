@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-customer-edit-paquizha-sealed-v253-r2.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-customer-edit-paquizha-profile-v253-r2.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-dropi-meta-sealed-v254-r8.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-dropi-meta-profile-v254-r8.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';

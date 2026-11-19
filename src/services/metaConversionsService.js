@@ -1,3 +1,5 @@
+import { integrationPolicyV254, integrationScopeV254, integrationExternalAllowedV254 } from './orderIntegrationScopeV254Service.js';
+import { queuedPurchaseResponseV254 } from './metaPurchaseDeliveryV254Service.js';
 import { sendTexMeasurementPurchaseV243 } from './texUltraMeasurementV243Service.js';
 import { scopedPurchaseReceiptV237 } from './vitPowerMeasurementV213Application.js';
 import {isGiraOrder} from './gira21x/contract.mjs';
@@ -117,6 +119,9 @@ export const getMetaDatasetIdForOrder = (order = {}, env = process.env) => (
 );
 
 const getActionSourceForOrder = (order) => (
+    integrationPolicyV254() ? (order.tracking?.ctwa_clid ? 'business_messaging'
+        : order.source === 'whatsapp' || String(order.entryReason || '').startsWith('whatsapp_') ? 'chat'
+        : order.source === 'checkout' ? 'website' : 'other') :
     (order?.tracking?.sourceUrl || order?.tracking?.fbc || order?.tracking?.fbp || order?.tracking?.fbclid)
         ? 'website'
         : (order?.source === 'whatsapp' ? 'business_messaging' : 'website')
@@ -466,22 +471,24 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 
     const { firstName, lastName } = splitName(order?.customer?.name);
     const phoneE164 = normalizePhoneE164({ phone: order?.customer?.phone, country });
+    const purchasePhoneV254 = integrationPolicyV254() ? String(phoneE164 || '').replace(/\D/g, '') : phoneE164;
 
     const protocoloGOrder = isEcuadorTexUltraProtocoloG(order);
     const clientContextSource = String(order?.tracking?.clientContextSource || '').trim();
     const trustedProtocoloGUserAgent = clientContextSource === 'vilaliemen_protocolo_g_server_bridge';
     const trustedProtocoloGClientIp = clientContextSource === 'client_browser_direct';
+    const humanChannelV254 = integrationPolicyV254() && country === 'EC' && order.source !== 'checkout';
     const userData = {
         fn: firstName ? [sha256hex(firstName)] : undefined,
         ln: lastName ? [sha256hex(lastName)] : undefined,
-        ph: phoneE164 ? [sha256hex(phoneE164)] : undefined,
+        ph: purchasePhoneV254 ? [sha256hex(purchasePhoneV254)] : undefined,
         ct: order?.customer?.city ? [sha256hex(order.customer.city)] : undefined,
         st: order?.customer?.province ? [sha256hex(order.customer.province)] : undefined,
         country: country ? [sha256hex(country)] : undefined,
-        client_ip_address: protocoloGOrder
+        client_ip_address: humanChannelV254 && !trustedProtocoloGClientIp ? undefined : protocoloGOrder
             ? (trustedProtocoloGClientIp ? order?.tracking?.ip || undefined : undefined)
             : order?.tracking?.ip || undefined,
-        client_user_agent: protocoloGOrder
+        client_user_agent: humanChannelV254 && !trustedProtocoloGUserAgent && !trustedProtocoloGClientIp ? undefined : protocoloGOrder
             ? (trustedProtocoloGUserAgent || trustedProtocoloGClientIp ? order?.tracking?.userAgent || undefined : undefined)
             : order?.tracking?.userAgent || undefined,
         fbc: order?.tracking?.fbc || undefined,
@@ -539,12 +546,21 @@ export const buildPurchaseEventPayloadForOrder = (order, options = {}) => {
 
 export const sendPurchaseEventForOrder = async (order, options = {}) => {
     if(isGiraOrder(order))return {ok:true,skipped:true,reason:"GIRA21X_OWNS_PURCHASE"};
+    if (integrationPolicyV254() && order?.country === 'EC' && !order.integration && !integrationScopeV254()) return queuedPurchaseResponseV254(order);
+    if (integrationScopeV254() && (integrationScopeV254().kind !== 'purchase' || integrationScopeV254().orderId !== order?.orderId || order?.country !== 'EC')) throw Error('purchase_scope_identity_mismatch');
+    if (integrationScopeV254() && order?.tracking?.measurementVersion === 243 && order.tracking?.attributionSource === 'tex_verified_first_touch_v243') {
+        const prepared = await sendTexMeasurementPurchaseV243(order, { ...options, dryRun: true });
+        if (!prepared?.ok) return prepared;
+        await options.deliveryV254.beforeDispatch({ payload: prepared.proof, eventId: prepared.eventId, datasetId: prepared.datasetId });
+        try { return { ...await sendTexMeasurementPurchaseV243(order, options), dispatched: true }; }
+        catch (error) { return { ok: false, dispatched: true, error: error.code || error.message }; }
+    }
     const texReceiptV243 = await sendTexMeasurementPurchaseV243(order, options);
     if (texReceiptV243) return texReceiptV243;
-    const canaryBlock = canaryV75BlockedResult('meta_purchase', options.env || process.env);
+    const canaryBlock = integrationExternalAllowedV254('meta_purchase') ? null : canaryV75BlockedResult('meta_purchase', options.env || process.env);
     if (canaryBlock) return canaryBlock;
     const scopedReceipt = await scopedPurchaseReceiptV237(order);
-    if (scopedReceipt) return scopedReceipt;
+    if (scopedReceipt) return integrationScopeV254() && !scopedReceipt.ok ? { ...scopedReceipt, retryablePreflight: true } : scopedReceipt;
     const v148Binding = await bindPurchaseAttributionV148(order, options.v148BindingOptions);
     if (!v148Binding.ok) return { ok: false, blocked: true, error: v148Binding.reason };
     const attributionEnricher = options.attributionEnricher || enrichOrderWithMetaAttribution;
@@ -582,16 +598,24 @@ export const sendPurchaseEventForOrder = async (order, options = {}) => {
         };
     }
 
+    let dispatchedV254 = false;
     try {
-        const apiVersion = process.env.META_CAPI_API_VERSION || 'v20.0';
+        const apiVersion = integrationScopeV254() ? 'v25.0' : process.env.META_CAPI_API_VERSION || 'v20.0';
         const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events`;
+        if (integrationScopeV254()) {
+            if (!options.deliveryV254?.beforeDispatch) return { ok: false, error: 'purchase_delivery_lease_required' };
+            await options.deliveryV254.beforeDispatch({ payload, eventId, datasetId: pixelId });
+        }
+        dispatchedV254 = Boolean(integrationScopeV254());
         const response = await axios.post(url, payload, {
             params: { access_token: accessToken },
             timeout: 15000
         });
 
         return {
-            ok: true,
+            ok: integrationScopeV254() ? Number(response.data?.events_received) > 0 : true,
+            status: response.status,
+            dispatched: Boolean(integrationScopeV254()),
             response: response.data,
             eventId,
             eventTime,
@@ -607,7 +631,8 @@ export const sendPurchaseEventForOrder = async (order, options = {}) => {
             eventId,
             datasetId: pixelId,
             datasetRoute: route,
-            error: 'META CAPI request failed',
+            error: e?.message === 'purchase_pinned_identity_changed' ? e.message : 'META CAPI request failed',
+            dispatched: dispatchedV254,
             status,
             data
         };

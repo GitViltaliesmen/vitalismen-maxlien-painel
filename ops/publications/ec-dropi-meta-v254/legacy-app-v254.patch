@@ -1,0 +1,56 @@
+--- /opt/maxlien-mvp/app.py.before-v254
++++ /opt/maxlien-mvp/app.py.v254
+@@ -777,6 +777,26 @@
+ # --- fim ---
+ FB_ACCESS_TOKEN = (os.getenv("MVP_FB_ACCESS_TOKEN") or "").strip()
+ # === MAXLIEN_FB_CAPI_HELPERS_V1 ===
++def _v254_purchase_queue_active():
++    # EC-only successor. Never treat a queued intention as a provider acceptance.
++    try:
++        import pathlib, hashlib
++        root = pathlib.Path('/var/lib/vitalismen-deploy/ec-dropi-meta-v254-r8')
++        approval_bytes = (root / 'approval.json').read_bytes()
++        approval = json.loads(approval_bytes)
++        state = json.loads((root / 'activation.json').read_bytes())
++        owned = (approval.get('project') == 'VITALISMEN_EC' and approval.get('activationApproved') is True
++            and state.get('commit') == approval.get('commit')
++            and state.get('approvalSha256') == hashlib.sha256(approval_bytes).hexdigest())
++        current = str(pathlib.Path('/opt/vitalismen-automacao/current').resolve())
++        active = (state.get('state') == 'ACTIVE' and current == approval.get('release')
++            and (state.get('orderIntegrationV254Allowed') is True or state.get('orderIntegrationV254Reserved') is True))
++        reserved = (state.get('state') == 'PREPARED' and state.get('runtimeAllowed') is False
++            and state.get('orderIntegrationV254Reserved') is True and current == approval.get('parentRelease'))
++        return owned and (active or reserved)
++    except Exception:
++        return False
++
+ def _should_fire_purchase(old_status, new_status):
+     try:
+         o = (old_status or '').strip().lower()
+@@ -787,6 +807,8 @@
+         return False
+ 
+ def _fb_capi_purchase_minimal(lead_row, event_source_url=''):
++    if str(row_to_dict(lead_row).get('country') or 'EC').upper() == 'EC' and _v254_purchase_queue_active():
++        return {"ok": False, "queued": True, "accepted": False, "reason": "native_purchase_queue_v254"}
+     # --- pixel por host (CO/EC) calculado no request ---
+     _h = (event_source_url or "")
+     try:
+@@ -1083,6 +1105,8 @@
+ 
+ 
+ def send_meta_capi_purchase_for_lead(lead_row: dict, event_id: str, country: str | None = None) -> dict:
++    if str(country or row_to_dict(lead_row).get('country') or 'EC').upper() == 'EC' and _v254_purchase_queue_active():
++        return {"ok": False, "queued": True, "accepted": False, "event_id": event_id, "reason": "native_purchase_queue_v254"}
+     lead = row_to_dict(lead_row)
+     phone_norm = safe_str(lead.get("phone_e164") or lead.get("phone"))
+     user_data = meta_user_data(phone_norm)
+@@ -3392,6 +3416,8 @@
+     }
+ 
+ def _send_ec_purchase_on_confirmed(db_path, row, old_status, new_status):
++    if _v254_purchase_queue_active():
++        return {"ok": False, "queued": True, "accepted": False, "reason": "durable_confirmation_intake_v254"}
+     country = str((row["country"] if row and "country" in row.keys() else "EC") or "EC").strip().upper()
+     old_norm = str(old_status or "").strip().lower()
+     new_norm = str(new_status or "").strip().lower()

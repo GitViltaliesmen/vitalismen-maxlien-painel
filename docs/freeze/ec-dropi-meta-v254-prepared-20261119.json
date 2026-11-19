@@ -1,0 +1,90 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 254,
+  "status": "PREPARED_NOT_ACTIVE",
+  "authorization": "USER_20261119_GENERAL_DROPI_RELIABILITY_PURCHASE_AT_CONFIRMATION_SAVE_PUBLISH_FREEZE",
+  "runtime": {
+    "commit": "05f23b13cd89385a3cfdbdaf6c27d58f17384516",
+    "tree": "c9d37ee698e099bfb92b333b6e2f3e3caa7d0c92",
+    "release": "/opt/vitalismen-automacao/releases/20261119T224814Z_production-20261119-05f23b1",
+    "sourceRef": "refs/heads/codex/ec-dropi-meta-v254-20261119-r8",
+    "parentCommit": "c0664818c7468b9e7dfd55e320f77fcb273b77e5",
+    "parentRelease": "/opt/vitalismen-automacao/releases/20261119T183818Z_production-20261119-c066481"
+  },
+  "runtimeHashes": {
+    "docs/freeze/ec-dropi-meta-v254-contract.json": "fc27ec7a01aeed2552b5b4766c810c79f44fd84411a0923e98a3dd9d43660a26",
+    "scripts/ec-sqlite-integration-v254.py": "f16f4bca73669672db30dab4570c33b2a781ee233e0faa9f9d113db45e614cc0",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "a4f638320d12d10fa1e390f86b9decf1bd277d992c8fdb7264b4698de181f704",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "d6d7f12f5cf819622195289bdb72ce4a9c8edc331ca2de704d29a242335bbb4d",
+    "scripts/renew-dropi-session-v254.py": "d0168f06927f2468f55033c81851d241502076f41a997585dc31948153ca0b18",
+    "src/models/MetaPurchaseDeliveryV254.js": "4de1c0853bc21a67bb2f4377130f579b9715f25735bc1e66f70e486d7560e64a",
+    "src/models/Order.js": "ff74715ba5afd88ed5c45cf3871e1b79276da4f538a99c6a3e8d73dcf72e5b46",
+    "src/routes/orders.js": "72f4aeb30bd9201899226cf492e514b7941f954ea2a241c30538594151c02486",
+    "src/routes/shipments.js": "eb2e7fadf47a8a4c0d85c3fa0b85015c2ff6a175fae765f480d69bc14a3b231f",
+    "src/services/dropiRecoveryV254Service.js": "9ccb8087c7390905371a4ea9002aa4b520e3520f43758b7aee158f4d5f5181ef",
+    "src/services/dropiSessionV254Service.js": "2f9ad18367ab8370dfe52ce038510fe5a259b25efa7484920ff3181eef704966",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "8dd2b42b2c62ec5f7da89f166c17b890375670bfbd75b01d3abd9b9e8956779c",
+    "src/services/ecDropiHumanAuthorizationV138Service.js": "b442bda0885ebd436e4ad99a6927d32df7a95383df01170bb913fd2d3407d0a4",
+    "src/services/metaConversionsService.js": "81d159426eb96e9545c7b9bd50d2baf46fddcf11c1d1e93698be2ff45a55134b",
+    "src/services/metaPurchaseDeliveryV254Service.js": "4dafdf23c6771da199378c6d8c6f4cb4bade3ba1a108f112300e46472311fa11",
+    "src/services/orderIntegrationScopeV254Service.js": "a9585892705363187e03d86906f98e8310cd862c38ff9c4f43f5221c9b1bb863",
+    "src/services/orderIntegrationWorkerV254Service.js": "db71942dc94191b57268a74f22ed94052e7027f12a2673518a1b2c375091752e",
+    "src/services/sqliteConfirmationBridgeV254Service.js": "ed8ee592c3d27fd17074c9728b077d56621925f3ba589ca292328da53ab46eda",
+    "tests/order-integration-v254.test.mjs": "a1ba1930d1f3bfa969944da8a514db5806aae084ba8ff57603b8dff2e40d8ae7"
+  },
+  "publicFiles": [
+    {
+      "path": "/opt/maxlien-mvp/app.py",
+      "candidate": "legacy-app.py",
+      "beforeSha256": "25c40226f1ada65fe95453c5f6f2cd28d55f37b6e2f53291b1b79761a76e923a",
+      "sha256": "4ff0559b65748267c4ed326795b92d98893cb9029f5927a4da687cb227c3f7a0"
+    },
+    {
+      "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/leads-window.status-only-20261119.html",
+      "candidate": "leads-window.html",
+      "beforeSha256": "f1a7dbcc8c3110eaf70b1fa8d57d6798cbaf7cb878dfd3c08d250db9ac332e02",
+      "sha256": "fae1873937ed4614562c837705833970dfa761c2d3a08956c192d6f012ae04f0"
+    }
+  ],
+  "unchangedCustomerPanelSha256": "ee2b8473767300ee0e95b30d882676040fdb0f82288d5dfbc4401c840015765a",
+  "rootHashes": {
+    "ec-dropi-meta-sealed-v254-r8.mjs": "2af2048d98dee8000045f2b210364a03aea5a02088af2542f2e23394565543db",
+    "ec-dropi-meta-profile-v254-r8.mjs": "d29bdd35649286af716700fb887249dc1d94a38bf236f07dcab726765e2c0a51"
+  },
+  "sourceArtifactFiles": {
+    "docs/freeze/ec-dropi-meta-v254-contract.json": "fc27ec7a01aeed2552b5b4766c810c79f44fd84411a0923e98a3dd9d43660a26",
+    "scripts/ec-sqlite-integration-v254.py": "f16f4bca73669672db30dab4570c33b2a781ee233e0faa9f9d113db45e614cc0",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "a4f638320d12d10fa1e390f86b9decf1bd277d992c8fdb7264b4698de181f704",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "d6d7f12f5cf819622195289bdb72ce4a9c8edc331ca2de704d29a242335bbb4d",
+    "scripts/renew-dropi-session-v254.py": "d0168f06927f2468f55033c81851d241502076f41a997585dc31948153ca0b18",
+    "src/models/MetaPurchaseDeliveryV254.js": "4de1c0853bc21a67bb2f4377130f579b9715f25735bc1e66f70e486d7560e64a",
+    "src/models/Order.js": "ff74715ba5afd88ed5c45cf3871e1b79276da4f538a99c6a3e8d73dcf72e5b46",
+    "src/routes/orders.js": "72f4aeb30bd9201899226cf492e514b7941f954ea2a241c30538594151c02486",
+    "src/routes/shipments.js": "eb2e7fadf47a8a4c0d85c3fa0b85015c2ff6a175fae765f480d69bc14a3b231f",
+    "src/services/dropiRecoveryV254Service.js": "9ccb8087c7390905371a4ea9002aa4b520e3520f43758b7aee158f4d5f5181ef",
+    "src/services/dropiSessionV254Service.js": "2f9ad18367ab8370dfe52ce038510fe5a259b25efa7484920ff3181eef704966",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "8dd2b42b2c62ec5f7da89f166c17b890375670bfbd75b01d3abd9b9e8956779c",
+    "src/services/ecDropiHumanAuthorizationV138Service.js": "b442bda0885ebd436e4ad99a6927d32df7a95383df01170bb913fd2d3407d0a4",
+    "src/services/metaConversionsService.js": "81d159426eb96e9545c7b9bd50d2baf46fddcf11c1d1e93698be2ff45a55134b",
+    "src/services/metaPurchaseDeliveryV254Service.js": "4dafdf23c6771da199378c6d8c6f4cb4bade3ba1a108f112300e46472311fa11",
+    "src/services/orderIntegrationScopeV254Service.js": "a9585892705363187e03d86906f98e8310cd862c38ff9c4f43f5221c9b1bb863",
+    "src/services/orderIntegrationWorkerV254Service.js": "db71942dc94191b57268a74f22ed94052e7027f12a2673518a1b2c375091752e",
+    "src/services/sqliteConfirmationBridgeV254Service.js": "ed8ee592c3d27fd17074c9728b077d56621925f3ba589ca292328da53ab46eda",
+    "tests/order-integration-v254.test.mjs": "a1ba1930d1f3bfa969944da8a514db5806aae084ba8ff57603b8dff2e40d8ae7",
+    "ops/publications/ec-dropi-meta-v254/operations-controller.py": "65e2114807f48392ea57fb5df94a3eff5a9b2324e5555c7819659ab04a9d35d4",
+    "ops/publications/ec-dropi-meta-v254/recovery-core-v254.mjs": "171eeb749d5137e5eefcef52236186990062f7ab61044efbd4a21cfe36cceeae",
+    "ops/publications/ec-dropi-meta-v254/recovery-core-v254.test.mjs": "5fa7d4c6b22fce20d931ff3c3b7e54ead7d66684b701e20f098cdbe0ac542900",
+    "ops/publications/ec-dropi-meta-v254/recover-existing-v254.mjs": "acc80aefc93261ff3ed97b8ff534b94fa72f38eb86d95136c1e2322bd6a8b338",
+    "ops/publications/ec-dropi-meta-v254/recovery-mongo-v254.mjs": "02a15b7ba2eeb5dc440399dcd62ee908d2861dcb03e8afaabd74a33e70bf7b67",
+    "ops/publications/ec-dropi-meta-v254/test-operational.py": "9703af813095bb47dc1b6efa068d203ada422c605c52e26c8e97f525d2409068",
+    "ops/publications/ec-dropi-meta-v254/test-leads-v254.mjs": "ee8fe1cdbb2c15c79fe6dc045ba6c1613c124b2ab5d6ea9e56afd63160785c09",
+    "ops/publications/ec-dropi-meta-v254/backend-delta.json": "d3cc83e4d7ef699d949e74927de26f4c3993d7c9f7565ce6907fd366c9e356d5",
+    "ops/publications/ec-dropi-meta-v254/ec-dropi-meta-sealed-v254-r8.mjs": "2af2048d98dee8000045f2b210364a03aea5a02088af2542f2e23394565543db",
+    "ops/publications/ec-dropi-meta-v254/ec-dropi-meta-profile-v254-r8.mjs": "d29bdd35649286af716700fb887249dc1d94a38bf236f07dcab726765e2c0a51",
+    "ops/publications/ec-dropi-meta-v254/leads-window.html": "fae1873937ed4614562c837705833970dfa761c2d3a08956c192d6f012ae04f0",
+    "ops/publications/ec-dropi-meta-v254/legacy-app-v254.patch": "24e9d15d41af6171cd45e179fe8b60ca7071e6d1a8d7b1c9b135a7417f534b5c"
+  },
+  "fullLegacySourceExcluded": true,
+  "privatePlanAndCustomerDataExcluded": true,
+  "globalMongoBackupPass": false
+}

@@ -1,5 +1,12 @@
 import { giraDropiOffer } from '../services/gira21x/dropi-offer.mjs';
 import express from 'express';
+import { markDropiRecoveryV254, recoverDropiBeforeCreateV254, clearDropiFailureV254, recordExactDropiReceiptV254 } from '../services/dropiRecoveryV254Service.js';
+import { ensureDropiSessionV254, findExactDropiReceiptV254 } from '../services/dropiSessionV254Service.js';
+import { sqliteConfirmationTickV254, readConfirmationClaimV254 } from '../services/sqliteConfirmationBridgeV254Service.js';
+import { integrationPolicyV254, withIntegrationScopeV254 } from '../services/orderIntegrationScopeV254Service.js';
+import { preparePurchaseIntentV254, queuedPurchaseResponseV254, purchaseLedgerIdV254, purchaseProblemsV254 } from '../services/metaPurchaseDeliveryV254Service.js';
+import { purchaseTickV254, purchaseStatusV254 } from '../services/orderIntegrationWorkerV254Service.js';
+import MetaPurchaseDeliveryV254 from '../models/MetaPurchaseDeliveryV254.js';
 import { automaticDropiPolicyV252, isAutomaticDropiContextV252, processConfirmedDropiDispatchV252, historicalDropiRecoveryGrantV252 } from '../services/confirmedDropiDispatchV252Service.js';
 import crypto from 'crypto';
 import { spawnSync } from 'child_process';
@@ -275,9 +282,11 @@ const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
     });
     const productInfo = draftBridge?.product
         || resolveEcuadorProductInfo(lead.notes, lead.event_source_url, lead.utm_campaign, lead.utm_content);
+    if(integrationPolicyV254()&&!draftBridge?.product&&!detectExplicitEcuadorProductKey(lead.notes,lead.event_source_url,lead.utm_campaign,lead.utm_content))throw Object.assign(Error('Produto do pedido precisa de confirmacao explicita.'),{status:409,code:'confirmation_product_unproven'});
     const order = new Order({
         ...(draftBridge?.orderFields || {}),
         orderId: requestedOrderId,
+        ...(integrationPolicyV254() && lead._integrationIntakeKeyV254 ? { integrationIntakeKeyV254: lead._integrationIntakeKeyV254, confirmedAt:new Date(lead._integrationOccurredAtV254) } : {}),
         country: 'EC',
         customer: {
             name: String(lead.name || '').trim(),
@@ -305,8 +314,16 @@ const createOperationalOrderFromAdminLead = async (requestedOrderId, lead) => {
             `Status original: ${lead.status || ''}`
         ].join(' | ')
     });
-    if (!draftBridge) Object.assign(order, ecDropiCurrentDraftDeliveryV138(order, await findContactStateForAdminLead(lead)));
-    assertEcDropiOrderReadyV138(order);
+    if(integrationPolicyV254()&&productInfo?.key)order.tracking={...(order.tracking?.toObject?.()||order.tracking||{}),productKey:productInfo.key};
+    const commercialIntake=integrationPolicyV254()&&lead._integrationIntakeKeyV254&&!purchaseProblemsV254(order).length;
+    if(!draftBridge){
+        try{Object.assign(order,ecDropiCurrentDraftDeliveryV138(order,await findContactStateForAdminLead(lead)));}
+        catch(error){
+            if(!commercialIntake||error.code!=='dropi_current_customer_data_required')throw error;
+            order.customerDataResolution={orderDataReady:false,blockedReasons:['saved_delivery_data_required_v254']};
+        }
+    }
+    if(!commercialIntake||order.customerDataResolution?.orderDataReady===true)assertEcDropiOrderReadyV138(order);
     await order.save();
     return order;
 };
@@ -316,6 +333,12 @@ const findCurrentOrderForAdminLead = async (requestedOrderId) => {
     const leadPhone = String(lead?.phone || '').replace(/\D/g, '');
     if (!leadPhone) return null;
 
+    if (integrationPolicyV254()) {
+        const hints = [...String(lead?.notes || '').matchAll(/Pedido automacao:\s*(EC-[A-Z0-9-]+)/gi)].map(x => x[1]);
+        const id = hints.at(-1) || requestedOrderId;
+        const canonical = await Order.findOne({ country: 'EC', orderId: id });
+        return canonical && String(canonical.customer?.phone || '').replace(/\D/g, '') === leadPhone ? canonical : null;
+    }
     const candidates = await Order.find({
         country: 'EC',
         status: { $in: ['draft', 'pending', 'confirmed', 'processing', 'shipped'] }
@@ -488,6 +511,7 @@ const stagedOrderDataFromAdminLead = ({ lead = {}, state = null, previousOrder =
 };
 
 const ensurePurchaseForStagedOrder = async ({ order, req, sourceOrderId }) => {
+    if (integrationPolicyV254()) return queuedPurchaseResponseV254(order);
     if (order.tracking?.metaPurchaseSentAt) {
         return {
             ok: true,
@@ -534,6 +558,7 @@ export const ensurePurchaseAfterHumanDropiSuccessV141 = async ({
     purchaseLock = recordOnlineAdminPurchaseLock,
     persistOrder = async (target) => target.save()
 } = {}) => {
+    if (integrationPolicyV254()) return queuedPurchaseResponseV254(order);
     const dropiSucceeded = dropiResult?.ok === true || dropiResult?.success === true;
     if (!dropiSucceeded) return { ok: false, skipped: true, reason: 'dropi_not_successful' };
     if (freshDropiSubmission !== true) {
@@ -608,6 +633,11 @@ const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, n
         throw error;
     }
 
+    if (integrationPolicyV254() && /^v254:lead:\d+:\d+$/.test(req?.integrationIntakeV254?.key || '')) {
+        if (lead.status !== 'confirmado') throw Object.assign(new Error('A confirmacao deste lead foi substituida.'), { status:409, code:'confirmation_superseded' });
+        lead._integrationIntakeKeyV254 = req.integrationIntakeV254.key;
+        lead._integrationOccurredAtV254=req.integrationIntakeV254.occurredAt;
+    }
     const state = await findContactStateForAdminLead(lead);
     const historical = await deliveredOrderForAdminLead(lead);
     const mustCreateRepurchase = Boolean(
@@ -723,7 +753,7 @@ const stageConfirmedAdminLeadOrder = async ({ leadId, forceRepurchase = false, n
 
     const order = decision.reused
         ? activeRepurchase
-        : new Order({ orderId: decision.orderId });
+        : new Order({ orderId: decision.orderId, ...(lead._integrationIntakeKeyV254 ? { integrationIntakeKeyV254: lead._integrationIntakeKeyV254, confirmedAt:new Date(lead._integrationOccurredAtV254) } : {}) });
     const canRefresh = !decision.reused || ['draft', 'pending', 'confirmed'].includes(String(order.status || ''));
     if (canRefresh) {
         order.country = 'EC';
@@ -905,7 +935,9 @@ con.close()
     }
 };
 
-const markManualSendRequired = async (shipment, { reason = 'dropi_rejected', error = '', user = null } = {}) => {
+const markManualSendRequired = async (shipment, { reason = 'dropi_rejected', error = '', user = null, result = null } = {}) => {
+    if (integrationPolicyV254()) { const target=await Order.findOne({country:'EC',orderId:shipment.orderId}).select('integration').lean();
+        if(target&&!target.integration)return markDropiRecoveryV254(shipment, { result: result || {}, reason, error }); }
     shipment.review.manualOnly = true;
     shipment.review.reviewReason = reason;
     shipment.review.reviewStatus = 'manual_send_required';
@@ -1115,6 +1147,7 @@ const getSubmittedDropiOrderId = (order, shipment) => String(
     || shipment?.raw?.droppiOrder?.id
     || shipment?.raw?.droppiOrder?.order_id
     || shipment?.raw?.droppiOrder?.orderId
+    || (integrationPolicyV254() && shipment?.raw?.latestDroppiPayload?.status === 'submitted' ? shipment.raw.latestDroppiPayload.dropiOrderId : '')
     || ''
 ).trim();
 
@@ -1145,7 +1178,7 @@ const buildDropiSubmitStatus = ({ order, shipment, orderId }) => {
             orderStatus: order?.status || '',
             reviewStatus: shipment?.review?.reviewStatus || '',
             checkpoint: shipment?.automation?.browserCheckpoint || '',
-            lastError: shipment?.automation?.browserLastError || ''
+            lastError: integrationPolicyV254() ? '' : shipment?.automation?.browserLastError || ''
         };
     }
 
@@ -1189,6 +1222,12 @@ const buildDropiSubmitStatus = ({ order, shipment, orderId }) => {
         };
     }
 
+    if(integrationPolicyV254()&&order?.dropiDispatchV252?.version===254&&order.dropiDispatchV252.reason==='awaiting_customer_data_v254')return {ok:false,status:'awaiting_data',processing:false,manualSendRequired:false,orderId:targetOrderId,reason:'saved_delivery_data_required',message:'Compra confirmada; complete os dados de entrega na ficha para envio automatico.'};
+    if (integrationPolicyV254() && shipment?.raw?.fulfillmentRecoveryV254) {
+        const r = shipment.raw.fulfillmentRecoveryV254;
+        return { ok:false, success:false, status:r.state, processing:['awaiting_session','retry_wait','dispatch_claimed','verifying_confirmation'].includes(r.state), manualSendRequired:false, recoveryState:r.state,
+            shipment, orderStatus:order?.status || '', reviewStatus, checkpoint, lastError, message:r.label || lastError };
+    }
     if (shipment?.review?.manualOnly || reviewStatus === 'manual_send_required') {
         return {
             ok: false,
@@ -1407,15 +1446,19 @@ const handleDropiSubmitResult = async ({ order, shipment, result, user = null })
         const manualShipment = await markManualSendRequired(updatedShipment, {
             reason: dropiManualReviewReasonForResultV157(result),
             error: dropiManualReviewMessageV157(result),
+            result,
             user
         });
         return {
             ...result,
-            manualSendRequired: true,
+            manualSendRequired: !integrationPolicyV254(),
+            processing: Boolean(integrationPolicyV254()),
+            recoveryState: manualShipment.raw?.fulfillmentRecoveryV254?.state || '',
             shipment: manualShipment,
             message: describeDropiSubmitFailure(result.error || result.reason)
         };
     }
+    if (integrationPolicyV254() && !order.integration) { const current = await Shipment.findOne({ orderId:order.orderId }); if (current) await clearDropiFailureV254(current); }
     if (isAutomaticDropiContextV252()) return result;
     const purchase = await ensurePurchaseAfterHumanDropiSuccessV141({
         order,
@@ -1452,7 +1495,8 @@ const enqueueDropiSubmitJob = async ({ order, shipment, user = null, awaitResult
                 const latestShipment = await Shipment.findOne({ orderId }) || queuedShipment;
                 const latestAlreadySubmitted = alreadySubmittedResponse(order, latestShipment);
                 if (latestAlreadySubmitted) return latestAlreadySubmitted;
-                const result = await submitDroppiEcuadorOrder({ order, shipment: latestShipment });
+                const session = integrationPolicyV254() && !order.integration ? await ensureDropiSessionV254() : { ok: true };
+                const result = session.ok ? await submitDroppiEcuadorOrder({ order, shipment: latestShipment }) : { ok:false, reason:'session_wait', errorCode:'AUTH_FAILED', preflightNoCreateV254:true, error:session.error, lifecycle:{operation:'preflight',requestDispatched:false} };
                 const handled = await handleDropiSubmitResult({ order, shipment: latestShipment, result, user });
                 if (handled?.ok === false && !handled?.processing) {
                     console.warn('Dropi EC async submit finished with issue:', {
@@ -1514,6 +1558,35 @@ const confirmedDropiTickV252 = async () => {
     } catch (error) { console.error('[V252] confirmed Dropi queue:', error.code || error.message); }
     finally { confirmedDropiTickV252Busy = false; }
 };
+let dropiReconcileBusyV254=false;
+const dropiReconcileTickV254=async()=>{
+    if(dropiReconcileBusyV254||!integrationPolicyV254())return;dropiReconcileBusyV254=true;
+    try{
+        const shipment=await Shipment.findOne({country:'EC','automation.submittedToDroppiAt':null,'raw.fulfillmentRecoveryV254.state':{$in:['verifying_confirmation','dispatch_claimed']},'raw.fulfillmentRecoveryV254.nextAttemptAt':{$lte:new Date().toISOString()}}).sort({'raw.fulfillmentRecoveryV254.nextAttemptAt':1});
+        if(!shipment)return;const order=await Order.findOne({country:'EC',orderId:shipment.orderId,status:'confirmed'});if(!order)return;
+        await withIntegrationScopeV254({kind:'dropi_reconcile',orderId:order.orderId,orderObjectId:String(order._id),shipmentId:String(shipment._id),phone:String(order.customer.phone).replace(/\D/g,'')},async()=>{
+            const row=await findExactDropiReceiptV254(order,shipment);
+            if(row){await recordExactDropiReceiptV254({order,shipment,row,Orders:Order});const saved=await Order.findById(order._id);syncOrderToOnlineAdminPanel(saved,{status:'processing',action:'dropi_verified_receipt_v254'});}
+            else await Shipment.updateOne({_id:shipment._id},{$set:{'raw.fulfillmentRecoveryV254.nextAttemptAt':new Date(Date.now()+120000).toISOString()}});
+        });
+    }catch(error){console.error('[V254] Dropi receipt reconciliation:',error.code||error.message);}
+    finally{dropiReconcileBusyV254=false;}
+};
+let dropiRecoveryBusyV254 = false;
+const dropiRecoveryTickV254 = async () => {
+    if (dropiRecoveryBusyV254 || !integrationPolicyV254()) return;
+    dropiRecoveryBusyV254 = true;
+    try { await recoverDropiBeforeCreateV254({ Orders:Order, Shipments:Shipment, readiness:ecDropiOrderReadinessV138, history:assertCustomerHistoryForDropiV203,
+        dispatch:(order,shipment)=>enqueueDropiSubmitJob({order,shipment,awaitResultV252:true}) }); }
+    catch(error){ console.error('[V254] Dropi recovery:',error.code||error.message); }
+    finally{dropiRecoveryBusyV254=false;}
+};
+if (globalThis.__VITALISMEN_EC_ORDER_INTEGRATION_V254) {
+    const metaTimerV254 = setInterval(purchaseTickV254, 15_000); metaTimerV254.unref();
+    const intakeTimerV254=setInterval(sqliteConfirmationTickV254,15000); intakeTimerV254.unref();
+    const recoveryTimerV254=setInterval(dropiRecoveryTickV254,30000); recoveryTimerV254.unref();
+    const reconcileTimerV254=setInterval(dropiReconcileTickV254,30000);reconcileTimerV254.unref();
+}
 if (automaticDropiPolicyV252()) {
     const timerV252 = setInterval(confirmedDropiTickV252, 30_000);
     timerV252.unref();
@@ -2172,6 +2245,16 @@ router.post('/droppi/ec/admin-leads/:leadId/stage-confirmed', adminOnly, ecPanel
                 message: 'Lead EC invalido para registrar o pedido.'
             });
         }
+        const intakeKey=String(req.get('X-Vitalismen-Intake-Key')||'');
+        if(integrationPolicyV254()&&intakeKey){
+            const parts=intakeKey.split(':');
+            if(!/^v254:lead:\d+:\d+$/.test(intakeKey)||Number(parts[2])!==leadId)return res.status(403).json({error:'durable_confirmation_claim_invalid'});
+            const claim=readConfirmationClaimV254({id:Number(parts[3]),leadId,token:String(req.get('X-Vitalismen-Intake-Token')||'')});
+            if(!claim)return res.status(403).json({error:'durable_confirmation_claim_invalid'});
+            req.integrationIntakeV254=Object.freeze({key:intakeKey,occurredAt:claim.occurred_at});req.body.forceRepurchase=claim.old_status==='recompra';
+            const existing = await Order.findOne({ country: 'EC', integrationIntakeKeyV254: intakeKey });
+            if (existing) return res.json({ success: true, alreadyRegistered: true, orderId: existing.orderId, currentState: existing.status });
+        }
         const staged = await stageConfirmedAdminLeadOrder({
             leadId,
             forceRepurchase: req.body?.forceRepurchase === true,
@@ -2396,6 +2479,28 @@ router.post('/droppi/ec/admin-leads/:leadId/configure-order', adminOnly, async (
         console.error('Configure Dropi EC product/price error:', error);
         res.status(error.status || 500).json({ error: error.message || 'Failed to configure Dropi EC product/price', code: error.code || '' });
     }
+});
+
+router.get('/droppi/ec/orders/:orderId/meta-status', adminOnly, async (req, res) => {
+    const order = await findExistingOrderForDropiRequest(req.params.orderId);
+    if (!order||order.country!=='EC'||order.integration) return res.status(404).json({ success: false, error: 'canonical_order_not_found' });
+    return res.json({ success: true, orderId: order.orderId, purchase: await purchaseStatusV254(order) });
+});
+router.post('/droppi/ec/orders/:orderId/meta-retry', adminOnly, async (req, res) => {
+    if (!integrationPolicyV254() || !req.user?._id || req.user._id === 'local-no-password' || req.user.role !== 'admin' || req.user.isActive === false) return res.status(403).json({ error: 'authenticated_admin_required' });
+    const order = await findExistingOrderForDropiRequest(req.params.orderId);
+    if (!order||order.country!=='EC'||order.integration) return res.status(404).json({ error: 'canonical_order_not_found' });
+    const id = purchaseLedgerIdV254(order.orderId), row = await MetaPurchaseDeliveryV254.findById(id).lean();
+    if (!row) return res.status(409).json({ error: 'purchase_not_registered' });
+    if (row.state === 'accepted') return res.json({ success: true, alreadyAccepted: true });
+    if(purchaseProblemsV254(order).length)return res.status(409).json({error:'purchase_no_longer_eligible'});
+    if (!['blocked','retry_wait'].includes(row.state)) return res.status(409).json({ error: 'purchase_requires_receipt_review', state: row.state });
+    await withIntegrationScopeV254({ kind: 'purchase', orderId: order.orderId, orderObjectId: String(order._id), ledgerId: id }, async () => {
+        await MetaPurchaseDeliveryV254.updateOne({ _id: id, state: row.state }, { $set: { state: 'pending', nextAttemptAt: new Date(), leaseUntil: null },
+            $push: { history: { at: new Date(), state: 'pending', actor: String(req.user._id), action: 'explicit_meta_recovery' } } });
+        await Order.updateOne({ _id: order._id }, { $set: { 'purchaseDeliveryV254.state': 'pending' } });
+    });
+    return res.json({ success: true, queued: true, orderId: order.orderId, providerOrderCreation: false });
 });
 
 router.post('/droppi/ec/orders/:orderId/submit', adminOnly, async (req, res) => {

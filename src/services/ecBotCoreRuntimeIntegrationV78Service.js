@@ -1,3 +1,4 @@
+import { integrationPolicyV254, integrationScopeV254, integrationMongoAllowedV254, integrationExternalAllowedV254 } from './orderIntegrationScopeV254Service.js';
 import { isAutomaticDropiContextV252, automaticDropiMongoAllowedV252, automaticDropiExternalAllowedV252 } from './confirmedDropiDispatchV252Service.js';
 import { assertBurstEnvelopeV228, BURST_VERSION_V228 } from './vitPowerBurstCoreV228Service.js';
 import { webChatRequestAllowedV220 } from './vitPowerWebChatV220Application.js';
@@ -483,6 +484,7 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
     const requestPath = String(req.originalUrl || req.path || req.url || '').split('?')[0] || '/';
     const path = requestPath.replace(/\/+$/, '') || '/';
     const method = String(req.method || '').trim().toUpperCase();
+    if (integrationPolicyV254() && method === 'POST' && /^\/api\/shipments\/droppi\/ec\/orders\/(?:EC-[A-Z0-9-]+|[1-9]\d{5,11})\/meta-retry$/.test(path)) return next();
     const configuration = resolveEcBotCoreV78Configuration(env);
     if (!configuration.ready) {
         qaLogV78(qaObservation, 'QA_PIPELINE_RETURN', { claimReached: false, reason: 'bot_core_invalid_fail_closed' });
@@ -660,6 +662,7 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
 };
 
 export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.env) => {
+    if (integrationScopeV254()) { if (integrationExternalAllowedV254(effect)) return true; throw new Error('integration_external_effect_denied'); }
     if (isAutomaticDropiContextV252()) {
         if (automaticDropiExternalAllowedV252(effect)) return true;
         throw new Error('automatic_dropi_external_effect_denied');
@@ -682,7 +685,7 @@ export const assertEcBotCoreExternalEffectAllowedV78 = (effect, env = process.en
 };
 
 export const isEcManualDropiExternalEffectAllowedV119 = (effect, env = process.env) => (
-    automaticDropiExternalAllowedV252(effect) ||
+    integrationExternalAllowedV254(effect) || automaticDropiExternalAllowedV252(effect) ||
     ecManualDropiReleaseV119ExternalEffectAllowed({
         effect,
         context: currentEcBotCoreRuntimeContextV78(),
@@ -756,6 +759,11 @@ const patchMongoPrototype = (prototype) => {
                 if (burstScopeV228 && !burstMongoMutationAllowedV228(burstScopeV228,
                     String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase(), method, args)) {
                     throw new Error('burst_scoped_mongo_write_denied');
+                }
+                if (integrationScopeV254()) {
+                    const name = String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase();
+                    if (!integrationMongoAllowedV254(name, method, args)) throw new Error('integration_scoped_mongo_write_denied');
+                    return original.apply(this, args);
                 }
                 if (isAutomaticDropiContextV252()) {
                     const collection = String(this?.collectionName || this?.namespace?.collection || this?.name || '').toLowerCase();
