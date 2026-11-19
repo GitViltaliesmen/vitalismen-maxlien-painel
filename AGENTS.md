@@ -380,3 +380,11 @@ Prefer no more than 15 lines total.
 - Preservar a edição/salvamento e a reidratação dos dados, os três patches exatos do painel e as 592 agências/220 cidades, com os 591 registros anteriores intactos. PAQUIZHA usa o formato original ZAMORA, agência PAQUIZHA_MARTHA BUCARAM, setor SUR e endereço da imagem; horários não fornecidos ficam vazios.
 - Fonte real do painel em `/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html`, registrada no pacote V253. Não substituí-la por snapshot antigo de release. Guard: `node scripts/guard-customer-edit-paquizha-v253.mjs --production`; o comando V248 existente também aceita a inversão exata V253, preservando os baselines anteriores.
 - Manter integralmente V252, filas/cortes de envio, pós-venda, pedidos, memória, dedupe, humano/opt-out, QA e seus limites, preços, Meta, voz e VSL/CTA. Salvar ficha não cria/reenvia pedido. Sem cron novo, replay, reset ou janela QA nova. Este congelamento não pausa a operação.
+
+## Ratificação expressa de preservação V253 — 2026-11-19
+
+- Ordem posterior do operador: `CONGELE, SALVE, PUBLIQUE E NÃO RETROCEDE MAIS`.
+- Baseline obrigatório atual: runtime `c0664818c7468b9e7dfd55e320f77fcb273b77e5`, ficha pública V253 e catálogo com 592 agências/220 cidades. O registro V252 acima é histórico; os demais comportamentos e congelamentos continuam preservados na V253.
+- Preservar a ficha editável com dados persistentes após salvar/recarregar e PAQUIZHA/ZAMORA/PAQUIZHA_MARTHA BUCARAM. Não substituir a página pública por snapshot antigo, retornar a runtime anterior ou retirar esta correção sem novo pedido explícito do operador para esse ponto.
+- Para qualquer evolução futura, partir do estado real publicado, limitar os arquivos ao escopo autorizado e executar os guards/testes pertinentes antes de publicar. Falha ou divergência bloqueia a publicação; nunca alterar hashes históricos, retirar guard, dedupe, lock ou memória para obter PASS.
+- Confirmação publicada em `docs/CONFIRMACAO_CONGELAMENTO_V253_20261119.md`. Manter imutável a tag `ec-customer-edit-paquizha-v253-frozen-20261119` e seu manifesto. Este registro protege o código e não cria flag, cron, pausa operacional ou nova janela QA.
