@@ -1,0 +1,28 @@
+{
+  "project": "VITALISMEN_EC",
+  "parentCommit": "959674ce88eed400012b57b28fdef4c6838869b5",
+  "allowedDelta": [
+    "docs/freeze/ec-customer-edit-paquizha-v253-contract.json",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs",
+    "scripts/lib/sealed-successor-preload-v1.mjs",
+    "src/data/agencia_LISTA.json",
+    "tests/customer-edit-paquizha-v253.test.mjs"
+  ],
+  "authorization": "USER_20261119_EDIT_CUSTOMER_CARD_ADD_PAQUIZHA_SAVE_FREEZE",
+  "scope": "Exactly one user-supplied official agency row; existing 591 catalog records byte-preserved. Independent public panel correction retains edited name after refresh and serializes the visible Save button with existing auto-save queue. No customer data reset or order/shipment/send operation.",
+  "existingAgenciesPreserved": 591,
+  "newCatalogCount": 592,
+  "newAgency": {
+    "nome": "PAQUIZHA_MARTHA BUCARAM",
+    "provincia": "ZAMORA",
+    "ciudad": "PAQUIZHA",
+    "sector": "SUR",
+    "endereco": "MARTHA BUCARAM DE ROLDOS Y PIO JARAMILLO ALVARADO",
+    "horario_semana": "",
+    "horario_fds": ""
+  },
+  "newCron": false,
+  "qaWindowReopened": false,
+  "automaticDispatchCutoffPreserved": true,
+  "globalDataBackupPass": false
+}
