@@ -1,0 +1,183 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 254,
+  "status": "PUBLISHED_ACTIVE_FROZEN",
+  "recordedAt": "2026-11-20T01:00:02.428312+00:00",
+  "authorization": "USER_20261119_GENERAL_DROPI_RELIABILITY_PURCHASE_AT_CONFIRMATION_SAVE_PUBLISH_FREEZE",
+  "runtime": {
+    "commit": "05f23b13cd89385a3cfdbdaf6c27d58f17384516",
+    "tree": "c9d37ee698e099bfb92b333b6e2f3e3caa7d0c92",
+    "release": "/opt/vitalismen-automacao/releases/20261119T224814Z_production-20261119-05f23b1",
+    "sourceRef": "refs/heads/codex/ec-dropi-meta-v254-20261119-r8",
+    "parentCommit": "c0664818c7468b9e7dfd55e320f77fcb273b77e5",
+    "parentRelease": "/opt/vitalismen-automacao/releases/20261119T183818Z_production-20261119-c066481",
+    "seal": "f5de8c1171efee7a150542941ac3cde34b4800edea3e38727039ea82d85c5eb5",
+    "pidAtAudit": 350312,
+    "restartDelta": 1
+  },
+  "sourcePublication": {
+    "artifactCommit": "0d85fa80a51e0e98fed4bfd8aeb865b5d89fd6a8",
+    "artifactRef": "refs/heads/codex/ec-dropi-meta-v254-artifacts-20261119-r8-cutover",
+    "productionBranchChanged": false,
+    "userIndexPreserved": true
+  },
+  "runtimeHashes": {
+    "docs/freeze/ec-dropi-meta-v254-contract.json": "fc27ec7a01aeed2552b5b4766c810c79f44fd84411a0923e98a3dd9d43660a26",
+    "scripts/ec-sqlite-integration-v254.py": "f16f4bca73669672db30dab4570c33b2a781ee233e0faa9f9d113db45e614cc0",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "a4f638320d12d10fa1e390f86b9decf1bd277d992c8fdb7264b4698de181f704",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "d6d7f12f5cf819622195289bdb72ce4a9c8edc331ca2de704d29a242335bbb4d",
+    "scripts/renew-dropi-session-v254.py": "d0168f06927f2468f55033c81851d241502076f41a997585dc31948153ca0b18",
+    "src/models/MetaPurchaseDeliveryV254.js": "4de1c0853bc21a67bb2f4377130f579b9715f25735bc1e66f70e486d7560e64a",
+    "src/models/Order.js": "ff74715ba5afd88ed5c45cf3871e1b79276da4f538a99c6a3e8d73dcf72e5b46",
+    "src/routes/orders.js": "72f4aeb30bd9201899226cf492e514b7941f954ea2a241c30538594151c02486",
+    "src/routes/shipments.js": "eb2e7fadf47a8a4c0d85c3fa0b85015c2ff6a175fae765f480d69bc14a3b231f",
+    "src/services/dropiRecoveryV254Service.js": "9ccb8087c7390905371a4ea9002aa4b520e3520f43758b7aee158f4d5f5181ef",
+    "src/services/dropiSessionV254Service.js": "2f9ad18367ab8370dfe52ce038510fe5a259b25efa7484920ff3181eef704966",
+    "src/services/ecBotCoreRuntimeIntegrationV78Service.js": "8dd2b42b2c62ec5f7da89f166c17b890375670bfbd75b01d3abd9b9e8956779c",
+    "src/services/ecDropiHumanAuthorizationV138Service.js": "b442bda0885ebd436e4ad99a6927d32df7a95383df01170bb913fd2d3407d0a4",
+    "src/services/metaConversionsService.js": "81d159426eb96e9545c7b9bd50d2baf46fddcf11c1d1e93698be2ff45a55134b",
+    "src/services/metaPurchaseDeliveryV254Service.js": "4dafdf23c6771da199378c6d8c6f4cb4bade3ba1a108f112300e46472311fa11",
+    "src/services/orderIntegrationScopeV254Service.js": "a9585892705363187e03d86906f98e8310cd862c38ff9c4f43f5221c9b1bb863",
+    "src/services/orderIntegrationWorkerV254Service.js": "db71942dc94191b57268a74f22ed94052e7027f12a2673518a1b2c375091752e",
+    "src/services/sqliteConfirmationBridgeV254Service.js": "ed8ee592c3d27fd17074c9728b077d56621925f3ba589ca292328da53ab46eda",
+    "tests/order-integration-v254.test.mjs": "a1ba1930d1f3bfa969944da8a514db5806aae084ba8ff57603b8dff2e40d8ae7"
+  },
+  "protectedFilesUnchanged": 2199,
+  "publicFiles": [
+    {
+      "path": "/opt/maxlien-mvp/app.py",
+      "beforeSha256": "25c40226f1ada65fe95453c5f6f2cd28d55f37b6e2f53291b1b79761a76e923a",
+      "sha256": "4ff0559b65748267c4ed326795b92d98893cb9029f5927a4da687cb227c3f7a0"
+    },
+    {
+      "path": "/var/www/vitalismen-panel-phonefix-20261108-r1/leads-window.status-only-20261119.html",
+      "beforeSha256": "f1a7dbcc8c3110eaf70b1fa8d57d6798cbaf7cb878dfd3c08d250db9ac332e02",
+      "sha256": "fae1873937ed4614562c837705833970dfa761c2d3a08956c192d6f012ae04f0"
+    }
+  ],
+  "customerPanelSha256": "ee2b8473767300ee0e95b30d882676040fdb0f82288d5dfbc4401c840015765a",
+  "rootHashes": {
+    "ec-dropi-meta-sealed-v254-r8.mjs": "2af2048d98dee8000045f2b210364a03aea5a02088af2542f2e23394565543db",
+    "ec-dropi-meta-profile-v254-r8.mjs": "d29bdd35649286af716700fb887249dc1d94a38bf236f07dcab726765e2c0a51"
+  },
+  "integration": {
+    "purchaseTrigger": "valid persisted commercial confirmation, independent of Dropi",
+    "identity": "one immutable event/ledger per purchase; repurchase has new order id",
+    "acceptance": "actual events_received > 0; queueing and HTTP 200 alone are insufficient",
+    "originalEventTimePreserved": true,
+    "scopedMeasurementOwnersPreserved": true,
+    "operatorBrowserContextExcluded": true,
+    "noInventedAdvertisingAttribution": true,
+    "oneBrokenDestinationCannotStarveOtherPurchases": true,
+    "dropiRetry": "only proven no-create failure; uncertain creation requires exact existing receipt",
+    "legacyHandoff": "drain legacy, reserve delivery, publish legacy suppression, activate and verify native health, then release integration queues"
+  },
+  "eligiblePurchaseCoverage": {
+    "windowSince": "2026-11-13T00:49:41.704Z",
+    "eligiblePurchases": 12,
+    "acceptedPurchases": 12,
+    "missingPurchaseIds": []
+  },
+  "historicalRecovery": {
+    "existingDropiReceipts": 10,
+    "newPhysicalDropiOrders": 0,
+    "newInternalOrdersRepresentingExistingSales": 2,
+    "newInternalShipmentsRepresentingExistingSales": 1,
+    "newPurchaseRequests": 9,
+    "acceptedRecoveredCohort": 10,
+    "alreadyAcceptedPurchasesPreservedWithoutResend": 3,
+    "eventDatasetTimeAndDecimalValuesVerified": true,
+    "physicalTestMessages": 0,
+    "privateGrantAndCustomerRecordsPublished": false
+  },
+  "validation": {
+    "completeSeniorPassed": 547,
+    "focusedPassed": 140,
+    "nativeChecksPassed": 33,
+    "browserChecksPassed": 9,
+    "sqlChecksPassed": 13,
+    "leadsUIChecksPassed": 13,
+    "operationsChecksPassed": 34,
+    "negativeGateChecksPassed": 34,
+    "receiptReadOnlyChecksPassed": 4,
+    "lateCutoverChecksPassed": 4,
+    "legacyHandoffChecksPassed": [
+      "active_successor_owns_purchase",
+      "active_reserved_successor_suppresses_legacy_during_health",
+      "active_state_cannot_apply_to_parent",
+      "prepared_signed_parent_reservation_suppresses_legacy_after_draining_old_workers",
+      "prepared_nonreserved_state_does_not_take_ownership",
+      "tampered_reservation_is_rejected",
+      "another_commit_cannot_own_queue",
+      "another_release_cannot_own_queue",
+      "prepared_runtime_must_stay_disabled",
+      "actual_controller_drains_old_workers_before_cutoff_and_reserves_before_restart",
+      "static_publication_runs_once",
+      "rollback_starts_legacy_even_if_migration_failed_before_static_change"
+    ],
+    "recoveryPureChecksPassed": 11,
+    "recoveryMongoChecksPassed": 6,
+    "mandatoryFrozenGuards": "PASS"
+  },
+  "preserved": [
+    "V253 customer card save/reload and exact public QR",
+    "592 agencies / 220 cities including PAQUIZHA",
+    "V252 forward-only cutoff and duplicate/history safety",
+    "human holds, opt-out, memories, QA 8637 and existing windows",
+    "prices, quantities, products and commercial snapshots",
+    "post-sale existing timer and maximum one physical output per cycle",
+    "VSL, player, CTA, Turbo, WhatsApp identity and foreign integrations"
+  ],
+  "recovery": {
+    "codeConfigBeforeAndAfter": "PASS",
+    "exactBindingsAndPrivateGrant": "PASS",
+    "scopedEcDataBeforeAndAfter": "PASS_SQLITE_MEMORY_AND_REAL_PRIVATE_MONGO_RESTORATION",
+    "decryptionHashesMetadataTamper": "PASS",
+    "privateKeyUploaded": false,
+    "plaintextWrittenLocally": false,
+    "globalMongoBackup": "FAIL_SEPARATE"
+  },
+  "operations": {
+    "existingPostSaleTimer": "vitalismen-postsale-full-v203.timer",
+    "controlledAutomationRestart": 1,
+    "legacyGunicornDrainedAndRestarted": true,
+    "newCron": false,
+    "codeFreezePausesBusinessOperation": false
+  },
+  "limits": [
+    "Meta receipt proves event acceptance; advertising attribution remains not_proven without purchase-origin evidence.",
+    "This recovery does not prove a first verified Plusmen/tex advertising journey.",
+    "Global MongoDB recovery is separate from the verified scoped recovery."
+  ],
+  "evidenceHashes": {
+    "RECEIPT_READONLY_VERIFIER_TEST.json": "db9df962d9bc624f0945330787d61fa82c0a36cb5c8f2618df4d84d215125aaa",
+    "CUTOVER_DATA_RECOVERY_BEFORE.json": "e54314351ccc42190b6418681414a7a7229be1f504e13fc8a9705d6df06aaf76",
+    "LATE_PURCHASE_VERIFY.json": "31d3d207689c65adf230c9a2b18b4443a5d3b793bc2dad13b2d48e926e384b07",
+    "ALL_ELIGIBLE_PURCHASE_COVERAGE_AFTER.json": "d008fa0e67505ae28a205ca6a8f649b1db1c18522919d8a0fb33408b66a7ebca",
+    "QUALIFICATION.json": "d7bf8f169e8ff771f8b0882ecda3d35cb5d7b18a2a64773c6be10a27901459ad",
+    "NATIVE_QUEUE-complete.json": "d0adde947c2635e5a37d9915ddd753441212815a74dad3f6a021dc71fc1eb914",
+    "BROWSER_NATIVE_TEST.json": "7b92523368e8d7f5da7cec94494aabe6ab3460e9f93a5200b0314504bf73572b",
+    "OPERATIONS_TEST.json": "33623df72a0ad1542a017c88db7ce85bc325f6b1908a230000d47b1a74fad3be",
+    "GATES_SEMANTIC_TEST.json": "f121e76a1449d615af7edb588288b91b2d3eb2a644733094806e8d0cd926865b",
+    "SQLITE_NATIVE_TEST.json": "29cbcdeb64a6ace333002d207f70e45d0cb30afc56792c571bf1e2ce952ca72d",
+    "LEADS_UI_TEST.json": "93d278e05ba656144fcdac3b016c41784a327d9a808732c71e24d581709cdd4f",
+    "LEGACY_META_HANDOFF_TEST.json": "8a4da88d7e48a9cdcce67643b419668cb58e103de95d4e01e14bb7f06cc39fe9",
+    "RECOVERY_CORE_TEST.json": "9531544ab3486ad9f8008f5d5dd553f4ba2cbd8f5cbe28931ad5b90c64ae3a40",
+    "FINAL_GATES.json": "a055b26ffcebad04cb694531ef11ecfbc6da48429917f40bce24def43522fa25",
+    "GIT_SOURCE_PUBLICATION.json": "76b2b36834fc6b227f89779884dedbae467e0b0d6b8c33551b969a7f48c74c83",
+    "PUBLICATION.json": "0b921985fa11987fa9e1928873a654a0ca797a7e29a92d917ec972b9d16f28d4",
+    "ACTIVATION.json": "f6cf8396dbdaf924f06e4fdfaba3f5046b3406d49417d0ee58f9edbc7097c7fc",
+    "FINAL_RUNTIME_AUDIT.json": "d511bc17fc55e3c0191b8df6cfc4355a35c1c9555d0dffb45cbab98a8e1dfa62",
+    "PUBLIC_HTTP_AFTER.json": "8f72d18070fb8f8426043d71fd473cc17dbb9b1d60fba5a41078949a686ada8b",
+    "FROZEN_GUARDS_AFTER.json": "b1131db43ae48c9c3ff76e0d72a2156c869c34000f155a63af93949e672b69d7",
+    "POSTSALE_SNAPSHOT_AFTER.json": "cbdbb3d334d9e27f226b96aec423a549853dd266e9116bfef732d1c8f8f84733",
+    "META_RECEIPT_AUDIT.json": "f9186f3e4f2468628318233faafab97adae10d370d55ac14a36b3f1db4ff13c2",
+    "CODE_CONFIG_RECOVERY_BEFORE_R8.json": "f31954a45c3e85b6d2e4f49c2c128f37f96b08204ea7113c740d1c36c544f46a",
+    "CODE_CONFIG_RECOVERY_AFTER_R8.json": "0b4c78dbb1cab3c6d961e88e779bd0d775a241b89a55cf15832899ff8fc7fd1a",
+    "SCOPED_DATA_RECOVERY_BEFORE_R8.json": "a4e1bd12da8ebbbc18385edf00b6096e05816f510c2c7bb073fccd36841d4181",
+    "SCOPED_DATA_RECOVERY_AFTER_R8.json": "d59100cce23d81d287d28a1a49a78b1daa24d92037bcb091df8f18d73d5c0866",
+    "BINDINGS_RECOVERY_BEFORE_R8.json": "f836c777a93d15d66f15da64aa1e4139e6f6d4fc0e1172877e6e1965211fec06"
+  },
+  "remoteEvidenceRoot": "/opt/vitalismen-automacao/backups/ec-dropi-meta-v254-20261119-r8",
+  "rollback": "Before an external effect, controller supports exact code/config rollback. After an accepted or uncertain external effect, use a receipt-preserving successor; never delete delivery ledgers or blindly replay."
+}

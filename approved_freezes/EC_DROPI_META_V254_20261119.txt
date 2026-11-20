@@ -1,0 +1,9 @@
+PROJECT=VITALISMEN_EC — VITALISMEN OFICIAL
+STATUS=PUBLISHED_ACTIVE_FROZEN_V254
+RUNTIME=05f23b13cd89385a3cfdbdaf6c27d58f17384516
+MANIFEST=docs/freeze/ec-dropi-meta-v254-published-20261119.json
+MANIFEST_SHA256=9c087c6e9063698f705b210a547505a10395006cbbb796ea735818810747a4e9
+META=9 new accepted Purchase; 10/10 recovered cohort; 3 earlier accepted purchases not reemitted
+DROPI_RECOVERY=10 existing receipts; 0 new physical orders
+QA_MESSAGES=0
+RECOVERY=code/config/scoped EC before and after PASS; global Mongo separate FAIL
