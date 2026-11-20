@@ -11,3 +11,7 @@ Recuperação administrativa só admite o plano privado dos oito recibos existen
 Backups de código/configuração e dados EC dos casos são verificados separadamente. Não equivalem a backup global MongoDB. Credenciais, chave de recuperação, documentos dos clientes e plano privado não são publicados neste pacote.
 
 Referência técnica: [parâmetros oficiais Meta CAPI v25](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/v25.0/). A ocorrência comercial e a origem do evento devem ser verdadeiras; aceite de evento não comprova atribuição a anúncio.
+
+## Complemento antes da ativação — nove casos
+
+Durante a regressão chegou a confirmação nativa EC-MWO6UEZQ-QVQJ, já criada na Dropi como 8043790. Ela integra o plano privado de nove casos por confirmação comercial original; a geração da guia segue na Dropi, sem nova criação e sem condicionar o Purchase. O controlador usa BINDINGS com recover-existing-v254-r2.mjs, core-r2 e o teste de recuperação R2. A versão operacional anterior de oito casos permanece preservada e não foi ativada. O runtime 05f23b1 e sua regressão não mudaram. Os novos backups escopados incluem esse registro e restauram MongoDB/SQLite em ambientes isolados.
