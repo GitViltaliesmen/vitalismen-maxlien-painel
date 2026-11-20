@@ -1,0 +1,11 @@
+{
+  "project": "VITALISMEN_EC",
+  "commit": "05f23b13cd89385a3cfdbdaf6c27d58f17384516",
+  "country": "EC",
+  "startAt": "2026-11-19T23:35:29.893Z",
+  "maxPurchases": 40,
+  "purpose": "EXACT_NATIVE_CONFIRMATIONS_BETWEEN_FINAL_COHORT_AND_INTEGRATION_CUTOVER",
+  "dropiCreates": false,
+  "contactWrites": false,
+  "shipmentWrites": false
+}

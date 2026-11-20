@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import {createRequire} from 'node:module';import {createHash} from 'node:crypto';
+const a=JSON.parse(fs.readFileSync('/var/lib/vitalismen-deploy/ec-dropi-meta-v254-r8/approval.json'));const require=createRequire(a.release+'/package.json'),{MongoClient,BSON}=require('mongoose').mongo;
+assert.notEqual(fs.readlinkSync('/proc/self/ns/net'),fs.readlinkSync('/proc/1/ns/net'));
+const data=fs.readFileSync(0,'utf8');assert(Buffer.byteLength(data)<32*1024*1024);const input=BSON.EJSON.parse(data,{relaxed:false});assert.equal(input.project,'VITALISMEN_EC');assert.equal(input.scope,'GENERAL_EC_CONFIRMED_PURCHASES_PLUS_PENDING_REPURCHASES_AND_QA_V254');
+const names=['orders','shipments','contactstates','metapurchasedeliveriesv254'];assert.deepEqual(Object.keys(input.collections).sort(),[...names].sort());
+const sorted=v=>Array.isArray(v)?v.map(sorted):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).sort(([x],[y])=>x.localeCompare(y)).map(([k,x])=>[k,sorted(x)])):v;
+const fingerprint=rows=>createHash('sha256').update(JSON.stringify(sorted(JSON.parse(BSON.EJSON.stringify([...rows].sort((x,y)=>String(x._id).localeCompare(String(y._id))),{relaxed:false}))))).digest('hex');
+const client=new MongoClient('mongodb://127.0.0.1:27358/v254_scoped_restore_fixture',{serverSelectionTimeoutMS:5000,promoteValues:false});await client.connect();
+try{
+ const db=client.db();assert.equal((await db.listCollections().toArray()).length,0,'RESTORE_REQUIRES_EMPTY_PRIVATE_DB');const result={};
+ for(const name of names){const rows=input.collections[name];assert(Array.isArray(rows)&&rows.length<=200);for(const row of rows){assert(row._id);assert.equal(String(name==='contactstates'?row.countryCode:row.country).toUpperCase(),'EC');}await db.createCollection(name);if(rows.length)await db.collection(name).insertMany(rows,{ordered:true});const restored=await db.collection(name).find({},{promoteValues:false}).toArray();assert.equal(restored.length,rows.length);const before=fingerprint(rows),after=fingerprint(restored);assert.equal(after,before,'RESTORED_DOCUMENT_HASH_MISMATCH:'+name);result[name]={documents:rows.length,canonicalBsonSha256:before,restoredHashMatches:true};}
+ console.log(JSON.stringify({project:'VITALISMEN_EC',pass:true,privateMongo:true,networkIsolated:true,sourceEjsonSha256:createHash('sha256').update(data).digest('hex'),collections:result,plaintextWrittenLocally:false,productionRestoration:false,privateKeyUploaded:false,actualProviderCalls:0,physicalMessages:0,globalDataBackupPass:false}));
+}finally{await client.close()}

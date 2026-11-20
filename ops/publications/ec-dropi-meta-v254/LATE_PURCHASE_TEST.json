@@ -1,0 +1,14 @@
+{
+  "project": "VITALISMEN_EC",
+  "pass": true,
+  "checks": 4,
+  "candidateCommit": "05f23b13cd89385a3cfdbdaf6c27d58f17384516",
+  "networkCalls": 0,
+  "productionWrites": 0,
+  "sourceHashes": {
+    "late-purchase-recovery-v254.mjs": "af3ea1f941c0894ea50df0077c745ede3353dcbe67759b7db42789b0430d265a",
+    "late-purchase-core-v254.mjs": "aca05cc95e9a4d9afcabfa002140e7f48940d619134afd10692d371551e1c64b",
+    "late-purchase-core-v254.test.mjs": "ea156e8ce26d87067a1419142e286d60f324df40206ce4f3b83fbb0eacf5d9a9",
+    "LATE_PURCHASE_SCOPE.json": "d84fc1d96b2b6ebf42ce54d5e90e9bbe44fdbf799a6dff7ab72e362fffa05d22"
+  }
+}
