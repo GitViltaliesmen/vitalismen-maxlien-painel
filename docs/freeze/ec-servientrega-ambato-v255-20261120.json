@@ -43,8 +43,13 @@
     "localHealth": "HTTP_200_online",
     "customerCardAgencySearch": "ALL_SIX_FOUND",
     "parentAgenciesPreservedExactly": true,
-    "postSaleTimer": "active"
+    "postSaleTimer": "active_with_v255_controller_override",
+    "postSaleControllerSnapshot": "PASS_SNAPSHOT_ZERO_SENDS",
+    "postSaleControllerDryRun": "PASS_DRY_RUN_ZERO_SENDS",
+    "postSaleFirstScheduledRun": "2026-11-21T03:40:00.897Z_PASS_DEFERRED_OUTSIDE_EC_WINDOW_ZERO_SENDS"
   },
+  "postSaleController": "/var/lib/vitalismen-deploy/ec-servientrega-ambato-v255-r1/post-sale-controller.py",
+  "postSaleControllerSha256": "b9396f4fc8ecb32741c051199638216efe6f908f4d82c7cd29d538ba4fc64d21",
   "historicalActivationAttempts": "The initial unsealed stage was rejected by the V254 loader and rolled back. A first V255 activation also rolled back after a PM2 controller environment failure; V254 API health recovered before the successful V255 activation.",
   "broadCheck": "npm run senior:check fails in both parent and candidate on the unchanged .github/workflows/ec-panel-quality.yml inheritance guard; unrelated to catalog delta.",
   "customerCardStatus": "API_RETURNS_ALL_SIX_NEW_AGENCIES_IN_PRODUCTION"
