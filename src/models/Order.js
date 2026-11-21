@@ -73,7 +73,7 @@ const orderSchema = new mongoose.Schema({
     purchaseDeliveryV254: { type: mongoose.Schema.Types.Mixed, default: null },
     integrationIntakeKeyV254: { type: String, default: undefined },
     dropiDispatchV252: {
-        version: { type: Number, enum: [252] },
+        version: { type: Number, enum: [252, 254] },
         status: { type: String, enum: ['pending', 'claimed', 'submitted', 'review'] },
         requestedAt: Date, startedAt: Date, completedAt: Date,
         attempts: Number, leaseToken: String, reason: String
