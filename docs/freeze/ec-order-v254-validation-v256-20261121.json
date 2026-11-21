@@ -1,0 +1,29 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "ACTIVE_V256",
+  "purpose": "Aceitar o marcador de revisão V254 no schema Order sem mudar o despacho",
+  "functionalCommit": "d6a815da7166d54e365a31131dac4a169f7a4964",
+  "functionalTree": "61b50fa7984843c05aa55a61e93ddad2c81e29c5",
+  "parentCommit": "02dccb3ea4604732c23aec1c82c8766789ceb4e6",
+  "release": "/opt/vitalismen-automacao/releases/20261121T172300Z_production-20261121-d6a815d",
+  "parentRelease": "/opt/vitalismen-automacao/releases/20261121T031500Z_production-20261121-02dccb3",
+  "activationTimeUtc": "2026-11-21T17:36:29.916Z",
+  "sourceRef": "refs/heads/codex/ec-order-v254-v256-20261121",
+  "filesChanged": {
+    "src/models/Order.js": "bb192cbbdbafdb44c42d58cdbef4ddde3049d9eef1525f4ed50ecf63feebe354",
+    "scripts/lib/sealed-successor-preload-v1.mjs": "2f0171553c862300a18af42f11fa2a3f8ffe52d6a6c655fab31f9c6a77083982",
+    "scripts/lib/pm2-target-env-restart-v78-r4.mjs": "5dc4cde06c584f379e85a046055b9dc79f79a43fc353ebe55334d8cf1c0fdeea"
+  },
+  "tests": {
+    "local": "17/17",
+    "sealedFixture": "15/15",
+    "schemaProbe": "ORDER_V254_SCHEMA_PASS",
+    "health": "HTTP 200 online",
+    "postSaleTimer": "active"
+  },
+  "priorCustomerOrder": {
+    "internalOrderId": "EC-MWPVC0TH-9P3O",
+    "dropiOrderId": "8066200",
+    "resentDuringV256Activation": false
+  }
+}

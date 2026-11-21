@@ -134,6 +134,14 @@ Antes de usar outra pasta, confirmar com o usuario. Se houver confusao de contex
 
 ## Arquivos oficiais primeiro
 
+### Regra de persistencia e anti-regressao do painel EC
+
+Antes de declarar uma correcao da ficha como concluida, identificar o mesmo cliente e o mesmo ciclo comercial em `ContactState`, `Order` e no lead EC do painel online. Um retorno de sucesso de apenas uma dessas camadas nao prova que a alteracao chegou ao pedido confirmado nem a fila Dropi. Depois de salvar, recarregar os tres registros e comparar nome, telefone, endereco/agencia, cidade, provincia, produto, quantidade, valor, status e ID do pedido. Tratar divergencia ou `ORDER_SYNC_FAILED` como falha, com a primeira etapa quebrada registrada; nao repetir envio externo para compensar.
+
+Toda alteracao deve partir dos bytes do release ativo, ter diff fechado e backup, manter os freezes anteriores e incluir teste que reproduza a falha original e teste do fluxo vizinho que ja funciona. Verificar especialmente a validacao do schema antes dos hooks de `save` quando um marcador interno novo e gravado em pedidos antigos. Teste simulado, isoladamente, nao autoriza afirmar que a ficha ou Dropi estao corrigidos; exigir teste autenticado e leitura apos gravacao em producao, sem criar compra ou mensagem de teste para cliente real. Se os gates do sucessor selado falharem, manter o release ativo e registrar a publicacao como pendente.
+
+Na lista de conversas, usar a ultima atividade real de atendimento ou mensagem para ordenar. `updatedAt` generico, abertura da ficha, sincronizacao de pedido e data de entrada nao devem promover conversas antigas ao topo. Verificar a ordenacao com dois contatos de horarios diferentes antes de publicar mudanca no painel.
+
 Antes de alterar qualquer VSL, checkout, painel, automacao, funil, Dropi, WhatsApp ou integracao:
 
 1. Localizar qual e o arquivo oficial em producao ou a fonte de verdade registrada.
