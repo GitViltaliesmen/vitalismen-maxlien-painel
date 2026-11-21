@@ -1,0 +1,51 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 255,
+  "status": "PUBLISHED_AND_VALIDATED",
+  "source": "operator_supplied_ambato_agencies_2026-11-20",
+  "operatorAuthorizedPublication": true,
+  "parentRelease": "/opt/vitalismen-automacao/releases/20261119T224814Z_production-20261119-05f23b1",
+  "release": "/opt/vitalismen-automacao/releases/20261121T031500Z_production-20261121-02dccb3",
+  "functionalCommit": "02dccb3ea4604732c23aec1c82c8766789ceb4e6",
+  "functionalTree": "7a069f80153d1d6f105f30d9ea173ba4ec83b483",
+  "sourceRef": "refs/heads/codex/ec-servientrega-ambato-v255-20261120",
+  "sealedAuthoritySha256": "bf5cdde12706e700fd131e915893518c7deb00a2efa22c977dadf5e7b0f4aa0f",
+  "operationalState": "/var/lib/vitalismen-deploy/ec-servientrega-ambato-v255-r1",
+  "backupCatalog": "/opt/vitalismen-automacao/backups/ec-servientrega-ambato-v255-20261121/agencia_LISTA.before.json",
+  "catalogPath": "src/data/agencia_LISTA.json",
+  "beforeSha256": "0b3a6dc90fc347452bc63d5f244ba4adc2cfa83f5e03c80b49a57751c637ebc1",
+  "afterSha256": "bb9fa475d6ad16071def447ba8715d1345e89240eb318a8d4689ef3f13a68602",
+  "beforeCount": 592,
+  "afterCount": 598,
+  "addedNames": [
+    "AMBATO_HUACHI SOLIS 1",
+    "AMBATO_LA ATAHUALPA",
+    "AMBATO_LETAMENDI",
+    "AMBATO_MARTINEZ",
+    "AMBATO_MERCADO SUR",
+    "AMBATO_UTA"
+  ],
+  "preserved": [
+    "all_592_parent_agencies_exactly",
+    "existing_AMBATO_HUACHI_SOLIS_with_different_address",
+    "PAQUIZHA_MARTHA_BUCARAM",
+    "prices_orders_dropi_meta_vsl_whatsapp_and_panel_code"
+  ],
+  "hoursNotProvided": true,
+  "sectorNotProvidedExceptMartinez": true,
+  "productionChanged": true,
+  "publishedAtUtc": "2026-11-21T03:25:02.802Z",
+  "publicationProof": {
+    "sealedProbe": "PASS_V255_EXACT_SUCCESSOR_THREE_FILES",
+    "preflight": "PASS_PARENT_V254_HEALTH_AND_IDLE_QUEUE",
+    "activeRelease": "20261121T031500Z_production-20261121-02dccb3",
+    "pm2": "online_pid_765564_cwd_exact_release",
+    "localHealth": "HTTP_200_online",
+    "customerCardAgencySearch": "ALL_SIX_FOUND",
+    "parentAgenciesPreservedExactly": true,
+    "postSaleTimer": "active"
+  },
+  "historicalActivationAttempts": "The initial unsealed stage was rejected by the V254 loader and rolled back. A first V255 activation also rolled back after a PM2 controller environment failure; V254 API health recovered before the successful V255 activation.",
+  "broadCheck": "npm run senior:check fails in both parent and candidate on the unchanged .github/workflows/ec-panel-quality.yml inheritance guard; unrelated to catalog delta.",
+  "customerCardStatus": "API_RETURNS_ALL_SIX_NEW_AGENCIES_IN_PRODUCTION"
+}
