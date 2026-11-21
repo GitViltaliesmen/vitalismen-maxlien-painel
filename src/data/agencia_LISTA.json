@@ -81,6 +81,15 @@
     "horario_fds": "09H00 A 13H00"
   },
   {
+    "nome": "AMBATO_HUACHI SOLIS 1",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "",
+    "endereco": "JULIO JARAMILLO S/N Y LUIS ALFONSO NIETO",
+    "horario_semana": "",
+    "horario_fds": ""
+  },
+  {
     "nome": "AMBATO_IZAMBA 1",
     "provincia": "TUNGURAHUA",
     "ciudad": "AMBATO",
@@ -88,6 +97,15 @@
     "endereco": "RODRIGO PANCHANO SN Y 22 DE ENERO",
     "horario_semana": "08H00 A 13H00 - 14H00 A 18H00",
     "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_LA ATAHUALPA",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "",
+    "endereco": "AV. ATAHUALPA S/N Y MARCOS MONTALVO",
+    "horario_semana": "",
+    "horario_fds": ""
   },
   {
     "nome": "AMBATO_LA FLORESTA",
@@ -108,6 +126,15 @@
     "horario_fds": "09H00 A 13H00"
   },
   {
+    "nome": "AMBATO_LETAMENDI",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "",
+    "endereco": "AV. DE LOS CHASQUIS 07-36 Y JOSE DE ANTEPARA",
+    "horario_semana": "",
+    "horario_fds": ""
+  },
+  {
     "nome": "AMBATO_MANUELA SAENZ",
     "provincia": "TUNGURAHUA",
     "ciudad": "AMBATO",
@@ -115,6 +142,24 @@
     "endereco": "MANUELA SAENZ S/N Y BARCELONA",
     "horario_semana": "09H00 A 13H00 - 14H00 A 18H00",
     "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_MARTINEZ",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "CENTRO",
+    "endereco": "AV. MARTINEZ 05-32 ENTRE BOLIVAR Y SUCRE",
+    "horario_semana": "",
+    "horario_fds": ""
+  },
+  {
+    "nome": "AMBATO_MERCADO SUR",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "",
+    "endereco": "ANTONIO CLAVIJO S/N Y ANICETO JORDAN MANZANO",
+    "horario_semana": "",
+    "horario_fds": ""
   },
   {
     "nome": "AMBATO_NUEVA AMBATO",
@@ -178,6 +223,15 @@
     "endereco": "AV. BOLIVARIANA Y GUSTAVO ALVAREZ GONZALEZ",
     "horario_semana": "09H00 A 13H00- 14H00 A 18H00",
     "horario_fds": "09H00 A 13H00"
+  },
+  {
+    "nome": "AMBATO_UTA",
+    "provincia": "TUNGURAHUA",
+    "ciudad": "AMBATO",
+    "sector": "",
+    "endereco": "RIO PAYAMINO S/N Y AV. DE LOS CHASQUIS",
+    "horario_semana": "",
+    "horario_fds": ""
   },
   {
     "nome": "ANCON_BARRIO CENTRAL",
