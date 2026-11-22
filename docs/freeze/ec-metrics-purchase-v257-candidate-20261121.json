@@ -14,11 +14,12 @@
     "isolatedVpsNodeTests": "48 passed, 0 failed after the final additional window test",
     "syntaxLint": "LINT_JS_SYNTAX=OK files=1242",
     "productMicroLayerGuard": "OK",
-    "seniorCheck": "BLOCKED: EC-REPURCHASE-SQLITE-V47 inheritance mismatch in .github/workflows/ec-panel-quality.yml on unregistered candidate"
+    "seniorCheck": "BLOCKED under direct node invocation without sealed preload: EC-REPURCHASE-SQLITE-V47 inheritance mismatch in .github/workflows/ec-panel-quality.yml; direct invocation also fails on the active release, so this result alone does not diagnose a runtime defect. The candidate is not a registered sealed successor"
   },
   "externalVerification": {
-    "cloudflareZoneSnapshot": "NOT_PROVEN: connected account listed neither plusmen.shop nor maxlien.shop",
-    "metaAdsAccountAndPixel": "NOT_PROVEN: current process account/dataset differ from operator-provided target; no live target validation",
+    "cloudflareZoneSnapshot": "PARTIAL: the operator's Brave session visibly lists plusmen.shop in a Cloudflare account; the connected Cloudflare plugin lists neither plusmen.shop nor maxlien.shop, and zone settings/origin bytes were not captured",
+    "metaAdsAccountAndPixel": "PROVEN: target Events Manager was opened read-only for ad account 1088255310505694 and dataset 1100892582698669 (MANUELA_SANTOS_LATAM_CO); current process selects different account/dataset, and no destination change was made",
+    "targetEventsManager": "PROVEN: visible table for 2026-11-17 through 2026-11-21 listed PageView, ViewContent and InitiateCheckout (108 total, last received about two days before inspection); Purchase was not visible in that table. This does not prove campaign attribution or all historical event absence",
     "metaPurchaseAcceptance": "NOT_PROVEN: no real conversion submitted during this candidate test",
     "publishedDashboard": "NOT_PROVEN: candidate not activated"
   },
