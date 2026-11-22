@@ -55,7 +55,7 @@ def check_source(data):
     assert run(['git', '-C', str(release), 'merge-base', data['parentCommit'], data['commit']]).stdout.strip() == data['parentCommit']
     delta = run(['git', '-C', str(release), 'diff', '--name-only', data['parentCommit'], data['commit']])
     assert delta.returncode == 0 and sorted(delta.stdout.splitlines()) == data['allowedDelta']
-    assert run(['git', '-C', str(release), 'status', '--porcelain=v1']).stdout.strip() == ''
+    assert run(['git', '-C', str(release), 'status', '--porcelain=v1']).stdout.strip() == '?? node_modules'
     assert (release / 'node_modules').resolve() == (parent / 'node_modules').resolve()
     assert sha(protected(STATE / 'overlay.env')) == data['overlaySha256']
     assert sha(protected(PRELOAD)) == data['preloadSha256']

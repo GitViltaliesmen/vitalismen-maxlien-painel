@@ -42,7 +42,7 @@ assert.equal(git('merge-base', authority.parentCommit, authority.commit), author
     'V263_PARENT_ANCESTRY_INVALID');
 assert.deepEqual(git('diff', '--name-only', authority.parentCommit, authority.commit).split('\n').sort(),
     authority.allowedDelta, 'V263_DELTA_INVALID');
-assert.equal(git('status', '--porcelain=v1'), '', 'V263_CHECKOUT_DIRTY');
+assert.equal(git('status', '--porcelain=v1'), '?? node_modules', 'V263_CHECKOUT_DIRTY');
 assert.equal(fs.realpathSync(path.join(release, 'node_modules')),
     fs.realpathSync(path.join(parent, 'node_modules')), 'V263_DEPS_INVALID');
 
