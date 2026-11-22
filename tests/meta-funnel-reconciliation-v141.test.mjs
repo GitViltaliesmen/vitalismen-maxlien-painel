@@ -61,7 +61,7 @@ test('funil V141 conta fatos persistidos mesmo depois da conversa mudar de fila'
         from: 'bot'
     });
     const orders = [{
-        country: 'EC', orderId: 'EC-ADMIN-FIXTURE', entryAt: '2026-09-07T05:51:00.000Z',
+        country: 'EC', orderId: 'EC-ADMIN-FIXTURE', entryAt: '2026-09-07T05:51:00.000Z', confirmedAt: '2026-09-07T06:01:00.000Z',
         customer: { phone: '+593333333333' }, status: 'processing', total: 80.99,
         tracking: { productKey: 'tex_ultra_ec' }
     }];
@@ -92,6 +92,19 @@ test('limite final exclusivo nao carrega evento da janela seguinte', () => {
     assert.equal(result.totals.zapiInboundMessages, 0);
 });
 
+test('pedido criado antes da janela conta como venda somente no dia da confirmação', () => {
+    const orders = [{
+        country: 'EC', orderId: 'EC-CROSS-DAY', entryAt: '2026-09-05T12:00:00.000Z',
+        confirmedAt: '2026-09-06T12:00:00.000Z', status: 'confirmed', total: 35.99,
+        purchaseDeliveryV254: { state: 'sending' }, tracking: { productKey: 'tex_ultra_ec' }
+    }];
+    const result = buildFunnelOperationalMetricsV141({ contacts: [], messages: [], orders, startAt, endAt });
+    assert.equal(result.totals.ordersCreated, 0);
+    assert.equal(result.totals.ordersConfirmed, 1);
+    assert.equal(result.totals.purchasePending, 1);
+    assert.equal(result.integrity.status, 'PASS');
+});
+
 test('radar falha fechado para cache stale, fetch falho, janela divergente ou amostra baixa', () => {
     const base = { state: 'ready', sampleEntries: 50, bestWindow: { label: '09h-12h' } };
     for (const metaAds of [
@@ -115,7 +128,7 @@ test('radar falha fechado para cache stale, fetch falho, janela divergente ou am
 test('cache Meta exige a mesma janela e registra falha live sem esconder cache antigo', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'v141-meta-cache-'));
     const cacheFile = path.join(dir, 'ec.json');
-    fs.writeFileSync(cacheFile, JSON.stringify({ status: 'available', fetchedAt: '2026-09-07T05:00:00.000Z', startDay: '2026-09-04', endDay: '2026-09-04', totals: {} }));
+    fs.writeFileSync(cacheFile, JSON.stringify({ status: 'available', accountId: '123', campaignFilter: '', fetchedAt: '2026-09-07T05:00:00.000Z', startDay: '2026-09-04', endDay: '2026-09-04', totals: {} }));
     let calls = 0;
     const result = await loadMetaAdsInsights({
         days: 2,

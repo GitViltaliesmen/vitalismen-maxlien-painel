@@ -5,6 +5,8 @@ import Shipment from '../models/Shipment.js';
 import Message from '../models/Message.js';
 import { authMiddleware, isPanelAuthDisabled } from '../middleware/auth.js';
 import { sendPurchaseEventForOrder } from '../services/metaConversionsService.js';
+import { integrationPolicyV254 } from '../services/orderIntegrationScopeV254Service.js';
+import { preparePurchaseIntentV254, queuedPurchaseResponseV254, purchaseProblemsV254 } from '../services/metaPurchaseDeliveryV254Service.js';
 import { syncOrderToOnlineAdminPanel } from '../services/adminPanelStatusService.js';
 import {
     getCustomerPurchaseEligibility,
@@ -277,7 +279,7 @@ const sendBrazilTestOnlyError = (res) => res.status(409).json({
     message: 'Numero brasileiro liberado somente para teste de atendimento. Nao criar, confirmar ou enviar pedido.'
 });
 
-const markPurchaseEventForOrder = async (order, req) => {
+const markPurchaseEventForOrder = async (order, req, { newCommercialOrder = false } = {}) => {
     assertCustomerOrderDataReady(order.customerDataResolution?.toObject?.() || order.customerDataResolution || {});
     if (!orderHasValidPackage(order)) {
         return { ok: false, skipped: true, reason: 'missing_valid_quantity', order };
@@ -285,6 +287,7 @@ const markPurchaseEventForOrder = async (order, req) => {
     if (!(Number(order.total || 0) > 0)) {
         return { ok: false, skipped: true, reason: 'missing_positive_total', order };
     }
+    const wasConfirmed = order.status === 'confirmed';
     if (!order.confirmedAt) order.confirmedAt = new Date();
     order.status = 'confirmed';
 
@@ -295,6 +298,22 @@ const markPurchaseEventForOrder = async (order, req) => {
     if (order.tracking.metaPurchaseSentAt) {
         await order.save();
         return { ok: true, alreadySent: true, order };
+    }
+
+    if (integrationPolicyV254() && order.country === 'EC') {
+        preparePurchaseIntentV254(order, { transition: newCommercialOrder || !wasConfirmed });
+        await order.save();
+        const queued = Boolean(order.purchaseDeliveryV254?.requestedAt);
+        return {
+            ok: queued,
+            queued,
+            result: queued ? queuedPurchaseResponseV254(order) : {
+                ok: false,
+                blocked: true,
+                error: purchaseProblemsV254(order).join(',') || 'purchase_confirmation_not_eligible'
+            },
+            order
+        };
     }
 
     const result = await sendPurchaseEventForOrder(order);
@@ -1211,7 +1230,7 @@ router.post('/', optionalPanelAuth, async (req, res) => {
         await order.save();
         let purchase = null;
         if (initialStatus === 'confirmed' && req.user) {
-            purchase = await markPurchaseEventForOrder(order, req);
+            purchase = await markPurchaseEventForOrder(order, req, { newCommercialOrder: true });
         }
 
         console.log(`✅ New order created: ${order.orderId} - ${country} - ${customer.name}`);
@@ -1225,6 +1244,7 @@ router.post('/', optionalPanelAuth, async (req, res) => {
             } : null,
             purchase: purchase ? {
                 ok: purchase.ok,
+                queued: purchase.queued || false,
                 alreadySent: purchase.alreadySent || false,
                 eventId: purchase.result?.eventId || purchase.order?.tracking?.metaPurchaseEventId || '',
                 response: purchase.result?.response || purchase.order?.tracking?.metaPurchaseResponse || null
@@ -1378,11 +1398,14 @@ router.patch('/:id', authMiddleware, (req, res, next) => {
             return res.json({
                 ok: purchase.ok,
                 success: purchase.ok,
+                queued: purchase.queued || false,
                 alreadySent: purchase.alreadySent || false,
                 result: purchase.result,
                 order: purchase.order,
                 message: purchase.alreadySent
                     ? 'Order already confirmed'
+                    : purchase.queued
+                        ? 'Order confirmed; Purchase queued for independent Meta delivery'
                     : purchase.ok
                         ? 'Order confirmed and purchase event sent'
                         : 'Order confirmed, but purchase event failed'

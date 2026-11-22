@@ -96,6 +96,7 @@ test('soma VSL, vendas e Purchase sem misturar pedidos inelegiveis', () => {
             status: 'confirmed',
             total: 35.99,
             entryAt: '2026-08-14T08:00:00.000Z',
+            confirmedAt: '2026-08-14T08:30:00.000Z',
             tracking: {
                 metaPurchaseSentAt: '2026-08-15T05:30:00.000Z',
                 metaPurchaseResponse: { events_received: 1 },
@@ -108,6 +109,7 @@ test('soma VSL, vendas e Purchase sem misturar pedidos inelegiveis', () => {
             status: 'shipped',
             total: 70,
             entryAt: '2026-08-15T06:00:00.000Z',
+            confirmedAt: '2026-08-15T06:30:00.000Z',
             tracking: { fbclid: 'click-2' }
         },
         {
@@ -124,6 +126,7 @@ test('soma VSL, vendas e Purchase sem misturar pedidos inelegiveis', () => {
             status: 'delivered',
             total: 80,
             entryAt: '2026-08-01T07:00:00.000Z',
+            confirmedAt: '2026-08-01T07:30:00.000Z',
             tracking: {
                 metaPurchaseSentAt: '2026-08-15T08:00:00.000Z',
                 metaPurchaseResponse: { data: { events_received: 1 } }
@@ -178,7 +181,7 @@ test('consulta Mongo cobre cada timestamp usado pelo contrato', () => {
     );
     assert.deepEqual(
         window.orderQuery.$or.map((item) => Object.keys(item)[0]),
-        ['entryAt', 'draftCreatedAt', 'createdAt', 'tracking.metaPurchaseSentAt']
+        ['entryAt', 'draftCreatedAt', 'createdAt', 'confirmedAt', 'tracking.metaPurchaseSentAt']
     );
 });
 

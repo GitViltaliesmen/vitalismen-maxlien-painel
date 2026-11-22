@@ -545,6 +545,21 @@
             <section class="panel">
                 <div class="panel-head">
                     <div>
+                        <h2>Vendas por site de origem</h2>
+                        <p class="meta">Origem registrada no pedido; sem vínculo comprovado aparece separadamente. Aceite Meta não equivale a atribuição.</p>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Site</th><th>Visitas medidas</th><th>Vendas confirmadas</th><th>Purchase na fila</th><th>Meta aceitou</th><th>Meta atribuiu</th><th>Receita</th></tr></thead>
+                        <tbody id="siteMetricsRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
                         <h2>Saúde das integrações</h2>
                         <p id="integrationFreshness" class="meta">Meta, Z-API, bot, pedidos, CAPI e cálculo das métricas</p>
                     </div>
@@ -1021,8 +1036,15 @@
             const protocoloGTotals = protocoloG.totals || {};
             const metaAds = data.metaAds || {};
             const metaAdsTotals = metaAds.totals || {};
+            const metaAdsFresh = metaAds.status === 'available' && metaAds.stale !== true && metaAds.fetchStatus === 'ok';
             const missingTone = totals.missingPurchaseEligible > 0 ? 'bad' : 'good';
             el('updatedAt').textContent = `Calculado em ${formatDate(operational.freshness?.metricsComputedAt || data.generatedAt)} · America/Guayaquil`;
+            el('siteMetricsRows').innerHTML = (data.siteBreakdown || []).map((row) => `
+                <tr><td>${escapeHtml(row.site)}</td><td>${number.format(row.visits || 0)}</td>
+                <td>${number.format(row.confirmedSales || 0)}</td><td>${number.format(row.purchasePending || 0)}</td>
+                <td>${number.format(row.metaAccepted || 0)}</td><td>${number.format(row.metaAttributed || 0)}</td>
+                <td>${currency.format(row.revenue || 0)}</td></tr>
+            `).join('') || '<tr><td colspan="7" class="meta">Nenhuma origem comprovada no período.</td></tr>';
             el('protocoloGWindow').textContent = protocoloG.measurementStartedAt
                 ? `Válido desde ${formatDate(protocoloG.measurementStartedAt)}; não mistura histórico anterior nem outras VSLs EC`
                 : 'Não mistura outras VSLs do Equador';
@@ -1034,6 +1056,7 @@
                 metricCard('Pedidos criados', number.format(operationalTotals.ordersCreated || 0), `${operationalRates.inboundToOrder || 0}% dos inbounds`),
                 metricCard('Pedidos confirmados', number.format(operationalTotals.ordersConfirmed || 0), `${number.format(operationalTotals.salesFinalized || 0)} vendas finalizadas`),
                 metricCard('Purchase elegível', number.format(operationalTotals.purchaseEligible || 0), `${number.format(operationalTotals.purchaseEventCreated || 0)} eventos criados`),
+                metricCard('Purchase na fila', number.format(operationalTotals.purchasePending || 0), `${number.format(operationalTotals.purchaseReview || 0)} exigem revisão`, operationalTotals.purchaseReview ? 'warn' : 'good'),
                 metricCard('Purchase enviado', number.format(operationalTotals.purchaseSent || 0), `${operationalRates.orderToPurchase || 0}% dos elegíveis`, operationalTotals.purchaseSent ? 'good' : 'warn'),
                 metricCard('Meta aceitou', number.format(operationalTotals.metaAccepted || 0), `${operationalRates.purchaseToMetaAccepted || 0}% dos enviados`),
                 metricCard('Meta atribuiu', number.format(operationalTotals.metaAttributed || 0), `${operationalRates.metaAttributionRate || 0}% dos aceitos`),
@@ -1068,12 +1091,12 @@
             const vslMinusMeta = Math.max(0, measuredEntries - metaLandings);
             const metaMinusVsl = Math.max(0, metaLandings - measuredEntries);
             el('metaAdsStatus').textContent = metaAds.status === 'available'
-                ? `${metaAds.source === 'live' ? 'Ao vivo' : 'Cache'}${metaAds.stale ? ' desatualizado' : ''} · ${formatDate(metaAds.fetchedAt)}`
+                ? `${metaAds.accountName || 'Conta sem nome'} (${metaAds.accountId || 'ID indisponível'}) · ${metaAdsFresh ? (metaAds.source === 'live' ? 'Atualizado' : 'Cache válido') : 'DESATUALIZADO'} · ${formatDate(metaAds.fetchedAt)}`
                 : (metaAds.message || 'Meta Ads indisponível');
             el('metaAdsWindow').textContent = metaAds.status === 'available'
                 ? `${metaAds.startDay} a ${metaAds.endDay}${metaAds.campaignFilter ? ` · filtro: ${metaAds.campaignFilter}` : ''}`
                 : `Código: ${metaAds.errorCode || 'META_ADS_UNAVAILABLE'}`;
-            el('metaAdsMetrics').innerHTML = metaAds.status === 'available' ? [
+            el('metaAdsMetrics').innerHTML = metaAdsFresh ? [
                 metricCard('Landing Page Views Meta', number.format(metaLandings), 'Entradas registradas pelo anúncio', metaLandings ? 'good' : 'warn'),
                 metricCard('Entradas medidas na VSL', number.format(measuredEntries), 'Banco Vitalismen'),
                 metricCard('VSL − Meta', number.format(vslMinusMeta), 'Entradas VSL menos LPV Meta', vslMinusMeta ? 'warn' : 'good'),
@@ -1081,9 +1104,9 @@
                 metricCard('Cliques no link', number.format(metaAdsTotals.linkClicks || 0), `${metaAdsTotals.landingRate || 0}% chegaram à página`),
                 metricCard('Alcance', number.format(metaAdsTotals.reach || 0), `${number.format(metaAdsTotals.impressions || 0)} impressões`),
                 metricCard('Gasto Meta', currency.format(metaAdsTotals.spend || 0), `${number.format(metaAdsTotals.purchases || 0)} compras atribuídas`)
-            ].join('') : metricCard('Meta Ads não conectado', '-', metaAds.message || 'Permissão ads_read necessária', 'warn');
+            ].join('') : metricCard('Dados insuficientes ou desatualizados', '-', metaAds.message || 'Leitura Meta indisponível ou cache vencido; zeros antigos não representam o período atual.', 'warn');
             const creativeByAd = new Map((metaAds.creativeMapping || []).map((item) => [String(item.adId || ''), item]));
-            el('metaAdsRows').innerHTML = (metaAds.ads || []).map((ad) => `
+            el('metaAdsRows').innerHTML = (metaAdsFresh ? (metaAds.ads || []) : []).map((ad) => `
                 <tr>
                     <td>${escapeHtml(ad.adName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adId || '-')}</span></td>
                     <td>${escapeHtml(creativeByAd.get(String(ad.adId || ''))?.creativeName || 'Não disponível')}<br><span class="meta">${escapeHtml(creativeByAd.get(String(ad.adId || ''))?.creativeId || '-')}</span></td>

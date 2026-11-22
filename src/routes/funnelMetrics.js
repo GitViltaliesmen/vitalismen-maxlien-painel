@@ -25,6 +25,7 @@ import {
     resolveFunnelMetricsRange,
     applyInvestmentRadarSafetyV141
 } from '../services/funnelMetricsService.js';
+import { buildMetricsSiteSummaryV257 } from '../services/metricsSiteSummaryV257Service.js';
 
 const router = express.Router();
 const CREATIVE_SALES_SCOPE = ['proto', 'colo-g'].join('');
@@ -103,7 +104,9 @@ const orderProjection = [
     'tracking.sourceUrl',
     'tracking.attributionCorrelationReason',
     'tracking.metaPurchaseDatasetId',
-    'tracking.metaPurchaseDatasetRoute'
+    'tracking.metaPurchaseDatasetRoute',
+    'purchaseDeliveryV254.state',
+    'purchaseDeliveryV254.requestedAt'
 ].join(' ');
 
 const correlationProjection = [
@@ -218,6 +221,9 @@ export const createFunnelMetricsHandler = ({
             toDayExclusive: ecuadorDayKey(range.endAt),
             explicit: range.explicit === true
         };
+        snapshot.siteBreakdown = buildMetricsSiteSummaryV257({
+            visits, orders, startAt: range.startAt, endAt: range.endAt
+        });
         res.set('Cache-Control', 'no-store');
         return res.json({ ...snapshot, metaAds });
     } catch (error) {

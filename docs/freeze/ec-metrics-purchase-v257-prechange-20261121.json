@@ -1,0 +1,22 @@
+{
+  "project": "VITALISMEN_EC",
+  "purpose": "Pre-change preservation for metrics and purchase measurement only",
+  "capturedAt": "2026-11-21",
+  "productionRelease": "/opt/vitalismen-automacao/releases/20261121T172300Z_production-20261121-d6a815d",
+  "productionCommit": "d6a815da7166d54e365a31131dac4a169f7a4964",
+  "backupDirectory": "/opt/vitalismen-automacao/backups/20261121_ec_metrics_purchase_pre_v257",
+  "sha256": {
+    "publicMetricsHtml": "9a10683f260257bef4adb2890b7bb039c34bafc46ae2fc6c95c7be13cbb1f2dc",
+    "releaseMetricsHtml": "2231774777477240d46eae5021a2f2408ce3bffbf31d85a4807b84c5d7045b18",
+    "releaseQrHtml": "f61686c080cf1c5d3e07c3d2edd8600049356422af5e7612b0d9c7c12a02cb08"
+  },
+  "protected": [
+    "https://plusmen.shop/tex",
+    "VSL player and CTA",
+    "bot funnel and Z-API lead intake",
+    "Dropi order submission"
+  ],
+  "cloudflareZoneSnapshot": "NOT_PROVEN: connected account did not list plusmen.shop or maxlien.shop",
+  "vslOriginSnapshot": "NOT_PROVEN: no VSL origin bytes were modified or captured in this checkpoint",
+  "publicationAllowed": false
+}

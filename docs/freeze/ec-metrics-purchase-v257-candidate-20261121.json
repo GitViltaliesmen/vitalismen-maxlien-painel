@@ -1,0 +1,28 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "CANDIDATE_NOT_PUBLISHED",
+  "parentCommit": "d6a815da7166d54e365a31131dac4a169f7a4964",
+  "scope": "EC order confirmation purchase intent and read-only funnel metrics",
+  "protected": [
+    "plusmen.shop/tex VSL source, player, CTA and WhatsApp redirect",
+    "bot funnel and Z-API inbound",
+    "Dropi submission and order fulfillment",
+    "Meta account and dataset configuration"
+  ],
+  "backup": "/opt/vitalismen-automacao/backups/20261121_ec_metrics_purchase_pre_v257",
+  "tested": {
+    "isolatedVpsNodeTests": "48 passed, 0 failed after the final additional window test",
+    "syntaxLint": "LINT_JS_SYNTAX=OK files=1242",
+    "productMicroLayerGuard": "OK",
+    "seniorCheck": "BLOCKED: EC-REPURCHASE-SQLITE-V47 inheritance mismatch in .github/workflows/ec-panel-quality.yml on unregistered candidate"
+  },
+  "externalVerification": {
+    "cloudflareZoneSnapshot": "NOT_PROVEN: connected account listed neither plusmen.shop nor maxlien.shop",
+    "metaAdsAccountAndPixel": "NOT_PROVEN: current process account/dataset differ from operator-provided target; no live target validation",
+    "metaPurchaseAcceptance": "NOT_PROVEN: no real conversion submitted during this candidate test",
+    "publishedDashboard": "NOT_PROVEN: candidate not activated"
+  },
+  "publicationAllowed": false,
+  "productionChanged": false,
+  "nextGate": "Register a valid sealed successor, verify the exact Meta destination and Cloudflare origin, run authenticated functional tests, then publish and verify receipts before freezing the live release"
+}

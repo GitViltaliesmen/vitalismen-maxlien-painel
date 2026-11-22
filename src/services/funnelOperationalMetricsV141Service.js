@@ -168,7 +168,11 @@ export const buildFunnelOperationalMetricsV141 = ({
     ));
     const linkedOrders = windowOrders.filter((order) => sourcePhones.has(orderPhone(order)));
     const commercialOrders = linkedOrders.length ? linkedOrders : windowOrders;
-    const eligibleOrders = commercialOrders.filter((order) => PURCHASE_ELIGIBLE.has(String(order.status || '').toLowerCase()));
+    const eligibleOrders = orders.filter((order) => (
+        (!order.country || order.country === 'EC')
+        && PURCHASE_ELIGIBLE.has(String(order.status || '').toLowerCase())
+        && inWindow(order.confirmedAt, start, end)
+    ));
     const sentOrders = eligibleOrders.filter((order) => Boolean(asDate(order.tracking?.metaPurchaseSentAt)));
     const acceptedOrders = sentOrders.filter((order) => metaEventsReceived(order.tracking?.metaPurchaseResponse) > 0);
     const attributedOrders = acceptedOrders.filter((order) => Boolean(
@@ -202,6 +206,8 @@ export const buildFunnelOperationalMetricsV141 = ({
         ordersConfirmed: eligibleOrders.length,
         salesFinalized: eligibleOrders.length,
         purchaseEligible: eligibleOrders.length,
+        purchasePending: eligibleOrders.filter((order) => ['pending', 'retry_wait', 'sending'].includes(order.purchaseDeliveryV254?.state)).length,
+        purchaseReview: eligibleOrders.filter((order) => ['ambiguous', 'blocked'].includes(order.purchaseDeliveryV254?.state)).length,
         purchaseEventCreated: eligibleOrders.filter((order) => Boolean(order.tracking?.metaPurchaseEventId)).length,
         purchaseSent: sentOrders.length,
         metaAccepted: acceptedOrders.length,
@@ -220,7 +226,6 @@ export const buildFunnelOperationalMetricsV141 = ({
     const invariantFailures = [];
     if (totals.botTriggered > totals.zapiInbound) invariantFailures.push('BOT_TRIGGERED_GT_ZAPI_INBOUND');
     if (totals.botDelivered > totals.botSent) invariantFailures.push('BOT_DELIVERED_GT_BOT_SENT');
-    if (totals.ordersConfirmed > totals.ordersCreated) invariantFailures.push('ORDERS_CONFIRMED_GT_ORDERS_CREATED');
     if (totals.purchaseSent > totals.purchaseEligible) invariantFailures.push('PURCHASE_SENT_GT_PURCHASE_ELIGIBLE');
     if (totals.metaAttributed > totals.metaAccepted) invariantFailures.push('META_ATTRIBUTED_GT_META_ACCEPTED');
 
@@ -236,7 +241,7 @@ export const buildFunnelOperationalMetricsV141 = ({
         metaDataThrough: metaAds.dataThrough || metaAds.endDay || '',
         zapiDataThrough: maxDate(sourceInboundMessages.map(messageAt)),
         botDataThrough: maxDate(botMessages.map(messageAt)),
-        orderDataThrough: maxDate(commercialOrders.map(orderEntryAt)),
+        orderDataThrough: maxDate([...commercialOrders.map(orderEntryAt), ...eligibleOrders.map((order) => order.confirmedAt)]),
         capiDataThrough: maxDate(sentOrders.map((order) => order.tracking?.metaPurchaseSentAt)),
         metricsComputedAt: asDate(computedAt) || new Date()
     };

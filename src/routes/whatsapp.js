@@ -40,6 +40,7 @@ import { processBacklogRecovery } from '../services/backlogRecoveryService.js';
 import { reconcileAdminPanelAtendimento } from '../services/adminPanelLeadReconciliationService.js';
 import { nextSellerForNewLead, sellerIsActive, sellerRotationPreview } from '../services/sellerRotationService.js';
 import { sendBrowserMetaEvent } from '../services/metaConversionsService.js';
+import { preparePurchaseIntentV254 } from '../services/metaPurchaseDeliveryV254Service.js';
 import {
     hasProtocoloGContractSignal,
     protocoloGStructuredTracking,
@@ -2907,6 +2908,9 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         order = new Order(baseData);
     }
     if (!order.confirmedAt) order.confirmedAt = new Date();
+    preparePurchaseIntentV254(order, {
+        transition: !existingOrderStatus || !['confirmed', 'processing', 'shipped', 'delivered'].includes(existingOrderStatus)
+    });
     await order.save();
 
     const purchase = order.tracking?.metaPurchaseSentAt
@@ -2922,7 +2926,9 @@ const ensureOperationalOrderForConfirmedDraft = async ({ draft = {}, req = null,
         : {
             ok: false,
             skipped: true,
-            reason: 'awaiting_fresh_human_dropi_success_v144'
+            reason: order.purchaseDeliveryV254?.requestedAt
+                ? 'purchase_queued_at_confirmation'
+                : 'awaiting_fresh_human_dropi_success_v144'
         };
     const adminPurchaseLock = {
         ok: false,

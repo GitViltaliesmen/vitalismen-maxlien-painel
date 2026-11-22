@@ -577,7 +577,7 @@ export const buildFunnelMetricsSnapshot = ({
 
     const eligibleOrders = orders.filter((order) => (
         isPurchaseEligible(order)
-        && isWithin(orderCreatedAt(order), range.startAt, range.endAt)
+        && isWithin(order.confirmedAt, range.startAt, range.endAt)
     ));
     const missingOrders = eligibleOrders.filter((order) => !asDate(order.tracking?.metaPurchaseSentAt));
     const eligibleWithPurchase = eligibleOrders.length - missingOrders.length;
@@ -661,6 +661,7 @@ export const funnelMetricsMongoWindow = ({ days = 7, now = new Date(), range: su
                 { entryAt: between },
                 { draftCreatedAt: between },
                 { createdAt: between },
+                { confirmedAt: between },
                 { 'tracking.metaPurchaseSentAt': between }
             ]
         },

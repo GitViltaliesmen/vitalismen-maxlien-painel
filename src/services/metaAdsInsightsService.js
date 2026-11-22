@@ -245,7 +245,13 @@ export const loadMetaAdsInsights = async ({
     const startDay = String(suppliedStartDay || dayInEcuador(
         new Date(end.getTime() - (Math.max(1, number(days)) - 1) * 86400000)
     ));
-    const cached = readCache(cacheFile);
+    const cachedCandidate = readCache(cacheFile);
+    const requestedAccountId = String(accountId || '').replace(/^act_/i, '').trim();
+    const cached = cachedCandidate
+        && (!requestedAccountId || String(cachedCandidate.accountId || '').replace(/^act_/i, '').trim() === requestedAccountId)
+        && String(cachedCandidate.campaignFilter || '').trim().toLowerCase() === campaignFilter
+        ? cachedCandidate
+        : null;
     const cacheAgeMs = cached?.fetchedAt ? now.getTime() - new Date(cached.fetchedAt).getTime() : Infinity;
     const cacheWindowMatches = cached?.startDay === startDay && cached?.endDay === endDay;
     if (cached && cacheAgeMs >= 0 && cacheAgeMs <= cacheTtlMs && cacheWindowMatches) {

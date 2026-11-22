@@ -113,3 +113,24 @@ test('identifica token Meta expirado sem expor a credencial', async () => {
     assert.equal(result.errorCode, 'META_ACCESS_TOKEN_EXPIRED');
     assert.equal(JSON.stringify(result).includes('token-expirado'), false);
 });
+
+test('nao reutiliza cache de outra conta ou filtro quando Meta falha', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'meta-ads-scope-'));
+    const cacheFile = path.join(dir, 'ec.json');
+    fs.writeFileSync(cacheFile, JSON.stringify({
+        status: 'available', accountId: '26714145304913323', campaignFilter: 'old',
+        fetchedAt: '2026-11-21T15:00:00.000Z', startDay: '2026-11-21', endDay: '2026-11-21',
+        totals: { purchases: 7 }
+    }));
+    const result = await loadMetaAdsInsights({
+        days: 1,
+        now: new Date('2026-11-21T16:00:00.000Z'),
+        env: { META_ACCESS_TOKEN: 'test-token' },
+        accountId: '1088255310505694',
+        campaignFilter: '',
+        cacheFile,
+        fetchImpl: async () => new Response(JSON.stringify({ error: { code: 200, message: 'Missing Permissions' } }), { status: 403 })
+    });
+    assert.equal(result.status, 'unavailable');
+    assert.equal(result.totals, undefined);
+});
