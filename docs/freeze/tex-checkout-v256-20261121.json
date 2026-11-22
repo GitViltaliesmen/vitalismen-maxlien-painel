@@ -1,0 +1,54 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 256,
+  "authorization": "USER_20261121_PLUSMEN_TEX_CHECKOUT_PROSPECTIVE_WITH_ORIGIN_ACCESS",
+  "officialUrl": "https://plusmen.shop/tex",
+  "pixelId": "1100892582698669",
+  "status": "AUTHORIZED_EXACT_SUCCESSOR",
+  "changes": [
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/assets/meta-tex-ultra.js",
+      "name": "meta-tex-ultra.js",
+      "beforeSha256": "ac3e522465737cf0dd3be5e7460b5529473d7ef447da34e70444500ed1d334fe",
+      "sha256": "6fc15b7d30971703f39ec4eb8aa0be9539caf1cc19540762f780fa8d7e62b4e3",
+      "patches": [
+        {
+          "before": "  // Only a real order stage may report checkout. A WhatsApp invitation cannot.\n",
+          "after": "  // V256: accept only a proven Tex CTA click; discard queued legacy Tex checkout.\n"
+        },
+        {
+          "before": "    if (!item || item.event_name !== 'InitiateCheckout') return false;\n",
+          "after": "    if (!item || item.event_name !== 'InitiateCheckout' || item.cta_rule === 'tex_cta_click_v256') return false;\n"
+        },
+        {
+          "before": "  function emit(name, urgent) {\n    if (isTexCheckout({ event_name: name, event_source_url: source.href })) return;\n",
+          "after": "  function emit(name, urgent, ctaRule) {\n    if (isTexCheckout({ event_name: name, event_source_url: source.href, cta_rule: ctaRule })) return;\n"
+        },
+        {
+          "before": "      event_source_url: source.href, fbp: fbp, fbc: fbc, external_id: external };\n",
+          "after": "      event_source_url: source.href, fbp: fbp, fbc: fbc, external_id: external };\n    if (ctaRule === 'tex_cta_click_v256') item.cta_rule = ctaRule;\n"
+        },
+        {
+          "before": "  var lastCheckout = 0;\n",
+          "after": "  var lastCheckout = 0, texCtaEventId = '';\n  var texCtaKey = 'tex_cta_checkout_v256:' + pixel;\n  try { texCtaEventId = sessionStorage.getItem(texCtaKey) || ''; } catch (_) {}\n"
+        },
+        {
+          "before": "    initiateCheckout: function () {\n      if (isTexCheckout({ event_name: 'InitiateCheckout', event_source_url: source.href })) return;\n",
+          "after": "    initiateCheckout: function (sourceAction) {\n      var tex = /^(www\\.)?plusmen\\.shop$/.test(source.hostname) && /^\\/tex\\/?$/.test(source.pathname);\n      if (tex) {\n        if (sourceAction !== 'tex_cta_click_v256' || texCtaEventId) return texCtaEventId || undefined;\n        texCtaEventId = emit('InitiateCheckout', true, sourceAction) || '';\n        if (texCtaEventId) try { sessionStorage.setItem(texCtaKey, texCtaEventId); } catch (_) {}\n        return texCtaEventId;\n      }\n"
+        }
+      ]
+    },
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js",
+      "name": "whatsapp-tex-v243.js",
+      "beforeSha256": "4a6e5c4017b5cf6e03bdaa37a56a1a7c2db4c86dc9d1544930b1552152a786de",
+      "sha256": "c1a6e560b967601ead74ad23a9e1e017651c4b19007d37bc7722ab75063333dc",
+      "patches": [
+        {
+          "before": "    // Opening WhatsApp is contact intent, not the start of an order checkout.\n",
+          "after": "    // Operator-defined Tex commercial checkout begins at this proven order CTA click.\n    try { window.VitpowerMeta?.initiateCheckout('tex_cta_click_v256'); } catch (_) {}\n"
+        }
+      ]
+    }
+  ]
+}

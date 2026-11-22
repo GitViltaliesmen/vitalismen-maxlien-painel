@@ -1,0 +1,107 @@
+{
+  "project": "VITALISMEN_EC",
+  "status": "AUTHORIZED_EXACT_SUCCESSOR",
+  "authorization": "USER_20261117_SAME_TEX_BLOCK_FIRST_CHANNEL_NAME_AND_CONFIRMED_WHATSAPP",
+  "backendCommit": "4c47bb36266d919ce664911aafcf573c7a4d1570",
+  "parentDeviceFreezeSha256": "f9ff2f16858f1771330ac38920798b7c8c705184ed0e9ff64fa0cde691456014",
+  "parentChatFreezeSha256": "1e078cb47c0ddfaf0fcd757df1bfb91f0aa308c7bac189743493fa41078f1882",
+  "replacedFiles": {
+    "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.css": {
+      "sha256": "77696e81d3661b4acb8d93160800de3aebaeac2065ec35beeb6c7ebf8d146ba8",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js": {
+      "sha256": "97fbe6d59b564dcf785afb5e495eecae55d9515582fb97e30c6bc02dc49c19c8",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    }
+  },
+  "files": {
+    "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.css": {
+      "relative": "chat-tex-ultra.css",
+      "sha256": "91a48cfeb0a525f0a38757bf31519eea44a5400fc17dc99883257760f8596b48",
+      "size": 4066,
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/chat-tex-ultra.js": {
+      "relative": "chat-tex-ultra.js",
+      "sha256": "d02e78f17cbf6207df1b783d40df2619ca1fedadaa25e4ca2930753589a2234b",
+      "size": 18877,
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/tex-entry-v242/bottle.png": {
+      "relative": "tex-entry-v242/bottle.png",
+      "sha256": "450122a3db3823d012770a20f25f311be66a564b8fb23d9d0d47f0207d3ce2f7",
+      "size": 95744,
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/tex-entry-v242/intro.mp3": {
+      "relative": "tex-entry-v242/intro.mp3",
+      "sha256": "febf0e4964b5556e3a5b9c60ccba1dc58a475715a4dd7c5e366af2ed3066039a",
+      "size": 930840,
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/tex-entry-v242/proof.jpeg": {
+      "relative": "tex-entry-v242/proof.jpeg",
+      "sha256": "8c5ad2f65fcdba74c65492505f1b6718e960674c17c0ac826314a8ffc8ffa0d8",
+      "size": 139155,
+      "mode": 420
+    }
+  },
+  "nativeFiles": {
+    "/etc/nginx/sites-available/plusmen.shop": {
+      "sha256": "42e556b09df29a5cb8df8ea99e58c469a65be9e1cae45a1aad203d781c60c3c0",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    },
+    "/etc/nginx/snippets/plusmen-tex-mobile-v1.conf": {
+      "sha256": "7f63ffee9c57af31e01beb0348da3d6489acf439cd9dc6dd6b48d6262e196f78",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/index.html": {
+      "sha256": "d48259ac5ebc1b4c4df3b4eee281f06b04f2aa11a3ad5de2ddcb1558f54fad03",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    },
+    "/var/www/plusmen-tex-vsl-v1/assets/whatsapp.js": {
+      "sha256": "de67f978c52f7676d666bb22f2175cf72baa283f13fa47f7424d3a5262c35fcd",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    },
+    "/opt/cloaker/public/verdevibe/dist/index.html": {
+      "sha256": "ddf1a65ff3696a10ce7105523397592a85566cb837447210eecb100d3953cf27",
+      "uid": 501,
+      "gid": 0,
+      "mode": 436
+    },
+    "/opt/cloaker/public/verdevibe/dist/assets/index-YfNAnfMa.js": {
+      "sha256": "7b0ff8993df28b4c8c429f46fc5dc81a3bf4876b93054af13895146b15267e4d",
+      "uid": 501,
+      "gid": 0,
+      "mode": 436
+    },
+    "/etc/nginx/snippets/plusmen-tex-chat-proxy-v240.conf": {
+      "sha256": "765ea8e147811f4b111cb0e12e0bb80ad2ca5d9dff887af879f448cfc1b07d82",
+      "uid": 0,
+      "gid": 0,
+      "mode": 384
+    },
+    "/etc/nginx/snippets/plusmen-tex-chat-inject-v240.conf": {
+      "sha256": "077150c2d6c34764a22eb79e4391169cbfb96b8c4fdc40e2531bdf05ecb55648",
+      "uid": 0,
+      "gid": 0,
+      "mode": 420
+    }
+  },
+  "nativeVslPlayerCtaPhoneUnchanged": true,
+  "noAutomaticWhatsAppVerificationSend": true,
+  "rollback": "Disable linked entry capability, retain compatible code and identity journal, restore only chat assets and popup; never erase anti-replay memory."
+}
