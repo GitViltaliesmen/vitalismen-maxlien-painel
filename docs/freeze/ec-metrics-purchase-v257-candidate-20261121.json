@@ -17,13 +17,15 @@
     "seniorCheck": "BLOCKED under direct node invocation without sealed preload: EC-REPURCHASE-SQLITE-V47 inheritance mismatch in .github/workflows/ec-panel-quality.yml; direct invocation also fails on the active release, so this result alone does not diagnose a runtime defect. The candidate is not a registered sealed successor"
   },
   "externalVerification": {
-    "cloudflareZoneSnapshot": "PARTIAL: the operator's Brave session visibly lists plusmen.shop in a Cloudflare account; the connected Cloudflare plugin lists neither plusmen.shop nor maxlien.shop, and zone settings/origin bytes were not captured",
+    "cloudflareZoneSnapshot": "READ_ONLY: plusmen.shop Cloudflare zone 23b7538a514d6e92533507197cc3f5f4 has proxied A apex to 169.58.51.100 and proxied CNAME www to apex; no Worker routes, Cache Rules, Redirect Rules or Page Rules were configured. Cache level is Standard and browser TTL is four hours. This does not verify origin bytes or the VSL journey.",
     "metaAdsAccountAndPixel": "PROVEN: target Events Manager was opened read-only for ad account 1088255310505694 and dataset 1100892582698669 (MANUELA_SANTOS_LATAM_CO); current process selects different account/dataset, and no destination change was made",
     "targetEventsManager": "PROVEN: visible table for 2026-11-17 through 2026-11-21 listed PageView, ViewContent and InitiateCheckout (108 total, last received about two days before inspection); Purchase was not visible in that table. This does not prove campaign attribution or all historical event absence",
-    "metaPurchaseAcceptance": "NOT_PROVEN: no real conversion submitted during this candidate test",
+    "metaPurchaseAcceptance": "PROVEN for existing production receipts only: read-only EC order aggregate since 2026-11-19T00:00:00Z found 22 confirmed orders, 21 with Purchase accepted on dataset 920532663934291 and one Vit Power order accepted on 28298613626504767. None had measurementVersion 243 or a plusmen.shop sourceUrl. No event was submitted by this candidate test, and campaign attribution is NOT_PROVEN.",
+    "metaTargetAccess": "FAILED: production META_ACCESS_TOKEN_EC expired on 2026-11-08; the general token returned API access blocked; the other two configured Meta tokens returned missing ads_read or ads_management for target account 1088255310505694. The active metrics process is configured for a different ad account and default EC pixel. No token value was recorded or changed.",
+    "texCorrelation": "NOT_PROVEN: read-only production aggregate since 2026-11-19T00:00:00Z found zero contact V243 markers, zero plusmen.shop VslVisit rows and zero orders with measurementVersion 243 or plusmen.shop sourceUrl. The approved CTA text omits the visible TX243 reference required by the V243 binder; do not infer Plusmen origin from product name alone or resend accepted historical Purchase events.",
     "publishedDashboard": "NOT_PROVEN: candidate not activated"
   },
   "publicationAllowed": false,
   "productionChanged": false,
-  "nextGate": "Register a valid sealed successor, verify the exact Meta destination and Cloudflare origin, run authenticated functional tests, then publish and verify receipts before freezing the live release"
+  "nextGate": "Restore scoped Meta access to ad account 1088255310505694 and dataset 1100892582698669, establish prospective Plusmen-to-inbound correlation without changing protected VSL behavior, compare current origin bytes, register a valid sealed successor, run authenticated end-to-end tests, then publish and verify receipts before freezing the live release"
 }
