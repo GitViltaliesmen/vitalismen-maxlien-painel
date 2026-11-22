@@ -11,10 +11,10 @@ import subprocess
 import sys
 import uuid
 
-STATE = pathlib.Path('/var/lib/vitalismen-deploy/post-sale-v263')
+STATE = pathlib.Path('/var/lib/vitalismen-deploy/post-sale-v263-r2')
 AUTHORITY = STATE / 'authority.json'
 CURRENT = pathlib.Path('/opt/vitalismen-automacao/current')
-PRELOAD = pathlib.Path('/usr/local/lib/vitalismen-deploy/post-sale-v263-preload.mjs')
+PRELOAD = pathlib.Path('/usr/local/lib/vitalismen-deploy/post-sale-v263-r2-preload.mjs')
 LOCK = pathlib.Path('/var/lib/vitalismen-deploy/ec-postsale-v203.lock')
 RECEIPTS = STATE / 'receipts'
 

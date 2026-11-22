@@ -3,9 +3,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-order-v254-validation-sealed-v256-r1.mjs';
 
-const state = '/var/lib/vitalismen-deploy/post-sale-v263';
+const state = '/var/lib/vitalismen-deploy/post-sale-v263-r2';
 const authorityPath = path.join(state, 'authority.json');
 const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const regular = file => {
@@ -30,10 +29,19 @@ assert.ok(['snapshot', 'dry-run', 'run'].includes(process.argv[2]), 'V263_ACTION
 assert.equal(process.env.POST_SALE_V263_ALLOWED_STAGES, authority.allowedStages, 'V263_PROFILE_INVALID');
 assert.equal(sha(regular('/var/lib/vitalismen-deploy/sealed-successors-v1/' + authority.parentCommit + '.json')),
     authority.parentSeal, 'V263_PARENT_SEAL');
-assert.equal(requireSealedRelease(parent).authority.SUCCESSOR_COMMIT, authority.parentCommit,
-    'V263_PARENT_RELEASE_INVALID');
+const parentApproval = JSON.parse(regular('/var/lib/vitalismen-deploy/ec-order-v254-validation-v256-r1/approval.json'));
+const parentActivation = JSON.parse(regular('/var/lib/vitalismen-deploy/ec-order-v254-validation-v256-r1/activation.json'));
+const parentSource = JSON.parse(fs.readFileSync(path.join(parent, '.release-source.json')));
+assert.equal(parentApproval.commit, authority.parentCommit, 'V263_PARENT_APPROVAL_INVALID');
+assert.equal(parentApproval.release, parent, 'V263_PARENT_APPROVAL_RELEASE_INVALID');
+assert.equal(parentActivation.state, 'ACTIVE', 'V263_PARENT_INACTIVE');
+assert.equal(parentActivation.runtimeAllowed, true, 'V263_PARENT_RUNTIME_DISABLED');
+assert.equal(parentActivation.approvalSha256,
+    sha(regular('/var/lib/vitalismen-deploy/ec-order-v254-validation-v256-r1/approval.json')),
+    'V263_PARENT_ACTIVATION_INVALID');
+assert.equal(parentSource.functionalCommit, authority.parentCommit, 'V263_PARENT_SOURCE_INVALID');
 assert.equal(sha(regular(path.join(state, 'overlay.env'))), authority.overlaySha256, 'V263_OVERLAY_SEAL');
-assert.equal(sha(regular('/usr/local/lib/vitalismen-deploy/post-sale-v263-preload.mjs')),
+assert.equal(sha(regular('/usr/local/lib/vitalismen-deploy/post-sale-v263-r2-preload.mjs')),
     authority.preloadSha256, 'V263_PRELOAD_SEAL');
 const git = (...args) => execFileSync('git', ['-C', release, ...args], { encoding: 'utf8' }).trim();
 assert.equal(git('rev-parse', 'HEAD'), authority.commit, 'V263_COMMIT_INVALID');
