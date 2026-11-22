@@ -13,6 +13,7 @@ import { currentProductRouteForState } from './vslProductAssignmentService.js';
 import { evaluateCanaryV75Recipient } from './canaryIsolationV75Service.js';
 import { claimMetaAttributionForInboundWhatsapp } from './metaAttributionBridgeService.js';
 import { mergeClaimedVslPreleadIntoContactState } from './vslPreleadPanelService.js';
+import { maybeHandleEcuadorDirectProductInquiry, shouldRouteDirectProductInbound } from './ecDirectProductInquiryService.js';
 
 const VIT_POWER_PRODUCT_KEY = 'vit_power_ec';
 const NITRIX_PRODUCT_KEY = 'nitrix_ec';
@@ -752,7 +753,7 @@ const appendProductHistory = ({ state, productKey, reason }) => {
     state.productHistory = state.productHistory.slice(-20);
 };
 
-const updateTagsAndMetadata = ({ state, productKey, countryCode, body, reason, signals, sessionId = null }) => {
+const updateTagsAndMetadata = ({ state, productKey, countryCode, body, reason, signals, sessionId = null, productTriage = false }) => {
     if (productKey) ensureTag(state, 'COMMERCIAL_READY');
     if (countryCode === 'EC' && productKey === NITRIX_PRODUCT_KEY) {
         removeTag(state, 'TEX_ULTRA_EC');
@@ -768,7 +769,7 @@ const updateTagsAndMetadata = ({ state, productKey, countryCode, body, reason, s
         removeTag(state, 'TEX_ULTRA_EC');
         removeTag(state, 'NITRIX_EC');
         ensureTag(state, 'VIT_POWER_EC');
-    } else if (countryCode === 'EC') {
+    } else if (countryCode === 'EC' && !productTriage) {
         ensureTag(state, 'PRODUCT_REVIEW_REQUIRED');
         state.conversationBucket = {
             ...(state.conversationBucket || {}),
@@ -1067,6 +1068,18 @@ export const routeIncomingMessage = async (payload) => {
         };
         await state.save();
         console.log(`[ROUTER] entrada VSL ${vslEntryAgent} liberada para o gate do bot | chat=${chatId}`);
+    } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now())
+        && ['zapi', 'ec_direct_product_inquiry'].includes(String(human.lastManualBy || ''))
+        && !human.assignedTo
+        && shouldRouteDirectProductInbound({ text: body, state })) {
+        state.human = {
+            ...human,
+            mode: 'auto',
+            pausedUntil: null,
+            lastManualBy: 'ec_product_request_auto',
+            note: 'Solicitação de produto recebida; triagem automática limitada ao produto solicitado.'
+        };
+        await state.save();
     } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now())) {
         state.metadata = {
             ...(state.metadata || {}),
@@ -1101,6 +1114,9 @@ export const routeIncomingMessage = async (payload) => {
         latestOrder,
         recentCommercialPrompt
     });
+    const productTriage = !decision.productKey
+        && resolvedCountryCode === 'EC'
+        && shouldRouteDirectProductInbound({ text: body, state });
     updateTagsAndMetadata({
         state,
         productKey: decision.productKey,
@@ -1108,14 +1124,10 @@ export const routeIncomingMessage = async (payload) => {
         body,
         reason: decision.reason,
         signals: detectSignals(body),
-        sessionId
+        sessionId,
+        productTriage
     });
     await state.save();
-
-    if (!decision.productKey) {
-        console.warn(`[ROUTER] produto desconhecido; contato enviado para revisao sem resposta automatica | chat=${chatId}`);
-        return;
-    }
 
     if (!autoReplyEnabled()) {
         console.log(`[ROUTER] auto-resposta pausada por WHATSAPP_AUTO_REPLY_ENABLED!=true | chat=${chatId}`);
@@ -1124,6 +1136,26 @@ export const routeIncomingMessage = async (payload) => {
 
     if (!isAutoReplyAllowedForChat(chatId, senderPn, state.phoneDigits)) {
         console.log(`[ROUTER] auto-resposta bloqueada fora da lista permitida | chat=${chatId} | senderPn=${senderPn || 'sem_senderPn'}`);
+        return;
+    }
+
+    if (!decision.productKey) {
+        if (productTriage) {
+            const triage = await maybeHandleEcuadorDirectProductInquiry({
+                text: body,
+                chatId,
+                phoneDigits: state.phoneDigits,
+                contactStateId: String(state._id),
+                contactState: state,
+                sourceMessageId: messageId,
+                sessionId
+            });
+            if (triage.handled) {
+                console.log(`[ROUTER] triagem de produto tratada | chat=${chatId} | kind=${triage.responseKind || triage.skipped || 'ok'}`);
+                return;
+            }
+        }
+        console.warn(`[ROUTER] produto desconhecido; contato enviado para revisao sem resposta automatica | chat=${chatId}`);
         return;
     }
 

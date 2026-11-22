@@ -7,7 +7,7 @@ import {
     getEcuadorOffer,
     getEcuadorProductInfoByKey
 } from './ecuadorProductService.js';
-import { isOperatorProductRouteLock } from './vslProductAssignmentService.js';
+import { currentProductRouteForState, isOperatorProductRouteLock } from './vslProductAssignmentService.js';
 
 const DIRECT_MEMORY_PATH = 'metadata.ecDirectProductInquiry';
 const DIRECT_LOCK_MS = 2 * 60 * 1000;
@@ -38,9 +38,9 @@ export const directEcuadorProductKeys = (text = '') => {
     const body = normalize(text);
     if (!body) return [];
     return PRODUCT_KEYS.filter((productKey) => ({
-        tex_ultra_ec: /\btex\s*ultra\b|\btexultra\b/,
+        tex_ultra_ec: /\btex\s*ultra\b|\btext\s*ultra\b|\btexultra\b/,
         nitrix_ec: /\bnitrix(?:\s+oxide)?\b|\boxido\s+nitrico\b|\bnitric\s+oxide\b/,
-        vit_power_ec: /\bvit\s*power\b|\bvitpower\b|\bvi\s*power\b|\bvipower\b/
+        vit_power_ec: /\bvit\s*power\b|\bvitpower\b|\bvi\s*power\b|\bvipower\b|\bnt\s*power\b/
     })[productKey].test(body));
 };
 
@@ -69,9 +69,17 @@ const hasRecentDirectContext = (state = {}, nowMs = Date.now()) => {
         && nowMs - validDateMs(memory.requestedAt || memory.updatedAt) <= DIRECT_CONTEXT_MS;
 };
 
+export const isGenericEcuadorProductRequest = (text = '') => {
+    const body = normalize(text);
+    if (!body || directEcuadorProductKeys(text).length) return false;
+    return /\b(?:quiero|deseo|necesito|busco|me interesa|informacion sobre|informacion del|conocer)\b.{0,48}\b(?:tratamiento|producto|suplemento)\b/.test(body)
+        || /\b(?:tratamiento|producto|suplemento)\b.{0,32}\b(?:quiero|deseo|necesito|busco|me interesa)\b/.test(body);
+};
+
 export const shouldRouteDirectProductInbound = ({ text = '', state = null } = {}) => {
     const explicitKeys = directEcuadorProductKeys(text);
     if (explicitKeys.length) return true;
+    if (isGenericEcuadorProductRequest(text) && !currentProductRouteForState(state || {}).productKey) return true;
     return hasRecentDirectContext(state)
         && (isDirectPriceQuestion(text) || isDirectPriceObjection(text));
 };
@@ -110,6 +118,13 @@ export const buildDirectProductReply = ({
     productKey = '',
     ambiguousProductKeys = []
 } = {}) => {
+    if (productKey === '' && ambiguousProductKeys.length === 0 && isGenericEcuadorProductRequest(text)) {
+        return {
+            responseKind: 'product_choice',
+            priceCatalog: '',
+            text: '¡Hola! Con gusto le ayudo. ¿Cuál producto desea conocer: Tex Ultra, Nitrix Oxide o Vit Power?'
+        };
+    }
     if (ambiguousProductKeys.length > 1) {
         const names = ambiguousProductKeys
             .map((key) => getEcuadorProductInfoByKey(key)?.name)
@@ -245,8 +260,10 @@ export const maybeHandleEcuadorDirectProductInquiry = async ({
     const rememberedProductKey = hasRecentDirectContext(contactState)
         ? String(memory.activeProductKey || '')
         : '';
-    if (!explicitKeys.length && !rememberedProductKey) return { handled: false };
-    if (!explicitKeys.length && !isDirectPriceQuestion(text) && !isDirectPriceObjection(text)) {
+    const genericRequest = isGenericEcuadorProductRequest(text)
+        && !currentProductRouteForState(contactState).productKey;
+    if (!explicitKeys.length && !rememberedProductKey && !genericRequest) return { handled: false };
+    if (!explicitKeys.length && !genericRequest && !isDirectPriceQuestion(text) && !isDirectPriceObjection(text)) {
         return { handled: false };
     }
     const productKey = explicitKeys.length === 1
