@@ -1,0 +1,38 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 258,
+  "status": "CANDIDATE_TESTED_NOT_PUBLISHED",
+  "authorization": "USER_20261121_SHORT_VISIBLE_CODE_FOR_PROSPECTIVE_TEX_VISIT_INBOUND_PURCHASE",
+  "officialUrl": "https://plusmen.shop/tex",
+  "pixelId": "1100892582698669",
+  "parentCheckoutFreezeSha256": "831ff907a2e9db0fa3b72523ad5760e5df82ec1db83bb4d20506e9eaccb775b7",
+  "changes": [
+    {
+      "path": "/opt/cloaker/tex-measurement-v243.js",
+      "candidate": "ops/publications/tex-reference-v258/tex-measurement-v243.js",
+      "beforeSha256": "9cda43521d85113d4bc8d736ccbf8ddf9ae3506be7f330d89c4c5be0aef68140",
+      "sha256": "553afeb77e99ef24bb8cca9240aa57c581ad084e3c5c0ff00b57dcca9cb32bdc"
+    },
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/assets/meta-tex-ultra.js",
+      "candidate": "ops/publications/tex-reference-v258/meta-tex-ultra.js",
+      "beforeSha256": "6fc15b7d30971703f39ec4eb8aa0be9539caf1cc19540762f780fa8d7e62b4e3",
+      "sha256": "f9bb484aa7b6874f896dffd2e9b3eca9902f1f4b777921493da196719a741820"
+    },
+    {
+      "path": "/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js",
+      "candidate": "ops/publications/tex-reference-v258/whatsapp-tex-v243.js",
+      "beforeSha256": "c1a6e560b967601ead74ad23a9e1e017651c4b19007d37bc7722ab75063333dc",
+      "sha256": "8bf57103468fc61282bf8c1eb55dbf8fc91b56e95db3fcdab3d4907b62400fb7"
+    }
+  ],
+  "protected": [
+    "Tex VSL player and HTML",
+    "Tex WhatsApp destination and initial phrase",
+    "existing V256 InitiateCheckout and consent guard",
+    "EC bot commercial flow, Z-API, Dropi, other products",
+    "historical Meta receipts and orders"
+  ],
+  "publicationAllowed": false,
+  "productionChanged": false
+}

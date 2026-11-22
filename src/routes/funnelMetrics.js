@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'node:path';
 import Order from '../models/Order.js';
 import VslVisit from '../models/VslVisit.js';
 import MetaAttributionCorrelation from '../models/MetaAttributionCorrelation.js';
@@ -29,6 +30,10 @@ import { buildMetricsSiteSummaryV257 } from '../services/metricsSiteSummaryV257S
 
 const router = express.Router();
 const CREATIVE_SALES_SCOPE = ['proto', 'colo-g'].join('');
+const TEX_ADS_ACCOUNT_ID = '1088255310505694';
+const TEX_ADS_CACHE_FILE = process.platform === 'win32'
+    ? path.resolve('.local', 'meta-ads-insights', 'ec-tex.json')
+    : '/opt/vitalismen-automacao/shared/runtime/meta-ads-insights/ec-tex.json';
 
 const visitProjection = [
     'visitorKey',
@@ -144,6 +149,14 @@ export const createFunnelMetricsHandler = ({
     pixelId = () => process.env.META_PIXEL_ID_EC || '',
     datasetIdForOrder = (order) => getMetaDatasetIdForOrder(order),
     adsInsights = (options) => loadMetaAdsInsights(options),
+    texAdsInsights = (options) => loadMetaAdsInsights({
+        ...options,
+        accountId: TEX_ADS_ACCOUNT_ID,
+        accountName: 'MANUELA_SANTOS_LATAM_CO',
+        token: process.env.META_ADS_ACCESS_TOKEN_EC_TEX || '',
+        cacheFile: TEX_ADS_CACHE_FILE,
+        campaignFilter: ''
+    }),
     integrationHealth = (options) => readIntegrationHealthV145(options)
 } = {}) => async (req, res) => {
     try {
@@ -158,11 +171,12 @@ export const createFunnelMetricsHandler = ({
         const { visitQuery, orderQuery, correlationQuery } = funnelMetricsMongoWindow({ days, now, range });
         const startDay = ecuadorDayKey(range.startAt);
         const endDay = ecuadorDayKey(new Date(range.endAt.getTime() - 1));
-        const [visits, orders, correlations, metaAds] = await Promise.all([
+        const [visits, orders, correlations, metaAds, metaAdsTex] = await Promise.all([
             VisitModel.find(visitQuery).select(visitProjection).lean(),
             OrderModel.find(orderQuery).select(orderProjection).lean(),
             CorrelationModel.find(correlationQuery).select(correlationProjection).lean(),
-            adsInsights({ days: range.days, now, startDay, endDay })
+            adsInsights({ days: range.days, now, startDay, endDay }),
+            texAdsInsights({ days: range.days, now, startDay, endDay })
         ]);
         const snapshot = buildFunnelMetricsSnapshot({
             visits,
@@ -225,7 +239,7 @@ export const createFunnelMetricsHandler = ({
             visits, orders, startAt: range.startAt, endAt: range.endAt
         });
         res.set('Cache-Control', 'no-store');
-        return res.json({ ...snapshot, metaAds });
+        return res.json({ ...snapshot, metaAds, metaAdsTex });
     } catch (error) {
         console.error('[FUNNEL-METRICS] Falha ao montar metricas EC:', error.message);
         return res.status(500).json({ error: 'Nao foi possivel carregar as metricas do funil.' });

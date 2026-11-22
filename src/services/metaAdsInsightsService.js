@@ -225,13 +225,9 @@ export const loadMetaAdsInsights = async ({
     startDay: suppliedStartDay,
     endDay: suppliedEndDay
 } = {}) => {
-    const token = String(
-        suppliedToken
-        || env.META_ACCESS_TOKEN
-        || env.META_ADS_ACCESS_TOKEN_EC
-        || env.META_ACCESS_TOKEN_EC
-        || ''
-    ).trim();
+    const token = String(suppliedToken === undefined
+        ? (env.META_ACCESS_TOKEN || env.META_ADS_ACCESS_TOKEN_EC || env.META_ACCESS_TOKEN_EC || '')
+        : suppliedToken).trim();
     const version = String(
         suppliedVersion || env.META_ADS_API_VERSION || env.META_CAPI_API_VERSION || 'v26.0'
     ).trim();

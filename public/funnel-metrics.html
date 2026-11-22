@@ -546,7 +546,7 @@
                 <div class="panel-head">
                     <div>
                         <h2>Vendas por site de origem</h2>
-                        <p class="meta">Origem registrada no pedido; sem vínculo comprovado aparece separadamente. Aceite Meta não equivale a atribuição.</p>
+                        <p class="meta">Origem registrada no pedido; sem vínculo comprovado aparece separadamente. Visitas Plusmen ainda não são importadas do diário da origem. Aceite Meta não equivale a atribuição.</p>
                     </div>
                 </div>
                 <div class="table-wrap">
@@ -602,6 +602,21 @@
                         <tbody id="metaAdsRows"></tbody>
                     </table>
                 </div>
+            </section>
+
+            <section class="panel" id="texAdsPanel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Meta Ads — conta indicada para Tex Ultra</h2>
+                        <p id="texAdsWindow" class="meta">Conta 1088255310505694 · pixel indicado 1100892582698669 · os totais da conta podem incluir outros sites</p>
+                    </div>
+                    <p id="texAdsStatus" class="meta">Carregando...</p>
+                </div>
+                <div class="grid" id="texAdsMetrics" style="padding:14px"></div>
+                <div class="table-wrap"><table>
+                    <thead><tr><th>Anúncio</th><th>Campanha</th><th>Alcance</th><th>Impressões</th><th>Cliques</th><th>LPV</th><th>Compras atribuídas</th><th>Gasto</th></tr></thead>
+                    <tbody id="texAdsRows"></tbody>
+                </table></div>
             </section>
 
             <section class="panel" id="creativeSalesPanel">
@@ -1040,7 +1055,7 @@
             const missingTone = totals.missingPurchaseEligible > 0 ? 'bad' : 'good';
             el('updatedAt').textContent = `Calculado em ${formatDate(operational.freshness?.metricsComputedAt || data.generatedAt)} · America/Guayaquil`;
             el('siteMetricsRows').innerHTML = (data.siteBreakdown || []).map((row) => `
-                <tr><td>${escapeHtml(row.site)}</td><td>${number.format(row.visits || 0)}</td>
+                <tr><td>${escapeHtml(row.site)}</td><td>${row.site === 'plusmen.shop/tex' && !row.visits ? '—' : number.format(row.visits || 0)}</td>
                 <td>${number.format(row.confirmedSales || 0)}</td><td>${number.format(row.purchasePending || 0)}</td>
                 <td>${number.format(row.metaAccepted || 0)}</td><td>${number.format(row.metaAttributed || 0)}</td>
                 <td>${currency.format(row.revenue || 0)}</td></tr>
@@ -1121,6 +1136,29 @@
                     <td>${currency.format(ad.spend || 0)}</td>
                 </tr>
             `).join('') || emptyRow(11, metaAds.status === 'available' ? 'Nenhum anúncio no período.' : 'Conecte um token Meta com ads_read.');
+
+            const texAds = data.metaAdsTex || {};
+            const texFresh = texAds.status === 'available' && texAds.stale !== true && texAds.fetchStatus === 'ok'
+                && String(texAds.accountId) === '1088255310505694';
+            const texTotals = texAds.totals || {};
+            el('texAdsStatus').textContent = texFresh
+                ? `Conta ${texAds.accountId} · ${texAds.source === 'live' ? 'Atualizado' : 'Cache válido'} · ${formatDate(texAds.fetchedAt)}`
+                : `INDISPONÍVEL · ${texAds.errorCode || 'SEM_LEITURA_META'} · ${texAds.message || 'Nenhuma leitura autenticada da conta Tex'}`;
+            el('texAdsWindow').textContent = texFresh
+                ? `MANUELA_SANTOS_LATAM_CO · ${texAds.startDay} a ${texAds.endDay} · pixel indicado 1100892582698669 · sem filtro de destino comprovado; CAPI aceita ≠ atribuição`
+                : 'Conta 1088255310505694 · pixel indicado 1100892582698669 · a ausência de leitura não representa zero vendas';
+            el('texAdsMetrics').innerHTML = texFresh ? [
+                metricCard('LPV na conta Meta', number.format(texTotals.landingPageViews || 0), 'Ainda sem filtro confirmado por destino'),
+                metricCard('Compras atribuídas na conta', number.format(texTotals.purchases || 0), 'Não atribuídas automaticamente ao site Tex'),
+                metricCard('Gasto na conta', currency.format(texTotals.spend || 0), 'Todas as campanhas retornadas')
+            ].join('') : metricCard('Leitura Tex', '—', texAds.message || 'Token ads_read da conta Tex indisponível', 'warn');
+            el('texAdsRows').innerHTML = (texFresh ? texAds.ads || [] : []).map((ad) => `
+                <tr><td>${escapeHtml(ad.adName || 'Sem nome')}<br><span class="meta">${escapeHtml(ad.adId || '-')}</span></td>
+                <td>${escapeHtml(ad.campaignName || 'Sem nome')}</td><td>${number.format(ad.reach || 0)}</td>
+                <td>${number.format(ad.impressions || 0)}</td><td>${number.format(ad.linkClicks || 0)}</td>
+                <td>${number.format(ad.landingPageViews || 0)}</td><td>${number.format(ad.purchases || 0)}</td>
+                <td>${currency.format(ad.spend || 0)}</td></tr>
+            `).join('') || emptyRow(8, texFresh ? 'Nenhum anúncio na janela consultada.' : 'Leitura da conta Tex não disponível.');
 
             el('protocoloGMetrics').innerHTML = [
                 metricCard('Entrou no Protocolo G', number.format(protocoloGTotals.landing || 0), 'Visitantes únicos instrumentados'),

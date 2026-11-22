@@ -4,6 +4,7 @@ import journal from './texMeasurementJournalV243.cjs';
 const { createJournal, hash } = journal;
 export const TEX_MEASUREMENT_PIXEL_V243 = '1100892582698669';
 const REF = /^TX243-[a-f0-9]{64}$/;
+const DISPLAY = /^VID-[0-9A-HJKMNPQRSTVWXYZ]{8}$/;
 const CODE = /^TX242-[a-f0-9]{64}$/;
 const PHONE = /^593[2-79]\d{8}$/;
 const digits = x => String(x || '').replace(/\D/g, '');
@@ -12,7 +13,11 @@ const mac = (key, text) => createHmac('sha256', key).update(text).digest('hex');
 export function texMeasurementReferenceV243(text) {
   return typeof text === 'string' ? text.replace(/\r\n/g, '\n').trim().match(/^Hola, quiero el tratamiento Tex Ultra\.\nReferencia: (TX243-[a-f0-9]{64})$/)?.[1] || '' : '';
 }
-export function createTexMeasurementV243({ capability, context, findInbound, now = Date.now, post } = {}) {
+export function texMeasurementDisplayCodeV258(text) {
+  return typeof text === 'string' ? text.replace(/\r\n/g, '\n').trim()
+    .match(/^Hola, quiero el tratamiento Tex Ultra\.\nVi Tex Ultra en el video y deseo el tratamiento\.\nRef: (VID-[0-9A-HJKMNPQRSTVWXYZ]{8})$/)?.[1] || '' : '';
+}
+export function createTexMeasurementV243({ capability, context, findInbound, now = Date.now, post, resolveCode } = {}) {
   let store, storeDirectory;
   const cap = () => { const value = capability?.(); return value?.isCurrent?.() === true ? value : null; };
   function ledger(c) {
@@ -54,9 +59,20 @@ export function createTexMeasurementV243({ capability, context, findInbound, now
       const phone = digits(input.state?.phoneDigits);
       if (!PHONE.test(phone) || input.state?.metadata?.testOnly === true || typeof input.sourceMessageId !== 'string' || !input.sourceMessageId || input.sourceMessageId.length > 250 || typeof input.inboundText !== 'string' || !Number.isFinite(Date.parse(c.activatedAt))) return null;
       let reference = texMeasurementReferenceV243(input.inboundText), channel = 'whatsapp';
+      const displayCode = texMeasurementDisplayCodeV258(input.inboundText);
+      const code = !reference && !displayCode
+        ? input.inboundText.replace(/\r\n/g, '\n').trim().match(/^Hola, quiero el tratamiento Tex Ultra\.\nConfirmar chat: (TX242-[a-f0-9]{64})$/)?.[1]
+        : '';
+      if (!reference && !displayCode && !code) return null;
+      const message = await findInbound({ _id: input.sourceMessageId, provider: 'zapi', sessionId: 'zapi', ownerPhoneDigits: c.ownerPhone, isFromMe: false, peerPhone: phone });
+      const at = ms(message?.timestamp);
+      if (!message || message.body !== input.inboundText || !Number.isFinite(at) || at < Date.parse(c.activatedAt) || at > now() + 60000 || now() - at > 86400000) return null;
+      if (!reference && displayCode) {
+        const resolved = await resolveCode?.(displayCode, c);
+        if (!REF.test(resolved || '')) return null;
+        reference = resolved;
+      }
       if (!reference) {
-        const code = input.inboundText.replace(/\r\n/g, '\n').trim().match(/^Hola, quiero el tratamiento Tex Ultra\.\nConfirmar chat: (TX242-[a-f0-9]{64})$/)?.[1];
-        if (!code) return null;
         const row = await ledger(c).read('codes', hash(code));
         if (!row || row.expiresAt <= now()) return null;
         // V242, not possession of the code, proves the phone originally entered in the chat.
@@ -65,9 +81,6 @@ export function createTexMeasurementV243({ capability, context, findInbound, now
         reference = row.reference; channel = 'web';
       }
       if (!REF.test(reference)) return null;
-      const message = await findInbound({ _id: input.sourceMessageId, provider: 'zapi', sessionId: 'zapi', ownerPhoneDigits: c.ownerPhone, isFromMe: false, peerPhone: phone });
-      const at = ms(message?.timestamp);
-      if (!message || message.body !== input.inboundText || !Number.isFinite(at) || at < Date.parse(c.activatedAt) || at > now() + 60000 || now() - at > 86400000) return null;
       const subject = mac(c.key, 'VITALISMEN_EC:tex_ultra_ec:zapi:' + c.ownerPhone + ':' + phone), j = ledger(c);
       const proof = { version: 243, kind: 'Lead', reference, subject, inboundId: hash(String(input.sourceMessageId)), occurredAt: at, channel };
       const receipt = await sendOnce(c, 'leads', subject, proof);
@@ -121,6 +134,16 @@ const runtime = createTexMeasurementV243({
   capability: () => globalThis.__VITALISMEN_EC_TEX_MEASUREMENT_V243,
   context: async () => (await import('./ecBotCoreRuntimeIntegrationV78Service.js')).currentEcBotCoreRuntimeContextV78(),
   findInbound: async selector => (await import('../models/Message.js')).default.findOne(selector).select({ _id: 1, timestamp: 1, body: 1 }).lean(),
+  resolveCode: async (displayCode, c) => {
+    if (!DISPLAY.test(displayCode || '')) return null;
+    const body = JSON.stringify({ action: 'resolve', displayCode }), timestamp = String(Date.now());
+    const response = await fetch('https://plusmen.shop/api/private/tex-measurement-proof', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-tex-timestamp': timestamp, 'x-tex-signature': mac(c.key, timestamp + '.' + body) },
+      body, redirect: 'error', signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return null;
+    const result = await response.json();
+    return result.ok === true && REF.test(result.reference || '') ? result.reference : null;
+  },
   post: async (proof, c) => {
     const body = JSON.stringify(proof), timestamp = String(Date.now());
     const response = await fetch('https://plusmen.shop/api/private/tex-measurement-proof', { method: 'POST',

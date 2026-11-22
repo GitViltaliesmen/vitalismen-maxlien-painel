@@ -1,4 +1,4 @@
-import { observeTexMeasurementV243, texMeasurementReferenceV243 } from './texUltraMeasurementV243Service.js';
+import { observeTexMeasurementV243, texMeasurementReferenceV243, texMeasurementDisplayCodeV258 } from './texUltraMeasurementV243Service.js';
 import { handleTexLinkConfirmationV242 } from './texUltraLinkedRuntimeV242Service.js';
 import { handleVitPowerBurstInboundV228 } from './vitPowerBurstRuntimeV228Service.js';
 import { currentEcBotCoreRuntimeContextV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
@@ -991,7 +991,7 @@ export const routeIncomingMessage = async (payload) => {
     const texLinkV242 = await handleTexLinkConfirmationV242({ state, inboundText: body, sourceMessageId: messageId, sessionId, recovered: payload.recovered === true });
     await observeTexMeasurementV243({ state, inboundText: body, sourceMessageId: messageId, sessionId, recovered: payload.recovered === true });
     if (texLinkV242.handled) { await state.save(); return { handled: true, verificationOnly: true }; }
-    if (texMeasurementReferenceV243(body)) body = 'Hola, quiero el tratamiento Tex Ultra.';
+    if (texMeasurementReferenceV243(body) || texMeasurementDisplayCodeV258(body)) body = 'Hola, quiero el tratamiento Tex Ultra.';
 
     if (priorityBotTestPhone) {
         if (!state.metadata?.fullFunnelTestEnabled) {
