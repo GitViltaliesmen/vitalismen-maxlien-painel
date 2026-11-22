@@ -185,6 +185,7 @@ export const processShipmentPickupRemindersV188 = async ({
     const oldest = new Date(now.getTime() - (30 * DAY_MS));
     const shipments = await shipmentModel.find({
         country: 'EC',
+        ...(forwardOnlySince ? { createdAt: { $gte: forwardOnlySince } } : {}),
         'client.phone': { $exists: true, $ne: '' },
         'review.manualOnly': { $ne: true },
         'logistics.status': 'READY_FOR_PICKUP',

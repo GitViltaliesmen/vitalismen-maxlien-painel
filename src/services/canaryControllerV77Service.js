@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 import { resolveEcBotCoreV78Configuration } from './ecBotCoreOperationalV78Service.js';
+import { resolvePostSaleFullOperationalV188Configuration } from './postSaleFullOperationalV188Service.js';
 import { resolvePostSaleTransactionalV105Configuration } from './postSaleTransactionalControlPlaneV105Service.js';
 
 export const CANARY_CONTROLLER_V77_VERSION = 77;
@@ -61,6 +62,8 @@ export const canaryControllerV77EnforcementRequired = (env = process.env) => {
     if (botCore.enabled && botCore.ready) return false;
     const postSaleTransactional = resolvePostSaleTransactionalV105Configuration(env);
     if (postSaleTransactional.enabled && postSaleTransactional.ready) return false;
+    const postSaleFull = resolvePostSaleFullOperationalV188Configuration(env);
+    if (postSaleFull.enabled && postSaleFull.ready) return false;
     return isTrue(env.VITALISMEN_CANARY_V75_ENABLED)
         || isTrue(env[CANARY_CONTROLLER_V77_FLAG])
         || (

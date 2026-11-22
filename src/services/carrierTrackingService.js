@@ -66,6 +66,12 @@ const closeCarrierBrowser = async ({ browser, context } = {}) => {
 
 const cleanGuide = (value = '') => String(value || '').trim().replace(/\s+/g, '');
 
+const verifiedServientregaResult = (result, requestedGuide) => Boolean(
+    result?.statusAtual
+    && result?.guia
+    && cleanGuide(result.guia) === cleanGuide(requestedGuide)
+);
+
 export const trackServientregaGuide = async (trackingNumber) => {
     const guide = cleanGuide(trackingNumber);
     if (!guide) return { ok: false, carrier: 'servientrega', reason: 'missing_tracking_number' };
@@ -73,14 +79,19 @@ export const trackServientregaGuide = async (trackingNumber) => {
     const session = await launchCarrierBrowser();
     const { page } = session;
     try {
-        await page.goto(`https://www.servientrega.com.ec/Tracking/?guia=${encodeURIComponent(guide)}&tipo=GUIA`, {
+        const response = await page.goto(`https://www.servientrega.com.ec/Tracking/?guia=${encodeURIComponent(guide)}&tipo=GUIA`, {
             waitUntil: 'domcontentloaded',
             timeout: DEFAULT_TIMEOUT_MS
         });
+        const httpStatus = response?.status() || 0;
+        if (httpStatus >= 400 || httpStatus < 200) {
+            return { ok: false, carrier: 'servientrega', trackingNumber: guide,
+                reason: `carrier_http_${httpStatus || 'no_response'}`, httpStatus };
+        }
         await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => null);
         await page.waitForFunction(() => document.body?.innerText?.trim()?.length > 0, { timeout: 20000 });
 
-        const result = await page.evaluate((expectedGuide) => {
+        const result = await page.evaluate(() => {
             const lines = (document.body?.innerText || '')
                 .split(/\n+/)
                 .map((line) => line.replace(/\s+/g, ' ').trim())
@@ -96,7 +107,7 @@ export const trackServientregaGuide = async (trackingNumber) => {
             const movementDate = lines.find((line) => /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(line)) || '';
             const movementIndex = movementDate ? lines.indexOf(movementDate) : -1;
             return {
-                guia: guiaMatch?.[1] || expectedGuide,
+                guia: guiaMatch?.[1] || '',
                 statusAtual: lineAfter('Estado actual:'),
                 origem: routeMatch?.[1] || '',
                 destino: routeMatch?.[2] || '',
@@ -104,10 +115,10 @@ export const trackServientregaGuide = async (trackingNumber) => {
                 dataMovimento: movementDate,
                 ultimoMovimiento: movementIndex >= 0 ? (lines[movementIndex + 1] || '') : ''
             };
-        }, guide);
+        });
 
-        if (!result?.statusAtual && !result?.guia) {
-            return { ok: false, carrier: 'servientrega', trackingNumber: guide, reason: 'not_found' };
+        if (!verifiedServientregaResult(result, guide)) {
+            return { ok: false, carrier: 'servientrega', trackingNumber: guide, reason: 'unverified_tracking_result' };
         }
         const canonical = canonicalLogisticsProjectionV147({
             provider: 'servientrega',

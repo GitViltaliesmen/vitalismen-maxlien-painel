@@ -938,7 +938,7 @@ export const refreshCarrierBeforeDispatch = async (shipment, { previousDropiStat
     };
 };
 
-export const carrierStatusSweepQuery = ({ force = false, now = new Date(), transactionalV116 = false } = {}) => {
+export const carrierStatusSweepQuery = ({ force = false, now = new Date(), transactionalV116 = false, createdSince = null } = {}) => {
     const oldest = new Date(now.getTime() - carrierStatusSweepMaxAgeDays() * DAY_MS);
     const gap = transactionalV116 ? Math.max(carrierStatusSweepIntervalMinutes(), carrierStatusSweepMinGapMinutes()) : carrierStatusSweepMinGapMinutes();
     const checkedBefore = new Date(now.getTime() - gap * 60 * 1000);
@@ -972,6 +972,11 @@ export const carrierStatusSweepQuery = ({ force = false, now = new Date(), trans
             }
         ]
     };
+    if (createdSince) {
+        const cutoff = new Date(createdSince);
+        if (!Number.isFinite(cutoff.getTime())) throw new Error('carrier_status_sweep_created_since_invalid');
+        query.createdAt = { $gte: cutoff };
+    }
     if (transactionalV116) {
         query.$and[0] = {
             'logistics.status': { $nin: CARRIER_SWEEP_FINAL_STATUSES },
@@ -1007,6 +1012,7 @@ export const processCarrierStatusSweep = async ({
     force = false,
     transactionalV116 = false,
     activationWatermark = null,
+    createdSince = null,
     trackGuide = trackCarrierGuide
 } = {}) => {
     const startedAt = new Date();
@@ -1034,7 +1040,7 @@ export const processCarrierStatusSweep = async ({
         return lastCarrierSweep;
     }
 
-    const candidates = await Shipment.find(carrierStatusSweepQuery({ force, now: startedAt, transactionalV116 }))
+    const candidates = await Shipment.find(carrierStatusSweepQuery({ force, now: startedAt, transactionalV116, createdSince }))
         .sort({ 'raw.carrierTracking.lastCheckedAt': 1, updatedAt: 1, createdAt: 1 })
         .limit(effectiveLimit);
 

@@ -160,9 +160,10 @@ const nextBackoff = ({ shipment, classificationState, rowStatus, now }) => {
     return { attemptDay: day, attemptsToday, nextSyncAt, statusChanged };
 };
 
-const candidateQuery = (now = new Date()) => ({
+const candidateQuery = (now = new Date(), forwardOnlySince) => ({
     country: 'EC',
     provider: 'droppi',
+    createdAt: { $gte: forwardOnlySince },
     'review.manualOnly': { $ne: true },
     'automation.submittedToDroppiAt': { $exists: true, $ne: null },
     $and: [
@@ -283,7 +284,7 @@ export const processDropiTrackingReconciliationV194 = async ({
     const cutoff = dateValue(forwardOnlySince);
     if (!cutoff) throw new Error('post_sale_v194_forward_only_since_invalid');
     const safeLimit = Math.max(1, Math.min(Number(limit) || 8, 8));
-    const shipments = await shipmentModel.find(candidateQuery(now))
+    const shipments = await shipmentModel.find(candidateQuery(now, cutoff))
         .sort({ 'raw.postSaleV194DropiSync.lastSyncAt': 1, createdAt: 1 })
         .limit(safeLimit);
     const report = {

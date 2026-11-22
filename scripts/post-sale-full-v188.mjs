@@ -35,6 +35,9 @@ const action = String(process.argv[2] || 'snapshot').trim().toLowerCase();
 if (!['snapshot', 'dry-run', 'run'].includes(action)) {
     throw new Error('usage: post-sale-full-v188.mjs snapshot|dry-run|run');
 }
+const allowedActions = ['guide', 'in_transit', 'ready_for_pickup'];
+const limitedScope = process.env.POST_SALE_V263_ALLOWED_STAGES === allowedActions.join(',');
+if (action === 'run' && !limitedScope) throw new Error('post_sale_v263_limited_scope_required');
 
 const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.MONGODB_URL;
 if (!mongoUri) throw new Error('mongo_uri_missing');
@@ -81,6 +84,20 @@ try {
         }, null, 2)}\n`);
         if (!deterministic) process.exitCode = 2;
     } else if (action === 'dry-run') {
+        if (limitedScope) {
+            const dropiTracking = await processDropiTrackingReconciliationV194({
+                dryRun: true, now, forwardOnlySince, limit: 8
+            });
+            const statusDispatch = await processForwardLogisticsStageV194({
+                dryRun: true, now, forwardOnlySince, allowedActions
+            });
+            process.stdout.write(`${JSON.stringify({
+                status: 'PASS_DRY_RUN', mode: 'V263_LIMITED_DROPI_DRY_RUN', profile,
+                zapiConnected: true, sendWindowOpen: isPostSaleV188SendWindowOpen(now),
+                forwardOnlySince, allowedActions, sendCount: 0, dropiTracking,
+                statusDispatch, snapshot
+            }, null, 2)}\n`);
+        } else {
         const [reminders, proof, delivered, refill, statusDispatch, dropiTracking] = await Promise.all([
             processShipmentPickupRemindersV188({ limit: 1, dryRun: true, now, forwardOnlySince }),
             processPickupProofSweep({ limit: 50, dryRun: true }),
@@ -107,6 +124,7 @@ try {
             refill,
             snapshot
         }, null, 2)}\n`);
+        }
     } else {
         const dropiTracking = await processDropiTrackingReconciliationV194({
             now,
@@ -129,17 +147,11 @@ try {
                 nextAction: 'WAIT_NEXT_AMERICA_GUAYAQUIL_WINDOW'
             }, null, 2)}\n`);
         } else {
-            const carrierPolling = await processCarrierStatusSweep({ limit: 6, dryRun: false });
-            const proof = await processPickupProofSweep({
-                limit: 1,
-                dryRun: false,
-                maxPhysicalSends: 1,
+            const carrierPolling = limitedScope ? null : await processCarrierStatusSweep({ limit: 6, dryRun: false, createdSince: forwardOnlySince });
+            const proof = limitedScope ? null : await processPickupProofSweep({
+                limit: 1, dryRun: false, maxPhysicalSends: 1,
                 eligibilityFn: ({ shipment, proof: proofMessage }) => (
-                    isPostSaleV194ForwardOnlyEligible({
-                        shipment,
-                        stage: 'PICKUP_BONUS',
-                        forwardOnlySince
-                    })
+                    isPostSaleV194ForwardOnlyEligible({ shipment, stage: 'PICKUP_BONUS', forwardOnlySince })
                     && new Date(proofMessage?.createdAt || 0).getTime() >= forwardOnlySince.getTime()
                 )
             });
@@ -152,11 +164,12 @@ try {
                 statusDispatch = await processForwardLogisticsStageV194({
                     dryRun: false,
                     now: new Date(),
-                    forwardOnlySince
+                    forwardOnlySince,
+                    allowedActions
                 });
                 outboundCount += Number(statusDispatch?.sent || 0);
             }
-            if (outboundCount === 0) {
+            if (!limitedScope && outboundCount === 0) {
                 reminders = await processShipmentPickupRemindersV188({
                     limit: 1,
                     dryRun: false,
@@ -165,7 +178,7 @@ try {
                 });
                 outboundCount += Number(reminders?.sent || 0);
             }
-            if (outboundCount === 0) {
+            if (!limitedScope && outboundCount === 0) {
                 delivered = await processDeliveredSequenceV188({
                     limit: 1,
                     dryRun: false,
@@ -174,7 +187,7 @@ try {
                 });
                 outboundCount += Number(delivered?.sent || 0);
             }
-            if (outboundCount === 0) {
+            if (!limitedScope && outboundCount === 0) {
                 refill = await processRefillStageV188({
                     limit: 1,
                     dryRun: false,
@@ -184,7 +197,7 @@ try {
                 outboundCount += Number(refill?.sent || 0);
             }
             let customerInvites = null;
-            if (outboundCount === 0) {
+            if (!limitedScope && outboundCount === 0) {
                 customerInvites = await processCustomerInvitesV232({ dryRun: false, now: new Date() });
                 outboundCount += Number(customerInvites?.physicalOutboundCount || 0);
             }

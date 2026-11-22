@@ -44,6 +44,9 @@ const EXPECTED_PROFILE = Object.freeze({
     // identidade não pode ser reutilizada aqui porque a V78 exige todos os
     // schedulers desligados e um write context HTTP próprio.
     VITALISMEN_EC_BOT_CORE_OPERATIONAL: 'false',
+    // Isolate the approved post-sale executor from the PM2 bot's QA-only canary.
+    VITALISMEN_CANARY_V75_ENABLED: 'false',
+    WHATSAPP_AUTOMATION_PILOT_ONLY: 'false',
     VITALISMEN_STRICT_READ_ONLY: 'false',
     VITALISMEN_EC_POSTSALE_TRANSACTIONAL_OPERATIONAL: 'true',
     POST_SALE_TRANSACTIONAL_AT_MOST_ONCE_V116_ENABLED: 'true',
