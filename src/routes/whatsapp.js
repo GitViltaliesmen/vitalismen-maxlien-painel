@@ -107,6 +107,7 @@ import {
     panelOrderLifecycle
 } from '../services/ecDeliveredRepurchaseService.js';
 import { projectPanelCustomerReadModel } from '../services/panelCustomerReadModelService.js';
+import { shipmentCustomerTimelineEvents } from '../services/shipmentCustomerTimelineService.js';
 import { searchPanelCustomersGlobally } from '../services/panelGlobalCustomerSearchService.js';
 import {
     isStrictReadOnlyObservationEnabled,
@@ -5714,8 +5715,9 @@ router.get('/customer-profile/:phone', async (req, res) => {
                     order.package?.quantity ? `${order.package.quantity} frasco(s)` : '',
                     order.total ? `${order.total} ${order.currency || 'USD'}` : ''
                 ].filter(Boolean).join(' · ')
-            }))
-        ].sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime()).slice(0, 12);
+            })),
+            ...shipmentCustomerTimelineEvents(shipmentCandidates)
+        ].sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime()).slice(0, 40);
 
         res.json({
             primaryPhone,
