@@ -22,12 +22,12 @@ Na produção Hostinger oficial, de 18/11/2026 00:00 UTC em diante, há 21 mensa
 
 No mesmo intervalo há 14 pedidos Tex confirmados; 13 têm `Purchase` com aceite V254 e um conserva recibo anterior. Todos indicam o dataset `920532663934291`, sem `measurementVersion=243` nem `attributionSource=tex_verified_first_touch_v243`. O vinculador V243 exige `Referencia: TX243-...` no inbound, enquanto a CTA oficial V245 envia somente `Hola, quiero el tratamiento Tex Ultra.`. Essa remoção foi deliberada. Os 14 pedidos não podem ser atribuídos retroativamente ao pixel `1100892582698669` sem prova individual da origem; os recibos aceitos não devem ser reenviados.
 
-## Condições antes de publicação
+## Gates da jornada e estado atual
 
-1. Obter e comparar os bytes atuais dos assets da origem Plusmen com a candidata; aplicar somente o delta autorizado e passar o guard de freeze da página.
-2. Confirmar na própria conta Meta `1088255310505694` o pixel `1100892582698669`, permissão do token, anúncio/conjunto, janela e evento de otimização. As tentativas atuais de Graph API retornaram 401/403. A interface do Gerenciador de Eventos mostrou o conjunto `MANUELA_SANTOS_LATAM_CO` (`1100892582698669`) associado a `plusmen.shop`, com PageView e ViewContent ativos; o último `InitiateCheckout` tinha cerca de dois dias e não havia `Purchase` na lista de eventos do período de 17 a 21/11. Essa leitura não comprova atribuição de campanha.
+1. **Concluído:** obter e comparar os bytes atuais dos assets da origem Plusmen com a candidata; aplicar somente o delta autorizado e passar o guard de freeze da página.
+2. **Pendente para validar atribuição:** confirmar na própria conta Meta `1088255310505694` o pixel `1100892582698669`, anúncio/conjunto, janela e evento de otimização. O token de CAPI da origem aceita eventos existentes no pixel correto, mas os tokens EC consultados não têm leitura da conta de anúncios (401/403). A interface do Gerenciador de Eventos mostrou o conjunto `MANUELA_SANTOS_LATAM_CO` (`1100892582698669`) associado a `plusmen.shop`, com PageView e ViewContent ativos; o último `InitiateCheckout` tinha cerca de dois dias e não havia `Purchase` na lista de eventos do período de 17 a 21/11. Essa leitura não comprova atribuição de campanha.
 3. Definir uma correlação prospectiva consentida entre a visita Plusmen e o inbound sem reintroduzir automaticamente a referência visível proibida pela V245. Confirmar com o operador qualquer mudança na mensagem oficial.
-4. Executar teste autenticado isolado da CTA, recibo de aceitação do evento no conjunto correto e observação de jornada real posterior. Criar backup verificável e sucessor selado antes de ativar; verificar página e Meta após a ativação.
+4. **Parcial:** teste isolado da CTA, backup verificável, sucessor selado e verificação dos assets públicos concluídos. O recibo de aceitação de um novo `InitiateCheckout` e a observação da jornada real posterior continuam pendentes. Não declarar o funil ou as vendas atribuídas como concluídos antes desses recibos.
 
 Não houve evento Meta, mensagem WhatsApp, lead ou pedido sintético nesta auditoria. Não se alterou a produção nem a configuração da conta.
 
