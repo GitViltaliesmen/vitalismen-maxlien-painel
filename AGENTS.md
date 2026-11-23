@@ -41,6 +41,35 @@ node scripts/audit-ec-product-micro-layer.mjs
 
 ## Regra maxima anti-spam WhatsApp EC
 
+### Identidade do telefone da CTA Plusmen Tex
+
+O recibo historico `docs/freeze/V152_B_PROVIDER_INDEPENDENT_CORE_FREEZE_RECEIPT_20260911.json`
+registrou `5531971862958` como numero canonico e `553171862958` como numero
+vinculado ao provedor, com equivalencia operacional `PROVEN` naquela data. A
+variante brasileira com um nono digito e tratada por
+`src/whatsapp/core/phoneIdentity.js`. O asset Plusmen Tex congelado na V257
+usa o formato vinculado ao provedor. Nao classificar esses dois formatos como
+contas diferentes apenas pela quantidade de digitos e nao trocar o destino da
+CTA por esse motivo isolado.
+
+A equivalencia historica nao substitui uma verificacao atual. Para diagnosticar
+falha de entrega, comparar o destino da CTA publicada, o dispositivo Z-API
+conectado e um recibo recente de entrada no bot para a mesma mensagem. Se o
+recibo atual faltar, registrar `NOT_PROVEN`; nao mudar VSL, bot, numero ou
+integracao sem identificar a primeira etapa quebrada. O telefone de QA
+`5515998038637` pode testar transporte, mas nao comprova atribuicao de lead
+equatoriano, compra ou evento Meta.
+
+Leitura pontual de producao em 23/11/2026: `GET /api/zapi/whatsapp-link` no
+servico oficial retornou o telefone do dispositivo `553171862958`. Entre
+17 e 23/11/2026 (datas UTC), a colecao `messages` registrou 417 mensagens
+inbound de telefones equatorianos pela Z-API, todas com `ownerPhoneDigits`
+`5531971862958`; 42 mencionavam Tex ou a frase de tratamento. Isto confirma
+recebimento real na conta vinculada ao dispositivo e a normalizacao para o
+numero canonico, mas nao prova que todas vieram da Plusmen. Nenhuma dessas
+mensagens continha a referencia `TX243` da V257. Para atribuir uma jornada
+Plusmen individual, exigir o recibo da referencia na mensagem recebida.
+
 Nunca deixar scheduler reenviar automaticamente a mesma midia, guia, print, fatura, audio ou mensagem para o mesmo cliente/pedido.
 
 Risco maximo: repeticao automatica pode banir o WhatsApp oficial `5515991418416`.
