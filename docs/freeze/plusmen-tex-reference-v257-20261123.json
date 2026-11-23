@@ -1,0 +1,31 @@
+{
+  "project": "VITALISMEN_EC",
+  "version": 257,
+  "authorization": "USER_20261123_ADD_TEX_VISIT_REFERENCE_KEEP_PAGE_CONFIGURATION",
+  "status": "AUTHORIZED_EXACT_SUCCESSOR",
+  "officialUrl": "https://plusmen.shop/tex",
+  "parentV256Sha256": "831ff907a2e9db0fa3b72523ad5760e5df82ec1db83bb4d20506e9eaccb775b7",
+  "target": {
+    "path": "/var/www/plusmen-tex-vsl-v1/assets/whatsapp-tex-v243.js",
+    "beforeSha256": "c1a6e560b967601ead74ad23a9e1e017651c4b19007d37bc7722ab75063333dc",
+    "sha256": "1843b5a26b28d08535b7fec5e60d623d2f7a0642b3795d177f858664479b7ee3",
+    "mode": 420,
+    "patches": [
+      {
+        "before": "  var message = 'Hola, quiero el tratamiento Tex Ultra.';\n  var text = encodeURIComponent(message);\n  var appUrl = 'whatsapp://send?phone=' + phone + '&text=' + text;\n  var fallbackUrl = 'https://wa.me/' + phone + '?text=' + text;\n",
+        "after": "  var baseMessage = 'Hola, quiero el tratamiento Tex Ultra.';\n"
+      },
+      {
+        "before": "    try { window.VitpowerMeta?.initiateCheckout('tex_cta_click_v256'); } catch (_) {}\n\n    button.setAttribute('data-whatsapp-phone', phone);",
+        "after": "    try { window.VitpowerMeta?.initiateCheckout('tex_cta_click_v256'); } catch (_) {}\n\n    var reference = '';\n    try { reference = window.TexUltraMeasurementV243?.reference?.() || ''; } catch (_) {}\n    var message = baseMessage + (/^TX243-[a-f0-9]{64}$/.test(reference) ? '\\nReferencia: ' + reference : '');\n    var text = encodeURIComponent(message);\n    var appUrl = 'whatsapp://send?phone=' + phone + '&text=' + text;\n    var fallbackUrl = 'https://wa.me/' + phone + '?text=' + text;\n\n    button.setAttribute('data-whatsapp-phone', phone);"
+      }
+    ]
+  },
+  "preservedSha256": {
+    "/etc/nginx/sites-available/plusmen.shop": "32ac47547925f1f6e509543b48a4b3193deb4bbcbd06a46f229f840fba391196",
+    "/etc/nginx/snippets/plusmen-tex-mobile-v1.conf": "7f63ffee9c57af31e01beb0348da3d6489acf439cd9dc6dd6b48d6262e196f78",
+    "/var/www/plusmen-tex-vsl-v1/index.html": "3eea708b8708e32a4a472bfb4b85cd681ac3f02fa4db0d54def9f1cddc5fc837",
+    "/var/www/plusmen-tex-vsl-v1/assets/whatsapp.js": "e3faca1d243749ec0f578c91e2cb767cd803915a34163d11308c5158b5ff97dc",
+    "/var/www/plusmen-tex-vsl-v1/assets/meta-tex-ultra.js": "6fc15b7d30971703f39ec4eb8aa0be9539caf1cc19540762f780fa8d7e62b4e3"
+  }
+}
