@@ -25,7 +25,7 @@ Correcao obrigatoria de nomenclatura: nao e Superfull. Superfull nao deve ser cr
 
 E proibido misturar, importar, copiar, comparar ou publicar qualquer coisa de Colombia, Contabo, Maxtourus, outro dominio, outro numero, outro banco, outro pixel, outro funil, outro VPS ou outro Git sem pedido explicito do operador citando exatamente essa origem.
 
-Qualquer mudanca neste fluxo deve ser micro camada pontual. Nao esta autorizado mexer no motor principal do bot, preco, checkout, Dropi, Meta/CAPI, pixel, Z-API, numero de WhatsApp, funil comercial ou memoria de pedidos sem aprovacao explicita.
+Qualquer mudanca neste fluxo deve ser micro camada pontual. Nao esta autorizado mexer no motor principal do bot, preco, checkout, Dropi, Meta/CAPI, pixel, transporte WhatsApp, numero de WhatsApp, funil comercial ou memoria de pedidos sem aprovacao explicita.
 
 Estado congelado e trava de escopo:
 
@@ -81,7 +81,7 @@ No modo operacional aprovado, identificado por `VIT_POWER_OPERATIONAL_AUTOMATION
 
 Nunca alterar apenas `WHATSAPP_FUNNEL_ENABLED`. A troca entre modos e uma mudanca operacional coordenada, exige decisao explicita e deve manter o conjunto inteiro validado pelo senior guard.
 
-Para a operacao EC atual, Z-API e o transporte oficial de entrada/saida publica. Baileys pode permanecer habilitado ou em `scanning` como camada coexistente, mas a falta de sessao Baileys pronta nao torna a operacao indisponivel quando a Z-API oficial estiver configurada e conectada. O health deve consultar a Z-API por mecanismo somente leitura, sem enviar mensagens, criar sessao ou modificar estado.
+Para a operacao EC atual, o transporte oficial de entrada e saida e a sessao vinculada do WhatsApp Business no modo `baileys_text`, ativada no sucessor V265. O painel oficial deve consultar `/api/whatsapp/status` e mostrar o estado real da sessao vinculada. Nao usar o status da integracao anterior como indicador de disponibilidade, nem reativar suas consultas, rotas ou envio sem nova autorizacao expressa. O health deve ser somente leitura, sem enviar mensagens, criar sessao ou modificar estado. Manter o registro historico de mensagens e recibos sem reescrever sua origem.
 
 ## Congelamento total atual
 
