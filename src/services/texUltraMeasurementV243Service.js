@@ -9,15 +9,32 @@ const PHONE = /^593[2-79]\d{8}$/;
 const digits = x => String(x || '').replace(/\D/g, '');
 const ms = x => Number(x) * (Number(x) < 1e12 ? 1000 : 1);
 const mac = (key, text) => createHmac('sha256', key).update(text).digest('hex');
+const measurementTransport = (input, scope, c) => {
+  if (input.provider !== 'baileys' && input.sessionId === 'zapi' && scope?.method === 'POST' && scope.writeContext === true
+    && /^\/api\/zapi\/webhook(?:\/(?:received|delivery))?$/.test(scope.path || '')) {
+    return { provider: 'zapi', sessionId: 'zapi', ownerPhoneDigits: c.ownerPhone };
+  }
+  const linked = scope?.baileysInbound;
+  if (input.provider === 'baileys' && linked?.verified === true && scope.method === 'SOCKET' && scope.writeContext === true
+    && scope.path === '/internal/whatsapp/baileys-inbound'
+    && linked.sessionId === input.sessionId && linked.messageId === input.sourceMessageId
+    && linked.ownerPhoneDigits === input.ownerPhoneDigits
+    && [c.ownerPhone, c.officialPhone].includes(linked.ownerPhoneDigits)) {
+    return { provider: 'baileys', sessionId: linked.sessionId, ownerPhoneDigits: linked.ownerPhoneDigits };
+  }
+  return null;
+};
+const subjectFor = (c, transport, phone) => mac(c.key,
+  `VITALISMEN_EC:tex_ultra_ec:${transport.provider}:${transport.ownerPhoneDigits}:${phone}`);
 export function texMeasurementReferenceV243(text) {
   return typeof text === 'string' ? text.replace(/\r\n/g, '\n').trim().match(/^Hola, quiero el tratamiento Tex Ultra\.\nReferencia: (TX243-[a-f0-9]{64})$/)?.[1] || '' : '';
 }
-export function createTexMeasurementV243({ capability, context, findInbound, now = Date.now, post } = {}) {
+export function createTexMeasurementV243({ capability, context, findInbound, now = Date.now, post, journalFactory = createJournal } = {}) {
   let store, storeDirectory;
   const cap = () => { const value = capability?.(); return value?.isCurrent?.() === true ? value : null; };
   function ledger(c) {
     if (store && storeDirectory !== c.directory) throw Error('tex_measurement_directory_changed');
-    storeDirectory = c.directory; return store ||= createJournal({ directory: c.directory, now });
+    storeDirectory = c.directory; return store ||= journalFactory({ directory: c.directory, now });
   }
   async function sendOnce(c, kind, key, proof) {
     const j = ledger(c);
@@ -48,9 +65,10 @@ export function createTexMeasurementV243({ capability, context, findInbound, now
       return result;
     },
     async observe(input) {
-      const c = cap(); if (!c || input.recovered === true || input.sessionId !== 'zapi') return null;
+      const c = cap(); if (!c || input.recovered === true) return null;
       const scope = await context();
-      if (scope?.method !== 'POST' || scope?.writeContext !== true || !/^\/api\/zapi\/webhook(?:\/(?:received|delivery))?$/.test(scope.path || '')) return null;
+      const transport = measurementTransport(input, scope, c);
+      if (!transport) return null;
       const phone = digits(input.state?.phoneDigits);
       if (!PHONE.test(phone) || input.state?.metadata?.testOnly === true || typeof input.sourceMessageId !== 'string' || !input.sourceMessageId || input.sourceMessageId.length > 250 || typeof input.inboundText !== 'string' || !Number.isFinite(Date.parse(c.activatedAt))) return null;
       let reference = texMeasurementReferenceV243(input.inboundText), channel = 'whatsapp';
@@ -65,14 +83,15 @@ export function createTexMeasurementV243({ capability, context, findInbound, now
         reference = row.reference; channel = 'web';
       }
       if (!REF.test(reference)) return null;
-      const message = await findInbound({ _id: input.sourceMessageId, provider: 'zapi', sessionId: 'zapi', ownerPhoneDigits: c.ownerPhone, isFromMe: false, peerPhone: phone });
+      const message = await findInbound({ _id: input.sourceMessageId, provider: transport.provider, sessionId: transport.sessionId, ownerPhoneDigits: transport.ownerPhoneDigits, isFromMe: false, peerPhone: phone });
       const at = ms(message?.timestamp);
       if (!message || message.body !== input.inboundText || !Number.isFinite(at) || at < Date.parse(c.activatedAt) || at > now() + 60000 || now() - at > 86400000) return null;
-      const subject = mac(c.key, 'VITALISMEN_EC:tex_ultra_ec:zapi:' + c.ownerPhone + ':' + phone), j = ledger(c);
+      const subject = subjectFor(c, transport, phone), j = ledger(c);
       const proof = { version: 243, kind: 'Lead', reference, subject, inboundId: hash(String(input.sourceMessageId)), occurredAt: at, channel };
       const receipt = await sendOnce(c, 'leads', subject, proof);
       // Only this new metadata path is written. Existing VSL origin/name/order/history stay intact.
-      const marker = { version: 243, reference, subject, confirmedAt: at, channel, pixelId: TEX_MEASUREMENT_PIXEL_V243 };
+      const marker = { version: 243, reference, subject, confirmedAt: at, channel, pixelId: TEX_MEASUREMENT_PIXEL_V243,
+        provider: transport.provider, ownerPhoneDigits: transport.ownerPhoneDigits };
       if (receipt?.verified === true) {
         const previous = await j.read('subjects', subject);
         if (!previous) await j.write('subjects', subject, marker);
@@ -89,13 +108,17 @@ export function createTexMeasurementV243({ capability, context, findInbound, now
       if (order.tracking?.metaPurchaseSentAt || order.tracking?.measurementVersion === 148) return false;
       const entry = +new Date(order.entryAt || order.createdAt || 0);
       if (!entry || entry < marker.confirmedAt || digits(order.customer.phone) !== digits(state.phoneDigits)) return false;
-      const subject = mac(c.key, 'VITALISMEN_EC:tex_ultra_ec:zapi:' + c.ownerPhone + ':' + digits(order.customer.phone));
+      const transport = { provider: marker.provider || 'zapi', ownerPhoneDigits: marker.ownerPhoneDigits || c.ownerPhone };
+      if (!['zapi', 'baileys'].includes(transport.provider) || ![c.ownerPhone, c.officialPhone].includes(transport.ownerPhoneDigits)) return false;
+      const subject = subjectFor(c, transport, digits(order.customer.phone));
       const saved = await ledger(c).read('subjects', subject);
       if (!saved || saved.reference !== marker.reference || saved.subject !== marker.subject) return false;
       order.tracking = { ...(order.tracking?.toObject?.() || order.tracking || {}), measurementVersion: 243,
         browserPixelId: TEX_MEASUREMENT_PIXEL_V243, sourceUrl: 'https://plusmen.shop/tex',
         attributionSource: 'tex_verified_first_touch_v243', attributionVisitorKey: saved.reference,
-        attributionMatchedAt: new Date(saved.confirmedAt), attributionConfidence: 'official_zapi_exact_message',
+        attributionMatchedAt: new Date(saved.confirmedAt),
+        attributionConfidence: transport.provider === 'baileys' ? 'official_baileys_exact_message' : 'official_zapi_exact_message',
+        measurementTransport: transport.provider, measurementOwnerPhoneDigits: transport.ownerPhoneDigits,
         attributionCorrelationStatus: 'CLAIMED', attributionCorrelationReason: 'TX243_VERIFIED_OFFICIAL_INBOUND' };
       return true;
     },
@@ -108,7 +131,10 @@ export function createTexMeasurementV243({ capability, context, findInbound, now
       if (order.country !== 'EC' || order.tracking.productKey !== 'tex_ultra_ec' || order.currency !== 'USD' || !PHONE.test(phone) || !REF.test(reference || '')
         || !['confirmed', 'processing', 'shipped', 'delivered'].includes(order.status) || ![1,2,3,6].includes(quantity) || !(value > 0) || !Number.isFinite(value)
         || !order.orderId || !confirmedAt || confirmedAt < Date.parse(c.activatedAt) || confirmedAt > now() + 60000 || now() - confirmedAt > 604800000) return { ok: false, blocked: true, error: 'tex_measurement_purchase_not_qualified' };
-      const subject = mac(c.key, 'VITALISMEN_EC:tex_ultra_ec:zapi:' + c.ownerPhone + ':' + phone), saved = await ledger(c).read('subjects', subject);
+      const transport = { provider: order.tracking.measurementTransport || 'zapi',
+        ownerPhoneDigits: order.tracking.measurementOwnerPhoneDigits || c.ownerPhone };
+      if (!['zapi', 'baileys'].includes(transport.provider) || ![c.ownerPhone, c.officialPhone].includes(transport.ownerPhoneDigits)) return { ok: false, blocked: true, error: 'tex_measurement_transport_invalid' };
+      const subject = subjectFor(c, transport, phone), saved = await ledger(c).read('subjects', subject);
       if (!saved || saved.reference !== reference || entryAt < saved.confirmedAt) return { ok: false, blocked: true, error: 'tex_measurement_purchase_origin_not_proven' };
       const orderKey = mac(c.key, 'tex_ultra_ec:order:' + String(order.orderId));
       const proof = { version: 243, kind: 'Purchase', reference, subject, orderKey, occurredAt: confirmedAt, quantity, value, currency: 'USD' };

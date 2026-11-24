@@ -2,6 +2,7 @@ import { texEntryV249Current, isProcessedTexEntryDuplicateV249 } from '../servic
 import { isPublishedTexUltraEntryV246 } from '../services/texUltraEntryClassificationV246Service.js';
 import { captureInboundMedia } from '../services/inboundMediaReplayV208Service.js';
 import express from 'express';
+import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
 import {
     getZapiDevice,
     getZapiStatus,
@@ -1563,6 +1564,7 @@ router.post('/webhook/delivery', async (req, res) => {
 
 router.post('/webhook', async (req, res) => {
     try {
+        if (ecBaileysTextMode()) return res.status(202).json({ ok: true, skipped: true, reason: 'zapi_transport_retired' });
         if (isStrictReadOnlyObservationEnabled() || !isZapiInboundPersistenceEnabled() || !isZapiAckPersistenceEnabled()) {
             return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_webhook' }));
         }
@@ -1624,6 +1626,7 @@ router.post('/webhook', async (req, res) => {
 
 router.post('/webhook/received', async (req, res) => {
     try {
+        if (ecBaileysTextMode()) return res.status(202).json({ ok: true, skipped: true, reason: 'zapi_transport_retired' });
         if (isStrictReadOnlyObservationEnabled() || !isZapiInboundPersistenceEnabled() || !isZapiAckPersistenceEnabled()) {
             return res.status(202).json(strictReadOnlyAcceptedPayload({ surface: 'zapi_received' }));
         }

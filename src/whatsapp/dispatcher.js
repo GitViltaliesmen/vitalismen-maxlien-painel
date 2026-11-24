@@ -4,7 +4,9 @@ import crypto from 'crypto';
 import { enqueueMessage } from './queue.js';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import { routeIncomingMessage } from '../services/agentRouter.js';
+import { runVerifiedBaileysInboundV265 } from '../services/ecBotCoreRuntimeIntegrationV78Service.js';
 import { getOwnPhoneDigits } from './connection.js';
+import { ecBaileysTextMode } from './ecTransportMode.js';
 import { handlePickupProofInbound, isPickupProofText } from '../services/shipmentMessageService.js';
 import { transcribeInboundAudioBuffer } from '../services/inboundAudioTranscriptionService.js';
 import Message from '../models/Message.js';
@@ -227,6 +229,7 @@ export const setupDispatcher = (sock, currentSocketId = 'N/A', sessionId = 'defa
         }
         if (!msg || !msg.message || msg.key.fromMe) return;
         if (!['notify', 'append'].includes(String(type || ''))) return;
+        if (ecBaileysTextMode() && type !== 'notify') return;
         const remoteJid = msg.key.remoteJid;
         const senderPn = msg.key?.senderPn || msg.key?.participant || null;
         const canaryDecision = evaluateCanaryV75Recipient(senderPn || remoteJid, {
@@ -256,6 +259,7 @@ export const setupDispatcher = (sock, currentSocketId = 'N/A', sessionId = 'defa
         }
         console.log(`[DISPATCHER] [socketId=${currentSocketId}] inbound -> ${remoteJid} | text="${text.slice(0, 80)}" | session=${sessionId}`);
         enqueueMessage(remoteJid, async () => {
+            const processInbound = async () => {
             try {
                 let effectiveText = text;
                 let downloadedMediaBuffer = null;
@@ -374,10 +378,21 @@ export const setupDispatcher = (sock, currentSocketId = 'N/A', sessionId = 'defa
                         ...msg,
                         transcribedAudioText: effectiveText
                     },
+                    provider: 'baileys',
+                    ownerPhoneDigits: ownDigits,
                     sessionId
                 });
             } catch (err) {
                 console.error('Erro no dispatcher:', err);
+            }
+            };
+            if (!ecBaileysTextMode()) return processInbound();
+            try {
+                return await runVerifiedBaileysInboundV265({ socket: sock, sessionId,
+                    messageId: msg.key.id, ownerPhoneDigits: ownDigits,
+                    senderPhoneDigits: digitsOnly(senderPn) || knownEcPhone || remoteDigits }, processInbound);
+            } catch (error) {
+                console.error('[DISPATCHER] inbound do dispositivo bloqueado:', error.message);
             }
         });
     });

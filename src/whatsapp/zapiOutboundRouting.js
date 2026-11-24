@@ -1,4 +1,5 @@
 import { zapiConfig } from '../services/zapiClient.js';
+import { ecBaileysTextMode } from './ecTransportMode.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
@@ -33,6 +34,7 @@ const isZapiOperationalTestRecipient = (phone = '') => {
 };
 
 export const shouldUseZapiForOutbound = ({ targetJid, recipientDigits = '', options = {} } = {}) => {
+    if (ecBaileysTextMode()) return false;
     if (!zapiConfig().enabled) return false;
     const phone = digitsOnly(recipientDigits) || digitsOnly(targetJid);
     if (!looksLikeZapiRoutedPhone(phone) && !isZapiOperationalTestRecipient(phone)) return false;

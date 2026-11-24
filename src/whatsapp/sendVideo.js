@@ -10,8 +10,14 @@ import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRo
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
 import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
+import { ecMediaAllowedForTransport } from './ecTransportMode.js';
+import { recordEcMediaHandoff } from './ecMediaHandoff.js';
 
 export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
+    if (!ecMediaAllowedForTransport()) {
+        await recordEcMediaHandoff({ jid, recipientDigits: options.recipientDigits, kind: 'video' });
+        return false;
+    }
     if(!await giraOutboundAllowed(jid,options,'video'))return false;
     assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_video' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {

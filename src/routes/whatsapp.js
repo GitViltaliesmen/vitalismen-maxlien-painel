@@ -24,6 +24,7 @@ import { sendImage } from '../whatsapp/sendImage.js';
 import { sendVideo } from '../whatsapp/sendVideo.js';
 import { canSendOutbound } from '../whatsapp/outboundGuard.js';
 import { getSenderPoolStatus } from '../whatsapp/sessionRouter.js';
+import { ecTransportMode } from '../whatsapp/ecTransportMode.js';
 import { sendZapiDocument } from '../services/zapiClient.js';
 import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from '../whatsapp/zapiOutboundRouting.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
@@ -3472,6 +3473,7 @@ router.get('/status', authMiddleware, (req, res) => {
         return res.json(getStatus(sessionId));
     }
     return res.json({
+        transportMode: ecTransportMode(),
         defaultSessionId: process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default',
         sessions: getAllStatuses()
     });
@@ -4087,6 +4089,7 @@ router.patch('/chat-labels/:phone', async (req, res) => {
 
 router.get('/sessions', adminOnly, (req, res) => {
     res.json({
+        transportMode: ecTransportMode(),
         defaultSessionId: process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default',
         sessions: getAllStatuses()
     });

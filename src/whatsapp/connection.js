@@ -14,9 +14,17 @@ import {
     reserveCallAutoReply
 } from '../services/callAutoReplySafetyService.js';
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
+import { ecBaileysTextMode } from './ecTransportMode.js';
 
 const DEFAULT_SESSION_ID = process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
-const AUTH_BASE_DIR = path.join(process.cwd(), 'auth_info_baileys');
+const AUTH_BASE_DIR = process.env.WHATSAPP_AUTH_BASE_DIR
+    ? path.resolve(process.env.WHATSAPP_AUTH_BASE_DIR)
+    : path.join(process.cwd(), 'auth_info_baileys');
+if (ecBaileysTextMode() && process.env.NODE_ENV === 'production'
+    && (!process.env.WHATSAPP_AUTH_BASE_DIR
+        || !AUTH_BASE_DIR.startsWith('/opt/vitalismen-automacao/shared/runtime/whatsapp-auth/'))) {
+    throw new Error('ec_whatsapp_auth_storage_not_durable');
+}
 const autoRejectCalls = String(process.env.WHATSAPP_AUTO_REJECT_CALLS || '') === 'true';
 const callAutoReplyAudioName = process.env.WHATSAPP_CALL_AUTO_REPLY_AUDIO || 'CLIENTES_QUE_LIGAM';
 const callSecondReplyText = process.env.WHATSAPP_CALL_SECOND_REPLY
@@ -92,7 +100,8 @@ const discoverSessionIdsFromAuthDir = () => {
 const ensureAuthDir = (sessionId) => {
     migrateLegacyAuthStorage();
     const dir = path.join(AUTH_BASE_DIR, sanitizeSessionId(sessionId));
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    if (process.platform !== 'win32') fs.chmodSync(dir, 0o700);
     return dir;
 };
 
@@ -126,6 +135,11 @@ const getConfiguredOrKnownSessionIds = () => {
 };
 
 const resolveSessionForOutbound = (sessionId = null) => {
+    // Historical contacts retain the symbolic Z-API session. Keep their
+    // records intact and map only the live transport lookup after cutover.
+    if (ecBaileysTextMode() && sessionId === 'zapi') {
+        return getOrCreateSession(DEFAULT_SESSION_ID);
+    }
     if (sessionId) {
         return getOrCreateSession(sessionId);
     }

@@ -27,6 +27,25 @@ test('real persisted official inbound alone qualifies; phone/name never leave ba
  assert.equal(Object.keys(s.writes[0].$set).join(','),'metadata.texMeasurementV243');
  assert.ok(!JSON.stringify(s.calls).includes(phone));assert.ok(!JSON.stringify(s.calls).includes('name'));
 });
+test('linked device requires exact socket context, owner and persisted inbound before a Tex claim',async t=>{
+ const s=await setup(t),owner=s.capability.officialPhone;
+ const input={...s.input,sessionId:'default',provider:'baileys',ownerPhoneDigits:owner};
+ const scope={method:'SOCKET',path:'/internal/whatsapp/baileys-inbound',writeContext:true,
+  baileysInbound:{verified:true,sessionId:'default',messageId:input.sourceMessageId,ownerPhoneDigits:owner}};
+ s.setScope(scope);
+ assert.equal((await s.runtime.observe(input)).ok,true);
+ assert.deepEqual({provider:s.selector.provider,sessionId:s.selector.sessionId,owner:s.selector.ownerPhoneDigits},
+  {provider:'baileys',sessionId:'default',owner});
+ assert.equal(s.input.state.metadata.texMeasurementV243.provider,'baileys');
+ const order={country:'EC',tracking:{productKey:'tex_ultra_ec'},customer:{phone:'+'+phone},entryAt:new Date(T+1000)};
+ assert.equal(await s.runtime.bindOrder(order,s.input.state),true);
+ assert.equal(order.tracking.attributionConfidence,'official_baileys_exact_message');
+ assert.equal(order.tracking.measurementOwnerPhoneDigits,owner);
+ const bad=await setup(t);bad.setScope({...scope,baileysInbound:{...scope.baileysInbound,messageId:'wrong'}});
+ assert.equal(await bad.runtime.observe(input),null);assert.equal(bad.calls.length,0);
+ const badOwner=await setup(t);badOwner.setScope({...scope,baileysInbound:{...scope.baileysInbound,ownerPhoneDigits:'5531999999999'}});
+ assert.equal(await badOwner.runtime.observe({...input,ownerPhoneDigits:'5531999999999'}),null);
+});
 test('recovered, QA, wrong session, missing context and altered persisted body never qualify',async t=>{
  for(const change of [{recovered:true},{sessionId:'other'},{state:{phoneDigits:'5515998038637',metadata:{testOnly:true}}}]){
   const s=await setup(t);assert.equal(await s.runtime.observe({...s.input,...change}),null);assert.equal(s.calls.length,0);
