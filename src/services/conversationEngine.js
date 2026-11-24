@@ -42,6 +42,7 @@ import { handleNitrixFastStateInbound } from './nitrixFastStateService.js';
 import { handleTexUltraFunnelInbound } from './texUltraFunnelService.js';
 import { EC_PRODUCT_INGREDIENTS, maybeHandleEcuadorProductIngredients } from './ecProductIngredientsService.js';
 import { maybeHandleEcuadorDirectProductInquiry } from './ecDirectProductInquiryService.js';
+import { preferTexLinkedEntryV267 } from './texUltraLinkedEntryV267Service.js';
 import { repeatPurchasePendingOrderV146 } from './ecCommercialCycleV146Service.js';
 import { sendInitiateCheckoutForPendingOrderV146 } from './metaInitiateCheckoutV146Service.js';
 import {
@@ -8124,7 +8125,9 @@ export const handleAgentConversation = async (msg, agentProfile = null) => {
         const questionPriorityEnabledV219 = agentProfile.key === 'vit_power_ec'
             && globalThis.__VITALISMEN_EC_FREEFLOW_V219?.canHandle?.(peerPhone) === true;
         const questionPriorityV219 = Boolean(msg.vitPowerBurstV228) || prioritizeFreeflowV219({ productKey: agentProfile.key, enabled: questionPriorityEnabledV219, text });
-        const directProductInquiry = questionPriorityV219 ? { handled: false } : await maybeHandleEcuadorDirectProductInquiry({
+        const linkedTexEntryV267 = preferTexLinkedEntryV267({ text, state: contactState,
+            productKey: agentProfile.key, sourceMessageId: msg.id || '', sessionId: msg.sessionId || null });
+        const directProductInquiry = (questionPriorityV219 || linkedTexEntryV267) ? { handled: false } : await maybeHandleEcuadorDirectProductInquiry({
             text,
             chatId,
             phoneDigits: peerPhone,
