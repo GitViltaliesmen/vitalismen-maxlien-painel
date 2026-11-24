@@ -1,4 +1,4 @@
-import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-order-v254-validation-sealed-v256-r1.mjs';
+import { readSealedRelease, requireSealedRelease } from '/usr/local/lib/vitalismen-deploy/ec-whatsapp-v265-sealed-r1.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
