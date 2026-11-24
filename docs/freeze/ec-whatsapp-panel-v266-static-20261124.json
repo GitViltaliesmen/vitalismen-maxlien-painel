@@ -1,0 +1,49 @@
+{
+  "freezeId": "EC_WHATSAPP_PANEL_V266_STATIC_20261124",
+  "scope": "painel estatico ec.maxlien.shop/qr.html",
+  "status": "VALIDATED_STATIC_PANEL",
+  "productionUrl": "https://ec.maxlien.shop/qr.html?v=20261112-v206",
+  "servedFile": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html",
+  "servedSha256": "3664ef4267b5c2330b46d39a77a60e4d3828e8fd92646924a8597dbb589c8755",
+  "sourceBeforeSha256": "ee2b8473767300ee0e95b30d882676040fdb0f82288d5dfbc4401c840015765a",
+  "sourceCommit": "cff7c5b3",
+  "sourceBranch": "codex/ec-whatsapp-v265-sealed",
+  "publishedRuntimeReleaseObserved": "/opt/vitalismen-automacao/releases/20261124T015510Z_production-20261124-002292a",
+  "runtimeChangedForThisFreeze": false,
+  "artifacts": {
+    "snapshotGzip": "ops/publications/ec-whatsapp-panel-v266/qr.html.gz",
+    "snapshotGzipSha256": "8bdae9608a725489ea873a4a8916930478d46fd391735b9ff3e8be5651706d55",
+    "patch": "ops/publications/ec-whatsapp-panel-v266/qr.html.patch",
+    "patchSha256": "3ffb810c3229739ec677cb2dfb8c5336707dce70d523dde9202de3d4d4582227"
+  },
+  "productionBackups": {
+    "approvedSnapshot": "/root/codex_deploy_backups/ec-whatsapp-panel-v266-20261124.html",
+    "approvedSnapshotSha256": "3664ef4267b5c2330b46d39a77a60e4d3828e8fd92646924a8597dbb589c8755",
+    "previousPanel": "/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html.before-v266-20261124",
+    "previousPanelSha256": "ee2b8473767300ee0e95b30d882676040fdb0f82288d5dfbc4401c840015765a"
+  },
+  "checks": {
+    "publicHttp": 200,
+    "publicFileHashMatched": true,
+    "oldStatusAndDeviceEndpointsAbsent": true,
+    "linkedWhatsappStatusEndpointPresent": true,
+    "siteChatMarkupPreserved": true,
+    "historicInboundBadgeNeutralized": true,
+    "inlineScriptSyntaxChecked": 5,
+    "isolatedStatusCases": ["connected", "disconnected", "read_error"],
+    "isolatedBadgeCases": ["historic_inbound", "ordinary_order_tag"],
+    "authenticatedPanelObservedConnectedBeforeFinalBadgeRelabel": true,
+    "finalBadgeRelabelObservedInBrowserAfterReload": false,
+    "pm2AutomationObservedOnline": true,
+    "automaticReplyEndToEndRetested": false,
+    "customerMessageSent": false
+  },
+  "preserve": [
+    "bot principal e release V265",
+    "entrada e resposta WhatsApp",
+    "chat do site",
+    "pedidos, Dropi, Meta e VSL",
+    "dados historicos de etiquetas e recibos"
+  ],
+  "rollback": "Restaurar somente o arquivo estatico servido a partir do backup privado aprovado ou da versao anterior, depois conferir SHA-256 e HTTP 200; nao trocar o runtime para reverter apenas o painel."
+}

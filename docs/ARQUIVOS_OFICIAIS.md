@@ -1,5 +1,15 @@
 # Arquivos oficiais e fonte de verdade
 
+## Painel WhatsApp EC atual — V266 (2026-11-24)
+
+- URL: `https://ec.maxlien.shop/qr.html?v=20261112-v206`.
+- Arquivo efetivamente servido pelo Nginx: `/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html`; SHA-256 aprovado `3664ef4267b5c2330b46d39a77a60e4d3828e8fd92646924a8597dbb589c8755`.
+- Fonte recuperável no Git: `ops/publications/ec-whatsapp-panel-v266/qr.html.gz`, com patch auditável e instruções no mesmo diretório.
+- Backup privado do estado aprovado: `/root/codex_deploy_backups/ec-whatsapp-panel-v266-20261124.html`. Backup do painel anterior: `/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html.before-v266-20261124`.
+- Manifesto de congelamento: `docs/freeze/ec-whatsapp-panel-v266-static-20261124.json`.
+- Transporte atual do painel: sessão WhatsApp Business vinculada; leitura de estado por `/api/whatsapp/status`. Registros históricos da integração anterior permanecem como dados, mas não definem a disponibilidade atual.
+- Antes de publicar o painel novamente, comparar o arquivo servido e seus componentes adicionais de chat do site com o snapshot congelado. `public/qr.html` do release do bot não substitui automaticamente este alias.
+
 ## Microcamada V40 — fila interna de relacionamento EC (2026-08-22)
 
 - Contrato: `docs/EC_ENGAGEMENT_INTERNAL_BUCKET_FREEZE_V40_20260822.md`.

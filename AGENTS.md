@@ -157,6 +157,8 @@ Nao editar com base em copia temporaria, zip, pasta antiga, `.codex-tmp`, print,
 
 ## Regra fixa do painel WhatsApp
 
+Na producao EC atual, a URL `/qr.html` e servida pelo alias Nginx `/var/www/vitalismen-panel-phonefix-20261108-r1/qr.html`, congelado em `docs/freeze/ec-whatsapp-panel-v266-static-20261124.json`. O snapshot integral recuperavel esta em `ops/publications/ec-whatsapp-panel-v266/qr.html.gz`. Antes de publicar qualquer ajuste no painel, comparar o arquivo realmente servido, seu SHA-256 e as funcoes adicionais do chat do site; nao substituir o alias diretamente por `public/qr.html` do release do bot. Preservar o backup e validar a URL autenticada depois da troca.
+
 No painel integrado `public/qr.html`, a coluna esquerda de conversas (`#chatList`, `.chat-item`, `renderChats`) nunca deve exibir texto de mensagens. Ela serve somente para listar contatos/conversas com avatar, nome/telefone, horario e selos operacionais como `Fechou`, `Humano` ou status de pedido.
 
 Conteudo de mensagem (`message.body`, `chat.lastMessage.body`, transcricoes, midia ou texto completo) deve aparecer exclusivamente no painel central da conversa (`#conversation`, `renderMessages`) depois que o contato for selecionado.
