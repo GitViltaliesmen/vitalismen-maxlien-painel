@@ -1,0 +1,440 @@
+--- a/qr.html
++++ b/qr.html
+@@ -185,7 +185,7 @@
+             justify-content: flex-end;
+         }
+ 
+-        .zapi-fixed-status {
++        .whatsapp-fixed-status {
+             display: inline-flex;
+             align-items: center;
+             min-height: 30px;
+@@ -7320,13 +7320,13 @@
+             }
+         }
+ 
+-        body.zapi-offline .shell.module-all .contact-pane .wa-card .meta {
++        body.whatsapp-offline .shell.module-all .contact-pane .wa-card .meta {
+             display: inline-flex;
+             border: 1px solid #ef4444;
+             animation: zapiOfflineBlink 0.9s ease-in-out infinite;
+         }
+ 
+-        body.zapi-offline .zapi-fixed-status {
++        body.whatsapp-offline .whatsapp-fixed-status {
+             border-color: #ef4444;
+             animation: zapiOfflineBlink 0.9s ease-in-out infinite;
+         }
+@@ -7695,7 +7695,7 @@
+             <div class="top-actions">
+                 <span id="operatorBadge" class="badge">sem login</span>
+                 <span id="waBadge" class="badge">...</span>
+-                <span id="statusText" class="zapi-fixed-status">verificando</span>
++                <span id="statusText" class="whatsapp-fixed-status">verificando</span>
+                 <button id="opsAlertBtn" class="ops-alert-button" type="button" aria-expanded="false">OK</button>
+                 <div id="opsAlertPopover" class="ops-alert-popover hidden"></div>
+                 <button id="webChatDashboardBtnV222" type="button" aria-haspopup="dialog" aria-controls="webChatDashboardDialogV222">Chat do site</button>
+@@ -8155,7 +8155,7 @@
+                     <div id="connectionCountryTabs" class="connection-country-tabs" aria-label="Operacao por pais">
+                         <button data-connection-country="EC" class="active" type="button">Equador</button>
+                     </div>
+-                    <div id="connectionSourceNote" class="connection-source-note">V152-B shadow sucessor V152-C0 sem telefone real. Z-API principal permanece ativa e sem mudanca.</div>
++                    <div id="connectionSourceNote" class="connection-source-note">Consultando o WhatsApp Business oficial.</div>
+                     <form id="connectionForm" class="connection-form">
+                         <input id="connectionSessionInput" autocomplete="off" placeholder="channelId do rascunho" aria-label="channelId do novo canal">
+                         <button class="primary" type="submit" disabled title="V152-C0 sem telefone de teste">Adicionar canal</button>
+@@ -8674,7 +8674,7 @@
+                     <div class="custom-funnel-settings-grid">
+                         <div class="custom-funnel-setting-card">
+                             <strong>Audio gravado na hora</strong>
+-                            <span>Audios MP3/OGG enviados pelo bloco usam gravacao simulada no provedor Z-API antes do disparo.</span>
++                            <span>Audios MP3/OGG enviados pelo bloco dependem do transporte ativo e de recibo de entrega.</span>
+                         </div>
+                         <div class="custom-funnel-setting-card">
+                             <strong>Texto com simulacao</strong>
+@@ -10002,7 +10002,7 @@
+         const signedOutZapiText = 'Faça login para consultar a conexão';
+ 
+         const setSignedOutZapiState = () => {
+-            document.body.classList.remove('zapi-offline');
++            document.body.classList.remove('whatsapp-offline');
+             state.zapiDevice = null;
+             state.lastZapiStatusError = '';
+             el('waBadge').textContent = 'SEM LOGIN';
+@@ -10117,7 +10117,15 @@
+ 
+         const setQrState = (target, status, qrCode) => {
+             if (!target?.status || !target?.image || !target?.help) return;
+-            target.status.textContent = `${status.toUpperCase()} | ${new Date().toLocaleTimeString('pt-BR')}`;
++            const statusLabels = {
++                connected: 'WhatsApp conectado',
++                scanning: 'Aguardando leitura do QR',
++                qr: 'QR disponível',
++                connecting: 'Conectando WhatsApp',
++                logged_out: 'WhatsApp desconectado',
++                disconnected: 'WhatsApp desconectado'
++            };
++            target.status.textContent = `${statusLabels[status] || 'Status do WhatsApp indisponível'} | ${new Date().toLocaleTimeString('pt-BR')}`;
+             if (status === 'connected') {
+                 state.lastQrCode = '';
+                 state.lastQrAt = 0;
+@@ -10143,21 +10151,6 @@
+                 target.image.style.display = 'none';
+                 target.help.classList.add('hidden');
+             }
+-        };
+-
+-        const setZapiLoginState = (target, zapi) => {
+-            if (!target?.status || !target?.image || !target?.help) return;
+-            const connected = Boolean(zapi?.ok);
+-            const phone = zapi?.device?.phone || '';
+-            const name = zapi?.device?.name || 'Z-API';
+-            const errorDetail = zapi?.status?.error || zapi?.originalStatus?.error || zapi?.error?.error || zapi?.error || '';
+-            target.status.textContent = `Z-API ${connected ? 'CONECTADO' : 'OFFLINE'} | ${new Date().toLocaleTimeString('pt-BR')}`;
+-            target.image.style.display = 'none';
+-            target.image.removeAttribute('src');
+-            target.help.textContent = connected
+-                ? `Numero conectado: ${phone || 'sem numero'}${name ? ' · ' + name : ''}`
+-                : `Conecte o celular na Z-API. ${errorDetail ? 'Status: ' + errorDetail : 'Este painel apenas puxa o status da integracao.'}`;
+-            target.help.classList.remove('hidden');
+         };
+ 
+         const cleanPanelResponsePreview = (value = '') => String(value || '')
+@@ -10200,15 +10193,20 @@
+                     error.response = data;
+                     throw error;
+                 }
+-                const error = new Error(data.error || data.message || `${label}: erro ${response.status}`);
++                const serverError = data.error || data.message;
++                const readableError = typeof serverError === 'string'
++                    ? serverError
++                    : (serverError && typeof serverError === 'object'
++                        ? (serverError.message || serverError.error || serverError.code || '')
++                        : '');
++                const error = new Error(typeof readableError === 'string' && readableError
++                    ? readableError : `${label}: erro ${response.status}`);
+                 error.status = response.status;
+                 error.response = data;
+                 throw error;
+             }
+             return data;
+         }
+-
+-        const zapiStatusGraceMs = 120000;
+ 
+         async function checkStatus() {
+             if (!state.token) {
+@@ -10218,67 +10216,39 @@
+             }
+             try {
+                 const ts = Date.now();
+-                const zapiStatus = await fetchPanelJson(`/api/zapi/status?_=${ts}`, { label: 'Z-API status' });
+-                const statusData = zapiStatus?.status || {};
+-                const errorDetail = String(statusData.error || zapiStatus?.error || '').toLowerCase();
+-                const alreadyConnected = errorDetail.includes('already connected');
+-                const connected = Boolean(
+-                    zapiStatus?.ok
+-                    && statusData.connected === true
+-                    && statusData.smartphoneConnected !== false
+-                    && (statusData.session !== false || alreadyConnected)
+-                );
+-                const zapi = {
+-                    ...zapiStatus,
+-                    ok: connected,
+-                    error: connected ? '' : zapiStatus?.error,
+-                    device: zapiStatus?.device || {
+-                        phone: statusData.phone || '',
+-                        name: statusData.source || 'Z-API',
+-                        isBusiness: false,
+-                        originalDevice: '',
+-                        sessionName: ''
++                const whatsappStatus = await fetchPanelJson(`/api/whatsapp/status?_=${ts}`, { label: 'WhatsApp status' });
++                state.activeTransportMode = whatsappStatus.transportMode || 'unknown';
++                if (state.activeTransportMode === 'baileys_text') {
++                    const sessions = Array.isArray(whatsappStatus.sessions) ? whatsappStatus.sessions : [];
++                    const session = sessions.find((item) => item.sessionId === whatsappStatus.defaultSessionId) || sessions[0] || {};
++                    const connected = session.isReady === true && session.status === 'connected';
++                    const status = connected ? 'connected' : (session.status || 'disconnected');
++                    state.zapiDevice = { ok: connected, transport: 'baileys_text', device: { phone: session.ownPhoneDigits || '' } };
++                    document.body.classList.toggle('whatsapp-offline', !connected);
++                    el('waBadge').textContent = connected ? 'WHATSAPP' : 'OFFLINE';
++                    el('waBadge').className = `badge ${badgeClass(status)}`;
++                    setQrState({ status: el('statusText'), image: el('qrcode'), help: el('qrHelp') }, status, session.qrCode || '');
++                    setQrState({ status: el('loginStatusText'), image: el('loginQrcode'), help: el('loginQrHelp') }, status, session.qrCode || '');
++                    if (connected) {
++                        const phone = session.ownPhoneDigits || 'não identificado';
++                        el('qrHelp').textContent = `Dispositivo vinculado: ${phone}`;
++                        el('loginQrHelp').textContent = `Dispositivo vinculado: ${phone}`;
++                        el('qrHelp').classList.remove('hidden');
++                        el('loginQrHelp').classList.remove('hidden');
+                     }
+-                };
+-                state.zapiDevice = zapi || null;
+-                if (connected) {
+-                    state.lastZapiOkAt = Date.now();
+-                    state.lastZapiSnapshot = zapi;
+-                    state.lastZapiStatusError = '';
+-                }
+-                const status = connected ? 'connected' : 'disconnected';
+-                document.body.classList.toggle('zapi-offline', !connected);
+-
+-                el('waBadge').textContent = connected ? 'Z-API' : 'OFFLINE';
+-                el('waBadge').className = `badge ${badgeClass(status)}`;
+-                setZapiLoginState({ status: el('statusText'), image: el('qrcode'), help: el('qrHelp') }, zapi);
+-                setZapiLoginState({ status: el('loginStatusText'), image: el('loginQrcode'), help: el('loginQrHelp') }, zapi);
+-            } catch (error) {
+-                const now = Date.now();
+-                const hasFreshConnectedStatus = Boolean(state.lastZapiSnapshot?.ok && state.lastZapiOkAt && now - state.lastZapiOkAt < zapiStatusGraceMs);
+-                const message = error.message || 'Falha ao ler status Z-API';
+-                state.lastZapiStatusError = message;
+-                if (hasFreshConnectedStatus) {
+-                    document.body.classList.remove('zapi-offline');
+-                    el('waBadge').textContent = 'Z-API';
+-                    el('waBadge').className = 'badge green';
+-                    const staleStatus = {
+-                        ...state.lastZapiSnapshot,
+-                        transientStatusError: message
+-                    };
+-                    state.zapiDevice = staleStatus;
+-                    const lastTime = new Date(state.lastZapiOkAt).toLocaleTimeString('pt-BR');
+-                    const stableText = `Z-API CONECTADO | ultima leitura ${lastTime}`;
+-                    el('statusText').textContent = stableText;
+-                    el('loginStatusText').textContent = stableText;
++                    renderOperationalAlerts();
+                     return;
+                 }
+-                document.body.classList.add('zapi-offline');
++                throw new Error('Transporte WhatsApp não reconhecido pelo painel.');
++            } catch (error) {
++                const message = typeof error?.message === 'string' && error.message
++                    ? error.message : 'Falha ao ler a sessão WhatsApp';
++                document.body.classList.add('whatsapp-offline');
+                 el('waBadge').textContent = 'ERRO';
+                 el('waBadge').className = 'badge red';
+                 el('statusText').textContent = message;
+                 el('loginStatusText').textContent = message;
+-                state.zapiDevice = { ok: false, error: message };
++                state.zapiDevice = { ok: false, transport: 'baileys_text', error: message };
+             }
+             renderOperationalAlerts();
+         }
+@@ -10321,14 +10291,14 @@
+                 addOperationalAlert(alerts, {
+                     kind: 'attention',
+                     label: 'WhatsApp verificando',
+-                    detail: 'Status da Z-API ainda nao carregou nesta tela.',
++                    detail: 'Status do WhatsApp ainda nao carregou nesta tela.',
+                     source: 'WhatsApp'
+                 });
+             } else if (!zapi.ok) {
+                 addOperationalAlert(alerts, {
+                     kind: 'blocked',
+                     label: 'WhatsApp desconectado',
+-                    detail: zapi.error || 'Z-API nao confirmou conexao do aparelho.',
++                    detail: zapi.error || 'WhatsApp nao confirmou conexao do aparelho.',
+                     source: 'WhatsApp'
+                 });
+             }
+@@ -10477,9 +10447,7 @@
+             return [];
+         };
+ 
+-        const requiredConnectionSlots = [
+-            { sessionId: '5515991418416', finalLabel: '8416' }
+-        ];
++        const requiredConnectionSlots = [];
+ 
+         const connectionAlertLabel = (alert) => ({
+             stale: 'parado',
+@@ -10657,65 +10625,39 @@
+             const country = 'EC';
+             syncConnectionCountryTabs();
+             const sessions = normalizeConnectionSessions(state.whatsappSessions || []);
+-            const workloadBySession = connectionWorkloadBySession();
+-            const zapi = state.zapiDevice || {};
+-            const zapiAvailableForCountry = zapi.ok;
+-            const zapiStatus = zapiAvailableForCountry ? 'connected' : 'disconnected';
+-            const zapiPhone = zapiAvailableForCountry ? (zapi.device?.phone || '') : '';
+-            const zapiKey = digitsOnlyText(zapiPhone);
+-            const zapiItem = workloadBySession.get(zapiKey) || {};
+-            const countryLabel = 'Equador';
+-            const sourceText = 'V152-B shadow sucessor V152-C0: PAIRING_PENDING_REAL_TEST_CHANNEL. Pareamento, outbound, roteamento e troca de provedor reais estao bloqueados.';
+-            if (el('connectionSourceNote')) el('connectionSourceNote').textContent = sourceText;
+-            const actionLabels = ['Detalhes', 'Health', 'Pausar', 'Ativar', 'Drenar', 'Transferir', 'Parear'];
+-            const v152CompatibilityActions = ['Details', 'Health', 'Pause', 'Activate', 'Drain', 'Transfer', 'Pair'];
+-            const v152LegacyDraftChannelId = 'WHATSAPP_WEB_DRAFT';
+-            void v152LegacyDraftChannelId;
+-            const actionButtons = `
+-                <div class="connection-actions" aria-label="Acoes de canal indisponiveis na fase shadow">
+-                    ${actionLabels.map((label, index) => `<button type="button" data-v152-channel-action="${v152CompatibilityActions[index].toLowerCase()}" data-v152-c0-channel-action="${label.toLowerCase()}" ${label === 'Parear' ? 'data-v152-c0-pair-state="DISABLED_NO_TEST_PHONE"' : ''} disabled title="Bloqueado na V152-C0 sem telefone real">${label}</button>`).join('')}
+-                </div>`;
+-            const zapiCard = `
+-                    <article class="connection-card">
+-                        <div class="connection-card-head">
+-                            <strong>LEGACY_ZAPI_PRIMARY</strong>
+-                            <span class="badge ${badgeClass(zapiStatus)}">${zapiAvailableForCountry ? 'CONECTADO' : 'OFFLINE'}</span>
+-                        </div>
+-                        <button class="connection-status-button ${zapiAvailableForCountry ? 'connected' : 'disconnected'}" type="button" disabled>provider=ZAPI · status=${zapiAvailableForCountry ? 'ACTIVE' : 'DEGRADED'}</button>
+-                        <div class="meta">channelId=LEGACY_ZAPI_PRIMARY · phone=${escapeHtml(zapiPhone || 'not-reported')}</div>
+-                        <div class="meta">health=${zapiAvailableForCountry ? 'healthy' : 'unavailable'} · priority=1 · weight=1 · draining=false · session=compatibility-mirror</div>
+-                        ${renderConnectionStatusBlock(zapiItem)}
+-                        <div class="meta">${escapeHtml(zapiAvailableForCountry ? (zapi.device?.name || 'Instancia Z-API') : `Operacao ${countryLabel}`)}</div>
+-                        <div class="meta">${escapeHtml(zapiAvailableForCountry ? 'Webhook Z-API pronto para atendimento humano no Ecuador.' : (zapi.error || 'Z-API ainda nao respondeu.'))}</div>
+-                        ${actionButtons}
+-                    </article>
+-                `;
++            const linked = sessions.find((session) => isVisibleConnectionSession(session)) || sessions[0] || {};
++            const connected = linked.isReady === true && linked.status === 'connected';
++            if (el('connectionSourceNote')) el('connectionSourceNote').textContent =
++                'WhatsApp Business oficial. Entrada e resposta dependem da sessão vinculada.';
++            el('connectionList').innerHTML = `<article class="connection-card">
++                <div class="connection-card-head"><strong>WHATSAPP_BUSINESS_EC</strong>
++                <span class="badge ${badgeClass(connected ? 'connected' : 'disconnected')}">${connected ? 'CONECTADO' : 'AGUARDANDO CONEXAO'}</span></div>
++                <div class="meta">Numero: ${escapeHtml(linked.ownPhoneDigits || 'nao vinculado')}</div>
++                <div class="meta">Sessao: ${escapeHtml(linked.status || 'desconhecida')}</div>
++                <div class="meta">O QR aparece na area de status quando disponivel.</div>
++            </article>`;
+             el('connectionsUpdatedAt').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
+-            const reservedSlotCount = sessions.filter((session) => {
+-                if (isVisibleConnectionSession(session)) return false;
+-                const sessionKey = digitsOnlyText(session.ownPhoneDigits || session.sessionId);
+-                return !zapiAvailableForCountry || !zapiKey || sessionKey !== zapiKey;
+-            }).length;
+-            const draftCard = `<article class="connection-card connection-card-muted"><strong>WHATSAPP_WEB_TEMPLATE</strong><span class="badge">SHADOW</span><div class="meta">provider=WHATSAPP_WEB · phone=NULL · status=DRAFT · health=UNKNOWN</div><div class="meta">priority=0 · weight=0 · capacity=0 · draining=true · session status=PAIRING_PENDING_REAL_TEST_CHANNEL</div>${actionButtons}</article>`;
+-            const preservedCard = `<article class="connection-card connection-card-muted"><strong>OLD_BLOCKED_PHONE</strong><div class="meta">provider=ZAPI · phone=preserved-hidden · status=BLOCKED · health=preserved</div><div class="meta">priority=999 · weight=0 · capacity=0 · draining=true · session status=preserved</div>${actionButtons}</article>`;
+-            el('connectionList').innerHTML = `${zapiCard}${draftCard}${preservedCard}`;
+-            setConnectionOpsPanel(sessions, workloadBySession);
++            setConnectionOpsPanel(sessions, connectionWorkloadBySession());
+         };
+ 
+         async function loadConnections() {
+             const country = selectedPanelCountry();
+-            const [payload, workload, zapiDevice] = await Promise.all([
+-                state.token
+-                    ? api('/api/whatsapp/sessions').catch(async () => fetchPanelJson(`/api/whatsapp/status?_=${Date.now()}`, { label: 'WhatsApp status' }))
+-                    : fetchPanelJson(`/api/whatsapp/status?_=${Date.now()}`, { label: 'WhatsApp status' }),
++            const [payload, workload] = await Promise.all([
++                fetchPanelJson(`/api/whatsapp/status?_=${Date.now()}`, { label: 'WhatsApp status' }),
+                 state.token
+                     ? api(`/api/whatsapp/connection-workload?country=${encodeURIComponent(country || 'EC')}`).catch(() => ({ sessions: [] }))
+-                    : Promise.resolve({ sessions: [] }),
+-                fetchPanelJson(`/api/zapi/device?_=${Date.now()}`, { label: 'Z-API device' }).catch((error) => ({ ok: false, error: error.message }))
++                    : Promise.resolve({ sessions: [] })
+             ]);
++            state.activeTransportMode = payload.transportMode || state.activeTransportMode || 'unknown';
+             state.whatsappSessions = normalizeSessionsPayload(payload);
+             state.connectionWorkload = workload || { sessions: [] };
+-            state.zapiDevice = zapiDevice || null;
++            const linked = (payload.sessions || []).find((session) => session.sessionId === payload.defaultSessionId)
++                || (payload.sessions || [])[0] || {};
++            state.zapiDevice = {
++                ok: linked.isReady === true && linked.status === 'connected',
++                transport: state.activeTransportMode,
++                device: { phone: linked.ownPhoneDigits || '' }
++            };
+             renderConnections();
+         }
+ 
+@@ -12646,6 +12588,9 @@
+         const hasVisibleLabels = (chat) => chatTags(chat).length > 0 || visibleShipmentNoticeLabels(chat).length > 0;
+         const tagLabel = (tag = '') => {
+             const value = String(tag || '');
++            if (/zapi/i.test(value)) {
++                return /inbound.*captured/i.test(value) ? 'ENTRADA REGISTRADA' : 'HISTÓRICO DE INTEGRAÇÃO';
++            }
+             const labels = {
+                 'manual:atendimento_iniciado': 'Atendimento iniciado',
+                 'manual:humano_no_comando': 'Humano no comando',
+@@ -13384,7 +13329,7 @@
+                         providerZaapId: providerZaapId || message.providerZaapId || '',
+                         deliveryStatus,
+                         sendError: deliveryStatus === 'request_failed'
+-                            ? (result.error || 'A Z-API não retornou um ID válido; envio não confirmado.')
++                            ? (result.error || 'O WhatsApp não retornou um ID válido; envio não confirmado.')
+                             : ''
+                     }
+                     : message
+@@ -14145,7 +14090,7 @@
+                 return { show: false, allowed: false, reason: '' };
+             }
+             if (String(message.provider || '').toLowerCase() !== 'zapi' || !String(message.providerMessageId || message.providerPayload?.messageId || message.providerPayload?.id || '').trim()) {
+-                return { show: true, allowed: false, reason: 'Esta mensagem nao possui ID editavel da Z-API.' };
++                return { show: true, allowed: false, reason: 'Esta mensagem nao possui ID editavel no WhatsApp.' };
+             }
+             const sentAtMs = messageTimestampMs(message);
+             if (!sentAtMs || Date.now() - sentAtMs > WHATSAPP_EDIT_WINDOW_MS) {
+@@ -14236,7 +14181,7 @@
+                 showToast('Só apago mensagens do bot/atendente no painel');
+                 return;
+             }
+-            const ok = window.confirm('Apagar esta mensagem? O sistema vai tentar apagar tambem no WhatsApp do cliente quando a Z-API permitir. Se nao permitir, ela sai do painel e fica registrada em auditoria.');
++            const ok = window.confirm('Apagar esta mensagem? O sistema vai tentar apagar tambem no WhatsApp do cliente quando o transporte permitir. Se nao permitir, ela sai do painel e fica registrada em auditoria.');
+             if (!ok) return;
+             try {
+                 const result = await api(`/api/whatsapp/messages/${encodeURIComponent(currentChatPhone())}/delete`, {
+@@ -14252,9 +14197,9 @@
+                 if (zapi.ok) {
+                     showToast('Mensagem removida do WhatsApp e do painel');
+                 } else if (zapi.skipped === 'provider_message_id_missing') {
+-                    showToast('Mensagem removida do painel. Z-API nao retornou ID para apagar no WhatsApp.');
++                    showToast('Mensagem removida do painel. O WhatsApp nao retornou ID para apagar a mensagem.');
+                 } else if (zapi.attempted) {
+-                    showToast(`Mensagem removida do painel. WhatsApp nao confirmou apagamento: ${zapi.error || 'erro Z-API'}`);
++                    showToast(`Mensagem removida do painel. WhatsApp nao confirmou apagamento: ${zapi.error || 'erro do transporte'}`);
+                 } else {
+                     showToast('Mensagem removida do painel');
+                 }
+@@ -14423,7 +14368,7 @@
+                     <button data-actionable-discard="${escapeHtml(item._id)}" type="button">Descartar</button>
+                 `;
+                 const warningActions = `
+-                    <button class="primary" data-actionable-apply="${escapeHtml(item._id)}" type="button">Aplicar via Z-API</button>
++                    <button class="primary" data-actionable-apply="${escapeHtml(item._id)}" type="button">Aplicar no WhatsApp</button>
+                     <button data-actionable-feedback="${escapeHtml(item._id)}" type="button">Dica errada</button>
+                     <button data-actionable-discard="${escapeHtml(item._id)}" type="button">Descartar</button>
+                 `;
+@@ -14696,7 +14641,7 @@
+                 renderActionableSamples();
+                 if (kind === 'save') showToast('Skill guardada na biblioteca');
+                 if (kind === 'apply') {
+-                    showToast('Script enviado pela Z-API');
++                    showToast('Script enviado pelo WhatsApp');
+                     loadSelectedMessages({ force: true }).catch(() => null);
+                     loadChats().catch(() => null);
+                 }
+@@ -15330,7 +15275,7 @@
+             if (stateInfo.code === 'READ') return ` · <span class="message-status-read" title="${detail}">&#10003;&#10003; lido</span>`;
+             if (stateInfo.code === 'DELIVERED') return ` · <span class="message-status-delivered" title="${detail}">&#10003;&#10003; entregue</span>`;
+             if (stateInfo.code === 'SENT') return ` · <span class="message-status-provider" title="${detail}">&#10003; enviado</span>`;
+-            if (stateInfo.code === 'PROVIDER_ACCEPTED') return ` · <span class="message-status-provider" title="${detail}">aceito pela Z-API</span>`;
++            if (stateInfo.code === 'PROVIDER_ACCEPTED') return ` · <span class="message-status-provider" title="${detail}">aceito pelo transporte</span>`;
+             if (stateInfo.code === 'SENDING') return ' · <span class="message-status-local">enviando…</span>';
+             return '';
+         };
+@@ -17867,7 +17812,7 @@
+                 Promise.all([loadSelectedMessages({ force: true }), loadChats()]).catch(() => null);
+                 window.setTimeout(() => loadActionableSamples().catch(() => null), 900);
+             } catch (error) {
+-                markPendingLocalMessageStatus(pendingMessage?._id, 'unconfirmed', error.message || 'Audio sem confirmacao da Z-API.');
++                markPendingLocalMessageStatus(pendingMessage?._id, 'unconfirmed', error.message || 'Audio sem confirmacao de envio.');
+                 showToast(error.message);
+             } finally {
+                 state.busy = false;
+@@ -17920,7 +17865,7 @@
+                 Promise.all([loadSelectedMessages({ force: true }), loadChats()]).catch(() => null);
+                 window.setTimeout(() => loadActionableSamples().catch(() => null), 900);
+             } catch (error) {
+-                markPendingLocalMessageStatus(pendingMessage?._id, 'unconfirmed', error.message || 'Midia sem confirmacao da Z-API.');
++                markPendingLocalMessageStatus(pendingMessage?._id, 'unconfirmed', error.message || 'Midia sem confirmacao de envio.');
+                 showToast(error.message);
+             } finally {
+                 state.busy = false;
+@@ -18168,7 +18113,7 @@
+                     markPendingLocalMessageStatus(
+                         activePendingMessage?._id,
+                         'unconfirmed',
+-                        error.message || 'Etapa do bloco sem confirmacao da Z-API.'
++                        error.message || 'Etapa do bloco sem confirmacao de envio.'
+                     );
+                 }
+                 const message = funnelErrorMessage(error);
