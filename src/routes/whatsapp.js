@@ -484,7 +484,7 @@ const zapiOperationalPanelPhone = () => digitsOnly(
 );
 
 const shouldForceZapiForManualTestSend = (phone = '', sendMode = '') => (
-    sendMode === 'manual_panel' && (
+    ecTransportMode() !== 'baileys_text' && sendMode === 'manual_panel' && (
         isBrazilPanelTestPhone(phone)
         || digitsOnly(phone).startsWith('593')
     )
@@ -6783,7 +6783,8 @@ router.post('/send', authMiddleware, async (req, res) => {
         } = req.body;
         const sendMode = req.body?.sendMode === 'manual_panel' ? 'manual_panel' : '';
         assertEcPanelManualSendV115({ sendMode });
-        const manualPanelMediaAuthorized = sendMode === 'manual_panel' && Boolean(req.user) && country === 'EC';
+        const manualMediaCountry = country === 'BR' && isBrazilPanelTestPhone(phone) ? 'EC' : country;
+        const manualPanelMediaAuthorized = sendMode === 'manual_panel' && Boolean(req.user) && manualMediaCountry === 'EC';
         let storedMessageRecordId = '';
         const allowAudioDedupeBypass = sendMode === 'manual_panel'
             || req.body?.allowAudioDedupeBypass === true;
@@ -6978,7 +6979,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     manualPanelMediaAuthorized,
                     allowAudioDedupeBypass,
                     allowExistingDropiOrder: sendMode === 'manual_panel',
-                    country,
+                    country: manualMediaCountry,
                     returnDetails: true
                 });
                 const sent = typeof sendResult === 'object' ? sendResult.ok !== false : Boolean(sendResult);
@@ -7045,7 +7046,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 manualPanelMediaAuthorized,
                 allowAudioDedupeBypass,
                 allowExistingDropiOrder: sendMode === 'manual_panel',
-                country,
+                country: manualMediaCountry,
                 returnDetails: true
             });
             const sent = typeof sendResult === 'object' ? sendResult.ok !== false : Boolean(sendResult);
