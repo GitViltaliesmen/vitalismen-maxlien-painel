@@ -13,6 +13,8 @@ import { currentProductRouteForState } from './vslProductAssignmentService.js';
 import { evaluateCanaryV75Recipient } from './canaryIsolationV75Service.js';
 import { claimMetaAttributionForInboundWhatsapp } from './metaAttributionBridgeService.js';
 import { mergeClaimedVslPreleadIntoContactState } from './vslPreleadPanelService.js';
+import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
+import { linkedDeviceAutoReplyAllowed } from './linkedDeviceCanaryPolicy.js';
 
 const VIT_POWER_PRODUCT_KEY = 'vit_power_ec';
 const NITRIX_PRODUCT_KEY = 'nitrix_ec';
@@ -119,6 +121,12 @@ const isSamePhone = (left, right) => {
 };
 
 const isAutoReplyAllowedForChat = (...identifiers) => {
+    if (linkedDeviceAutoReplyAllowed({ identifiers,
+        context: currentEcBotCoreRuntimeContextV78(),
+        transport: ecBaileysTextMode() ? 'baileys_text' : 'zapi',
+        authorityCurrent: globalThis.__VITALISMEN_EC_BAILEYS_INGRESS_V265?.isCurrent?.() === true })) {
+        return true;
+    }
     const allowed = parseDigitsList(process.env.WHATSAPP_AUTO_REPLY_ALLOWED_RECIPIENTS);
     if (allowed.length === 0) return true;
     return identifiers
@@ -341,7 +349,7 @@ const resetPriorityBotTestConversationMemory = (state) => {
     state.buyer_score = '';
 };
 
-const saveInboundMessage = async ({ messageId, chatId, senderPn, body, sessionId }) => {
+const saveInboundMessage = async ({ messageId, chatId, senderPn, body, sessionId, provider, ownerPhoneDigits }) => {
     if (!body.trim()) return;
     try {
         const peerPhone = digitsOnly(senderPn) || digitsOnly(chatId);
@@ -349,7 +357,10 @@ const saveInboundMessage = async ({ messageId, chatId, senderPn, body, sessionId
             ? {
                 sessionId,
                 // Symbolic transports (zapi) must preserve the verified persisted owner.
-                ...(digitsOnly(sessionId) ? { ownerPhoneDigits: digitsOnly(sessionId) } : {})
+                ...(digitsOnly(sessionId) ? { ownerPhoneDigits: digitsOnly(sessionId) } : {}),
+                ...(provider === 'baileys' && digitsOnly(ownerPhoneDigits)
+                    ? { provider: 'baileys', ownerPhoneDigits: digitsOnly(ownerPhoneDigits) }
+                    : {})
             }
             : {};
         await Message.updateOne(
@@ -938,7 +949,8 @@ export const routeIncomingMessage = async (payload) => {
         return;
     }
     markInboundProcessed({ state, messageId, body });
-    if (!verifiedBurstV228) await saveInboundMessage({ messageId, chatId, senderPn, body, sessionId });
+    if (!verifiedBurstV228) await saveInboundMessage({ messageId, chatId, senderPn, body, sessionId,
+        provider: payload.provider, ownerPhoneDigits: payload.ownerPhoneDigits });
 
     const isFirstInbound = !state.firstInboundText;
 
@@ -989,7 +1001,9 @@ export const routeIncomingMessage = async (payload) => {
     // Verification only: no commercial reply, order, human release or QA reset.
     if (/^Hola, quiero el tratamiento Tex Ultra\.\r?\nConfirmar chat:/.test(body)) await state.save();
     const texLinkV242 = await handleTexLinkConfirmationV242({ state, inboundText: body, sourceMessageId: messageId, sessionId, recovered: payload.recovered === true });
-    await observeTexMeasurementV243({ state, inboundText: body, sourceMessageId: messageId, sessionId, recovered: payload.recovered === true });
+    await observeTexMeasurementV243({ state, inboundText: body, sourceMessageId: messageId, sessionId,
+        provider: payload.provider, ownerPhoneDigits: payload.ownerPhoneDigits,
+        recovered: payload.recovered === true });
     if (texLinkV242.handled) { await state.save(); return { handled: true, verificationOnly: true }; }
     if (texMeasurementReferenceV243(body)) body = 'Hola, quiero el tratamiento Tex Ultra.';
 
@@ -1026,7 +1040,9 @@ export const routeIncomingMessage = async (payload) => {
     const human = state.human || {};
     const pausedUntil = human.pausedUntil ? new Date(human.pausedUntil).getTime() : 0;
     const lastManualAt = human.lastManualAt ? new Date(human.lastManualAt).getTime() : 0;
-    const manualExpired = human.mode === 'manual' && (
+    const linkedDeviceMediaHandoff = ecBaileysTextMode()
+        && human.lastManualBy === 'ec_baileys_media_handoff';
+    const manualExpired = human.mode === 'manual' && !linkedDeviceMediaHandoff && (
         (pausedUntil && pausedUntil <= Date.now())
         || (!pausedUntil && lastManualAt && Date.now() - lastManualAt >= manualAutoReturnMs())
     );
@@ -1044,7 +1060,7 @@ export const routeIncomingMessage = async (payload) => {
         };
         await state.save();
         console.log(`[ROUTER] atendimento manual expirado; automacao retomada | chat=${chatId}`);
-    } else if (human.mode === 'manual' && (!pausedUntil || pausedUntil > Date.now()) && automatedVslEntryAgentForState(state)) {
+    } else if (human.mode === 'manual' && !linkedDeviceMediaHandoff && (!pausedUntil || pausedUntil > Date.now()) && automatedVslEntryAgentForState(state)) {
         const vslEntryAgent = automatedVslEntryAgentForState(state);
         // A VSL registra o lead inicialmente como manual para ele aparecer no
         // painel. Quando ele efetivamente escreve, somente o Nitrix /n/ pode

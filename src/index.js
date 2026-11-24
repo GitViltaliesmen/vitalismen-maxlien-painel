@@ -37,6 +37,7 @@ import customerContextRoutes from './routes/customerContext.js';
 import { startScheduler } from './services/schedulerService.js';
 import healthRoutes from './routes/health.js';
 import { startConfiguredWhatsAppSessions } from './whatsapp/connection.js';
+import { ecBaileysTextMode } from './whatsapp/ecTransportMode.js';
 import { pauseOrphanedTexUltraInitialFlowsOnStartup } from './services/texUltraInitialLayerService.js';
 import OperationalSafetyState from './models/OperationalSafetyState.js';
 import {
@@ -367,7 +368,15 @@ app.use('/api/customer-context', customerContextRoutes);
 app.use('/api/health', healthRoutes);
 
 // Start Baileys WhatsApp Engine(s)
-if (!shouldStartBaileys(process.env)) {
+if (ecBaileysTextMode()) {
+    if (globalThis.__VITALISMEN_EC_BAILEYS_INGRESS_V265?.isCurrent?.() !== true
+        || !ecBotCoreV78Requested(process.env) || strictObservation.enabled) {
+        throw new Error('baileys_text_successor_not_authorized');
+    }
+    startConfiguredWhatsAppSessions().catch(err => {
+        console.error('[WHATSAPP] Falha ao iniciar dispositivo vinculado autorizado:', err);
+    });
+} else if (!shouldStartBaileys(process.env)) {
     console.log(strictObservation.enabled
         ? '[WHATSAPP] Engine desativado por STRICT_READ_ONLY'
         : '[WHATSAPP] Engine desativado por WHATSAPP_CONNECT_ENABLED=false');

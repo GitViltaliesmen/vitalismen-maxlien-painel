@@ -3,6 +3,7 @@ import path from 'path';
 import ContactState from '../models/ContactState.js';
 import OutboundDedupe from '../models/OutboundDedupe.js';
 import { assertMutationAllowed } from './strictReadOnlyObservationService.js';
+import { sentDedupeFields } from './outboundReceiptPolicy.js';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
@@ -272,13 +273,14 @@ export const reserveOutboundOnce = async ({
     }
 };
 
-export const markOutboundDedupeSent = async ({ key, semanticKey = '', strict = false }) => {
+export const markOutboundDedupeSent = async ({ key, semanticKey = '', strict = false,
+    provider = '', providerMessageId = '' }) => {
     assertMutationAllowed({ capability: 'outbound_dedupe_sent', source: 'outbound_dedupe' });
     const keys = [key, semanticKey].filter(Boolean);
     if (!keys.length) return;
     const update = OutboundDedupe.updateMany(
         { key: { $in: keys } },
-        { $set: { status: 'sent', sentAt: new Date() } }
+        { $set: sentDedupeFields({ provider, providerMessageId }) }
     );
     if (!strict) {
         await update.catch(() => null);

@@ -7,6 +7,8 @@ import {giraRuntimePolicy} from './gira21x/runtime-policy.mjs';
 import { prepareManualHumanRequest, manualMongoAllowed, manualExternalAllowed } from './manualHumanRuntime.js';
 import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
+import { linkedDeviceOrderWriteAllowed } from './linkedDeviceOrderWritePolicy.js';
 import { measurementMongoAllowedV213, measurementRequestAllowedV213 } from './vitPowerMeasurementV213Application.js';
 import { createHash, randomUUID } from 'node:crypto';
 
@@ -382,6 +384,35 @@ export const finalizeEcQaInboundContextV78 = async ({
 
 export const currentEcBotCoreRuntimeContextV78 = () => runtimeContext.getStore() || null;
 
+// A linked-device message receives write authority only from the selected
+// transport, an exact live socket, the official number and a sealed successor.
+// No environment flag alone can manufacture this context.
+export const runVerifiedBaileysInboundV265 = async ({ socket, sessionId, messageId,
+    ownerPhoneDigits, senderPhoneDigits }, work) => {
+    if (!ecBaileysTextMode() || !resolveEcBotCoreV78Configuration(process.env).ready
+        || globalThis.__VITALISMEN_EC_BAILEYS_INGRESS_V265?.isCurrent?.() !== true) {
+        throw new Error('baileys_inbound_successor_not_authorized');
+    }
+    if (typeof work !== 'function' || !socket || typeof sessionId !== 'string' || !sessionId
+        || typeof messageId !== 'string' || !messageId || messageId.length > 250) {
+        throw new Error('baileys_inbound_identity_invalid');
+    }
+    const { getSock, getStatus } = await import('../whatsapp/connection.js');
+    const status = getStatus(sessionId);
+    const actualOwner = digits(status.ownPhoneDigits);
+    const sender = digits(senderPhoneDigits);
+    if (!(/^593\d{9}$/.test(sender) || sender === EC_QA_TEST_PHONE_V78)
+        || status.isReady !== true || status.status !== 'connected'
+        || getSock(sessionId) !== socket || !['5531971862958', '553171862958'].includes(actualOwner)
+        || actualOwner !== digits(ownerPhoneDigits)) {
+        throw new Error('baileys_inbound_socket_not_verified');
+    }
+    return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method: 'SOCKET',
+        path: '/internal/whatsapp/baileys-inbound', writeContext: true,
+        baileysInbound: Object.freeze({ verified: true, sessionId, messageId,
+            ownerPhoneDigits: actualOwner, senderPhoneDigits: sender }) }, work);
+};
+
 // The QA guard grants persistence only. Claim authority is evaluated once the
 // existing recorder has completed message, visit and contact persistence.
 export const recordEcQaInboundAfterPersistenceV78 = async ({
@@ -710,6 +741,7 @@ export const ecBotCoreMongoMutationRecoveryV153Allowed = ({
     method = ''
 } = {}) => {
     if (context?.profile !== EC_BOT_CORE_V78_MODE || context?.writeContext !== true) return false;
+    if (linkedDeviceOrderWriteAllowed({ context, collection, method })) return true;
     const route = clean(context.path).split('?')[0].replace(/\/+$/, '') || '/';
     const normalizedCollection = clean(collection).toLowerCase();
     const normalizedMethod = clean(method);
@@ -857,6 +889,7 @@ export const installEcBotCoreMongooseGuardV78 = (mongooseInstance) => {
 
 export const decorateEcBotCoreHealthPayloadV78 = (payload = {}, env = process.env) => {
     const configuration = resolveEcBotCoreV78Configuration(env);
+    const linkedDeviceSelected = ecBaileysTextMode(env);
     if (!configuration.enabled) return payload;
     if (!configuration.ready) {
         return {
@@ -877,7 +910,7 @@ export const decorateEcBotCoreHealthPayloadV78 = (payload = {}, env = process.en
             allowedWriteClasses: EC_BOT_CORE_V78_ALLOWED_WRITE_CLASSES,
             zapiInboundPersistenceAllowed: true,
             zapiAckPersistenceAllowed: true,
-            baileysEnabled: false,
+            baileysEnabled: linkedDeviceSelected,
             mutatingRoutesEnabled: false,
             coreMutationRoutesEnabled: true,
             mutatingSchedulers: 0,

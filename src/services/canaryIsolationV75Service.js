@@ -9,6 +9,8 @@ import {
     isEcManualDropiExternalEffectAllowedV119
 } from './ecBotCoreRuntimeIntegrationV78Service.js';
 import { ecManualDropiMetaPurchaseAllowedV144 } from './ecManualDropiMetaPurchaseV144Service.js';
+import { ecTransportMode } from '../whatsapp/ecTransportMode.js';
+import { linkedDeviceCanaryRecipientAllowed } from './linkedDeviceCanaryPolicy.js';
 
 export const CANARY_V75_QA_PHONE = '5515998038637';
 
@@ -156,6 +158,11 @@ export const evaluateCanaryV75Recipient = (phoneOrJid, {
     surface = 'unknown'
 } = {}) => {
     if (customerInviteRecipientAllowedV232(phoneOrJid)) return { allowed: true, enforced: true, reason: 'exact_locked_ec_customer_invite_v232', surface };
+    if (linkedDeviceCanaryRecipientAllowed({ phoneOrJid, surface,
+        transport: ecTransportMode(env),
+        authorityCurrent: globalThis.__VITALISMEN_EC_BAILEYS_INGRESS_V265?.isCurrent?.() === true })) {
+        return { allowed: true, enforced: true, reason: 'verified_linked_device_ec_v265', surface };
+    }
     const configuration = resolveCanaryV75Configuration(env);
     if (!configuration.enabled) {
         return { allowed: true, enforced: false, reason: 'canary_v75_disabled', surface };

@@ -5,6 +5,7 @@ import ContactState from '../models/ContactState.js';
 import Message from '../models/Message.js';
 import OperationalSafetyState from '../models/OperationalSafetyState.js';
 import { getZapiStatus, zapiPublicStatus } from '../services/zapiClient.js';
+import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
 import {
     POST_SALE_RUNTIME_VERSION,
     POST_SALE_SAFETY_STATE_ID,
@@ -41,6 +42,7 @@ export const zapiConnectedFromStatus = (status = {}) => {
 };
 
 export const evaluateOperationalWhatsappHealth = ({
+    selectedTransport = 'zapi',
     zapiConfigured = false,
     zapiConnected = false,
     zapiOutboundBlocked = false,
@@ -49,7 +51,7 @@ export const evaluateOperationalWhatsappHealth = ({
     loggedOutSessionCount = 0,
     pendingTasks = 0
 } = {}) => {
-    const officialTransport = zapiConfigured ? 'zapi' : 'baileys';
+    const officialTransport = selectedTransport === 'baileys_text' ? 'baileys' : (zapiConfigured ? 'zapi' : 'baileys');
     const zapiRequired = officialTransport === 'zapi';
     const baileysRequired = officialTransport === 'baileys' && whatsappConnectEnabled;
     const degradedReasons = [];
@@ -99,14 +101,15 @@ router.get('/', async (req, res) => {
         const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         const connectedSessions = sessions.filter((item) => item?.isReady && item?.status === 'connected');
         const loggedOutSessions = sessions.filter((item) => item?.status === 'logged_out');
-        const whatsappConnectEnabled = strictContract.baileysEnabled;
+        const linkedDeviceSelected = ecBaileysTextMode();
+        const whatsappConnectEnabled = linkedDeviceSelected || strictContract.baileysEnabled;
         const zapi = {
             configured: zapiPublicStatus(),
             connected: false,
             outboundBlocked: false,
             error: ''
         };
-        if (zapi.configured.enabled) {
+        if (zapi.configured.enabled && !linkedDeviceSelected) {
             try {
                 zapi.connected = zapiConnectedFromStatus(await getZapiStatus());
             } catch (error) {
@@ -149,6 +152,7 @@ router.get('/', async (req, res) => {
         const mutationGate = resolvePostSaleOperationalMutationGate(process.env, { compatibilityState });
         const dropiSyncMode = resolveDropiSyncMode(process.env, { compatibilityState });
         const transportHealth = evaluateOperationalWhatsappHealth({
+            selectedTransport: linkedDeviceSelected ? 'baileys_text' : 'zapi',
             zapiConfigured: zapi.configured.enabled,
             zapiConnected: zapi.connected,
             zapiOutboundBlocked: zapi.outboundBlocked,
@@ -208,7 +212,7 @@ router.get('/', async (req, res) => {
                 zapiReadOnlyStatusAllowed: strictContract.zapiReadOnlyStatusAllowed,
                 zapiInboundPersistenceAllowed: strictContract.zapiInboundPersistenceAllowed,
                 zapiAckPersistenceAllowed: strictContract.zapiAckPersistenceAllowed,
-                baileysEnabled: strictContract.baileysEnabled,
+                baileysEnabled: whatsappConnectEnabled,
                 mutatingRoutesEnabled: strictContract.mutatingRoutesEnabled,
                 mutatingSchedulers: strictContract.mutatingSchedulers,
                 reason: mutationGate.reason,
@@ -238,7 +242,7 @@ router.get('/', async (req, res) => {
                 },
                 baileys: {
                     required: strictContract.strictReadOnly ? false : transportHealth.baileysRequired,
-                    enabled: strictContract.baileysEnabled,
+                    enabled: whatsappConnectEnabled,
                     disabledByStrictReadOnly: strictContract.strictReadOnly,
                     state: status,
                     ready: connectedSessions.length > 0,

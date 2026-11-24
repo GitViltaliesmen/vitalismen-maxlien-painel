@@ -11,6 +11,8 @@ import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRo
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
 import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
+import { ecMediaAllowedForTransport } from './ecTransportMode.js';
+import { recordEcMediaHandoff } from './ecMediaHandoff.js';
 import {
     classifyPostSaleProviderFailureV116,
     postSaleTransactionalOutbound
@@ -33,6 +35,10 @@ const sendDocumentFailure = (options, payload = {}) => (
 );
 
 export const sendDocument = async (jid, filePath, fileName = '', caption = '', options = {}) => {
+    if (!ecMediaAllowedForTransport()) {
+        await recordEcMediaHandoff({ jid, recipientDigits: options.recipientDigits, kind: 'documento' });
+        return sendDocumentFailure(options, { reason: 'ec_baileys_text_only' });
+    }
     if(!await giraOutboundAllowed(jid,options,'document'))return false;
     assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_document' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {

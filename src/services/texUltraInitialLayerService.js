@@ -4,6 +4,7 @@ import Message from '../models/Message.js';
 import { sendAudio } from '../whatsapp/sendAudio.js';
 import { sendImage } from '../whatsapp/sendImage.js';
 import { sendText } from '../whatsapp/sendText.js';
+import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
 import { resolveCountryAudio } from './audioTemplateService.js';
 import { getSalesMedia } from './salesMediaCatalog.js';
 import { buildTexUltraEntryGreeting, texUltraCustomerName } from './texUltraEntryGreetingService.js';
@@ -368,6 +369,32 @@ async function executeScheduledStep({ contactStateId, flowId, stepKey }) {
             clearFlowTimers(flowId);
             return { cancelled: true, sent: false };
         }
+        if (ecBaileysTextMode() && ['intro', 'proof', 'bottle'].includes(stepKey)) {
+            const pausedAt = nowIso();
+            freshState.human = {
+                ...(freshState.human || {}),
+                mode: 'manual',
+                pausedUntil: null,
+                lastManualAt: new Date(pausedAt),
+                lastManualBy: 'ec_baileys_media_handoff',
+                note: `Etapa ${stepKey} requer midia; atendimento humano necessario.`
+            };
+            freshState.tags = [...new Set([...(freshState.tags || []), 'manual:no_auto_resend'])];
+            freshState.metadata = { ...(freshState.metadata || {}), operatorNoAutoResend: true,
+                lastHumanHoldReason: 'ec_baileys_media_handoff' };
+            await saveFlow(freshState, {
+                ...freshFlow,
+                status: 'paused_human_media',
+                interruptedAt: pausedAt,
+                interruptionReason: `baileys_text_only:${stepKey}`,
+                steps: {
+                    ...freshFlow.steps,
+                    [stepKey]: { ...freshFlow.steps[stepKey], sendingAt: '' }
+                }
+            }, { stage: 'initial_cadence_human_media' });
+            clearFlowTimers(flowId);
+            return { cancelled: true, sent: false };
+        }
         return { cancelled: false, sent: await sendStep({ state: freshState, flow: freshFlow, stepKey }) };
     });
     if (outcome.cancelled) return;
@@ -422,7 +449,7 @@ const scheduleFlow = ({ contactStateId, flow }) => {
 export const startTexUltraInitialLayer = async ({ state } = {}) => {
     if (!texUltraInitialLayerEnabled() || !state?._id) return { started: false, reason: 'disabled_or_missing_state' };
     const existing = flowOf(state);
-    if (existing && ['running', 'paused_by_customer', 'paused_error'].includes(existing.status)) {
+    if (existing && ['running', 'paused_by_customer', 'paused_error', 'paused_human_media'].includes(existing.status)) {
         return { started: false, reason: 'flow_already_exists', flow: existing };
     }
     const flow = newFlow({ state, sourceInboundAt: state.lastInboundAt || new Date() });
@@ -443,6 +470,7 @@ export const interruptTexUltraInitialLayerOnInbound = async ({ state, inboundTex
     if (!texUltraInitialLayerEnabled() || !state?._id) return { active: false, handled: false };
     let flow = flowOf(state);
     if (!flow || flow.status === 'completed') return { active: false, handled: false, flow };
+    if (flow.status === 'paused_human_media') return { active: true, handled: false, humanHandoff: true, flow };
 
     if (flow.status === 'running') {
         clearFlowTimers(flow.id);

@@ -9,12 +9,18 @@ import { shouldUseZapiForOutbound, zapiPhoneForOutbound } from './zapiOutboundRo
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
 import { assertTransportPersistenceAllowed } from '../services/strictReadOnlyObservationService.js';
+import { ecMediaAllowedForTransport } from './ecTransportMode.js';
+import { recordEcMediaHandoff } from './ecMediaHandoff.js';
 import {
     classifyPostSaleProviderFailureV116,
     postSaleTransactionalOutbound
 } from '../services/postSaleTransactionalSafetyV116Service.js';
 
 export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
+    if (!ecMediaAllowedForTransport()) {
+        await recordEcMediaHandoff({ jid, recipientDigits: options.recipientDigits, kind: 'imagem' });
+        return false;
+    }
     if(!await giraOutboundAllowed(jid,options,'image'))return false;
     assertTransportPersistenceAllowed({ transport: 'whatsapp', operation: 'send_image' });
     if (await operatorNoAutoResendForTarget({ jid, recipientDigits: options.recipientDigits || '', sendMode: options.sendMode || '' })) {

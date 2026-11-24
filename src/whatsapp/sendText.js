@@ -20,6 +20,7 @@ import { sendZapiText } from '../services/zapiClient.js';
 import { recordZapiOutboundMirror } from '../services/zapiOutboundMirrorService.js';
 import { operatorNoAutoResendForTarget } from '../services/operatorNoAutoResendService.js';
 import { shouldUseZapiForOutbound } from './zapiOutboundRouting.js';
+import { ecBaileysTextMode } from './ecTransportMode.js';
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { shipmentHistoryRepeatKey } from '../services/postSalePickupReconciliationPolicy.js';
@@ -401,16 +402,39 @@ export const sendText = async (jid, text, quotedMsg = null, options = {}) => {
             });
             console.log(`[LOG_SEND_USING_SOCKET] [socketId=${sId}] 📤 Texto disparado -> ${targetJid} | Tamanho: ${finalText.length} chars | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | tentativa=${attempt} | session=${sessionId || 'auto'}`);
             recordOutboundSend({ sessionId, jid: targetJid });
-            await markOutboundDedupeSent({
-                key: duplicateGuard.key,
-                semanticKey: duplicateGuard.semanticKey,
-                strict: postSaleTransactionalOutbound(options)
-            });
+            const linkedReceiptId = providerResponse?.key?.id || providerResponse?.messageId || '';
+            if (ecBaileysTextMode() && !linkedReceiptId) {
+                await markOutboundDedupeAmbiguous({ key: duplicateGuard.key,
+                    semanticKey: duplicateGuard.semanticKey, error: 'baileys_provider_receipt_missing' }).catch(() => null);
+                return options.returnDetails === true
+                    ? { ok: false, provider: 'baileys', providerAttempted: true,
+                        ambiguous: true, providerStatus: 'unknown', error: 'baileys_provider_receipt_missing' }
+                    : false;
+            }
+            try {
+                await markOutboundDedupeSent({
+                    key: duplicateGuard.key,
+                    semanticKey: duplicateGuard.semanticKey,
+                    strict: ecBaileysTextMode() || postSaleTransactionalOutbound(options),
+                    ...(ecBaileysTextMode() ? { provider: 'baileys',
+                        providerMessageId: linkedReceiptId } : {})
+                });
+            } catch (receiptError) {
+                if (!ecBaileysTextMode()) throw receiptError;
+                await markOutboundDedupeAmbiguous({ key: duplicateGuard.key,
+                    semanticKey: duplicateGuard.semanticKey,
+                    error: 'baileys_receipt_persistence_failed' }).catch(() => null);
+                return options.returnDetails === true
+                    ? { ok: false, provider: 'baileys', providerAttempted: true,
+                        providerMessageId: linkedReceiptId, ambiguous: true,
+                        providerStatus: 'unknown', error: 'baileys_receipt_persistence_failed' }
+                    : false;
+            }
             return options.returnDetails === true
                 ? {
                     ok: true,
                     provider: 'baileys',
-                    providerMessageId: providerResponse?.key?.id || providerResponse?.messageId || '',
+                    providerMessageId: linkedReceiptId,
                     providerStatus: 'sent'
                 }
                 : true;

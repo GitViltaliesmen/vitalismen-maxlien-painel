@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-order-v254-validation-sealed-v256-r1.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-order-v254-validation-profile-v256-r1.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-whatsapp-v265-sealed-r1.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-whatsapp-v265-profile-r1.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';

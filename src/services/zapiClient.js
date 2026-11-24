@@ -4,6 +4,7 @@ import path from 'path';
 import { assertTransportPersistenceAllowed } from './strictReadOnlyObservationService.js';
 import { assertCanaryV75Recipient } from './canaryIsolationV75Service.js';
 import { assertEcBotCoreExternalEffectAllowedV78 } from './ecBotCoreRuntimeIntegrationV78Service.js';
+import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
 
 const DEFAULT_BASE_URL = 'https://api.z-api.io';
 
@@ -99,6 +100,7 @@ export const assertZapiProviderAccepted = (response = {}) => {
 };
 
 export const sendZapiText = async ({ phone, message, messageId = '', delayMessage = null, delayTyping = null } = {}) => {
+    if (ecBaileysTextMode()) throw new Error('zapi_transport_retired');
     assertEcBotCoreExternalEffectAllowedV78('zapi_outbound_reply');
     assertTransportPersistenceAllowed({ transport: 'zapi', operation: 'send_text' });
     const cleanPhone = digits(phone);
@@ -220,6 +222,7 @@ const sendZapiMedia = async ({
     waveform = false,
     async = false
 } = {}) => {
+    if (ecBaileysTextMode()) throw new Error('zapi_transport_retired');
     assertEcBotCoreExternalEffectAllowedV78('zapi_outbound_reply');
     assertTransportPersistenceAllowed({ transport: 'zapi', operation: `send_${payloadKey || 'media'}` });
     const cleanPhone = digits(phone);
