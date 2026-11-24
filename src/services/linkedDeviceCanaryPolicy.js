@@ -3,7 +3,11 @@ const digits = value => String(value || '').replace(/\D/g, '');
 const LINKED_DEVICE_SURFACES = new Set([
     'baileys_dispatcher_inbound',
     'agent_router_inbound',
-    'outbound_guard_text'
+    'outbound_guard_text',
+    'manual_outbound_guard_audio',
+    'manual_outbound_guard_image',
+    'manual_outbound_guard_video',
+    'manual_outbound_guard_document'
 ]);
 
 export const linkedDeviceCanaryRecipientAllowed = ({ phoneOrJid = '', surface = '',

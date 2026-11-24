@@ -14952,6 +14952,7 @@
             }) || { code: 'UNKNOWN', detail: '' };
             const detail = escapeHtml(stateInfo.detail || '');
             if (stateInfo.code === 'REQUEST_FAILED') return ` · <span class="message-status-failed" title="${detail}">não enviado</span>`;
+            if (stateInfo.code === 'UNCERTAIN') return ` · <span class="message-status-local" title="${detail}">sem confirmação</span>`;
             if (stateInfo.code === 'FAILED') return ` · <span class="message-status-failed" title="${detail}">falhou no WhatsApp</span>`;
             if (stateInfo.code === 'LOCAL_ONLY') return ` · <span class="message-status-local">${detail}</span>`;
             if (stateInfo.code === 'READ') return ` · <span class="message-status-read" title="${detail}">&#10003;&#10003; lido</span>`;

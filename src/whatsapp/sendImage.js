@@ -17,7 +17,7 @@ import {
 } from '../services/postSaleTransactionalSafetyV116Service.js';
 
 export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
-    if (!ecMediaAllowedForTransport()) {
+    if (!ecMediaAllowedForTransport(process.env, options)) {
         await recordEcMediaHandoff({ jid, recipientDigits: options.recipientDigits, kind: 'imagem' });
         return false;
     }
@@ -31,7 +31,7 @@ export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);
     const sendMode = options.sendMode || '';
-    const guard = canSendOutbound({ jid, text: caption, sessionId, ownDigits, kind: 'image', recipientDigits: options.recipientDigits || '' });
+    const guard = canSendOutbound({ jid, text: caption, sessionId, ownDigits, kind: 'image', recipientDigits: options.recipientDigits || '', manualPanelMediaAuthorized: options.manualPanelMediaAuthorized === true });
     if (!guard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] imagem bloqueada -> ${jid} | reason=${guard.reason}`);
         return false;
@@ -98,25 +98,31 @@ export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
         }
     }
 
-    const maxAttempts = postSaleTransactionalOutbound(options) ? 1 : 2;
+    const maxAttempts = postSaleTransactionalOutbound(options) || options.manualPanelMediaAuthorized === true ? 1 : 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         const sock = getSock(sessionId);
         const sId = getSocketId(sessionId);
 
         try {
             const readySock = sock || await waitForWhatsAppReady(12000, sessionId);
-            const { pacing, afterSendMs } = await withHumanizedOutboundQueue(jid, async () => {
+            const { pacing, afterSendMs, result } = await withHumanizedOutboundQueue(jid, async () => {
                 const pacing = await applyHumanPacing({ sock: readySock, jid, kind: 'image', text: caption || imagePath, sendMode });
-                await readySock.sendMessage(jid, {
+                const result = await readySock.sendMessage(jid, {
                     image: { url: imagePath },
                     ...(caption ? { caption } : {})
                 });
-                const afterSendMs = await applyAfterSendPacing({ kind: 'image', sendMode });
-                return { pacing, afterSendMs };
+                const afterSendMs = result ? await applyAfterSendPacing({ kind: 'image', sendMode }) : 0;
+                return { pacing, afterSendMs, result };
             }, { sendMode });
             console.log(`[LOG_SEND_USING_SOCKET] [socketId=${sId}] 🖼️ Imagem disparada -> ${jid} | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | tentativa=${attempt} | session=${sessionId || 'auto'}`);
+            const providerMessageId = result?.key?.id || result?.message?.key?.id || '';
+            if (!result || options.manualPanelMediaAuthorized === true && !providerMessageId) return options.returnDetails === true
+                ? { ok: false, provider: 'baileys', providerAttempted: true, ambiguous: true, providerStatus: 'ambiguous', error: 'send_image_unconfirmed' }
+                : false;
             recordOutboundSend({ sessionId, jid });
-            return true;
+            return options.returnDetails === true
+                ? { ok: true, provider: 'baileys', providerMessageId, providerStatus: 'sent' }
+                : true;
         } catch (error) {
             console.error(`[OUTBOUND-ERROR] ❌ Falha ao enviar imagem para ${jid} | tentativa=${attempt}:`, error);
             if (attempt === maxAttempts) {
@@ -128,9 +134,9 @@ export const sendImage = async (jid, imagePath, caption = '', options = {}) => {
                         ok: false,
                         provider: 'baileys',
                         providerAttempted: true,
-                        ambiguous: disposition?.ambiguous ?? false,
+                        ambiguous: options.manualPanelMediaAuthorized === true || disposition?.ambiguous === true,
                         terminalState: disposition?.terminalState || '',
-                        providerStatus: disposition?.providerStatus || 'failed',
+                        providerStatus: options.manualPanelMediaAuthorized === true ? 'ambiguous' : disposition?.providerStatus || 'failed',
                         error: error.message || 'send_image_failed'
                     };
                 }

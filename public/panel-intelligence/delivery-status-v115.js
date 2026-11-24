@@ -18,6 +18,9 @@
         const providerId = clean(providerMessageId || providerZaapId);
 
         if (localOnly) return Object.freeze({ code: 'LOCAL_ONLY', detail: 'so painel, sem ZAPI' });
+        if (status === 'unconfirmed' && provider === 'ambiguous') {
+            return Object.freeze({ code: 'UNCERTAIN', detail: errorText || 'confira no celular antes de tentar novamente' });
+        }
         if (['request_failed', 'unconfirmed'].includes(status)) {
             return Object.freeze({
                 code: 'REQUEST_FAILED',
@@ -44,6 +47,9 @@
         }
         if (numericAck >= 1) {
             return Object.freeze({ code: 'SENT', detail: 'envio confirmado por callback' });
+        }
+        if (status === 'sent' && provider === 'sent' && providerId) {
+            return Object.freeze({ code: 'SENT', detail: 'envio aceito pelo dispositivo vinculado' });
         }
         if (['provider_accepted', 'pending_confirmation'].includes(status)) {
             return providerId

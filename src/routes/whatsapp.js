@@ -22,6 +22,7 @@ import { sendText } from '../whatsapp/sendText.js';
 import { sendAudio } from '../whatsapp/sendAudio.js';
 import { sendImage } from '../whatsapp/sendImage.js';
 import { sendVideo } from '../whatsapp/sendVideo.js';
+import { sendDocument } from '../whatsapp/sendDocument.js';
 import { canSendOutbound } from '../whatsapp/outboundGuard.js';
 import { getSenderPoolStatus } from '../whatsapp/sessionRouter.js';
 import { ecTransportMode } from '../whatsapp/ecTransportMode.js';
@@ -3004,6 +3005,7 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
             return sendAudio(chatId, content, options.isPtt !== false, {
                 sessionId: options.sessionId,
                 sendMode,
+                manualPanelMediaAuthorized: options.manualPanelMediaAuthorized === true,
                 allowAudioDedupeBypass,
                 ...(options.canonicalPostSale ? { dedupeValue: options.dedupeValue, outboundContext: 'shipment_status', allowExistingDropiOrder: true } : {}),
                 country: options.country,
@@ -3022,6 +3024,7 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
             return sendImage(chatId, content, '', {
                 sessionId: options.sessionId,
                 sendMode,
+                manualPanelMediaAuthorized: options.manualPanelMediaAuthorized === true,
                 country: options.country,
                 recipientDigits: digitsOnly(phone),
                 returnDetails: options.returnDetails === true
@@ -3031,10 +3034,23 @@ const sendWhatsAppMessage = async (phone, content, options = {}) => {
             return sendVideo(chatId, content, '', {
                 sessionId: options.sessionId,
                 sendMode,
+                manualPanelMediaAuthorized: options.manualPanelMediaAuthorized === true,
                 country: options.country,
                 recipientDigits: digitsOnly(phone),
                 publicMediaUrl: publicMediaUrlForLocalPath(content),
                 viewOnce: options.viewOnce === true,
+                returnDetails: options.returnDetails === true
+            });
+        }
+
+        if (options.manualPanelMediaAuthorized === true && ecTransportMode() === 'baileys_text') {
+            return sendDocument(chatId, content, path.basename(content), '', {
+                sessionId: options.sessionId,
+                sendMode,
+                manualPanelMediaAuthorized: true,
+                country: options.country,
+                recipientDigits: digitsOnly(phone),
+                allowExistingDropiOrder: true,
                 returnDetails: options.returnDetails === true
             });
         }
@@ -6767,6 +6783,7 @@ router.post('/send', authMiddleware, async (req, res) => {
         } = req.body;
         const sendMode = req.body?.sendMode === 'manual_panel' ? 'manual_panel' : '';
         assertEcPanelManualSendV115({ sendMode });
+        const manualPanelMediaAuthorized = sendMode === 'manual_panel' && Boolean(req.user) && country === 'EC';
         let storedMessageRecordId = '';
         const allowAudioDedupeBypass = sendMode === 'manual_panel'
             || req.body?.allowAudioDedupeBypass === true;
@@ -6871,7 +6888,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 }
                 if (beforeSend && !await beforeSend()) return { ok: false, providerAttempted: false, reason: 'stale_a07_component' };
                 return sendWhatsAppMessage(phone, payload, { isMedia: Boolean(isMedia), sessionId: effectiveSessionId,
-                    sendMode, country, allowExistingDropiOrder: true, returnDetails: true,
+                    sendMode, country, manualPanelMediaAuthorized, allowExistingDropiOrder: true, returnDetails: true,
                     canonicalPostSale: true, outboundContext: 'shipment_status',
                     dedupeValue: event.dedupeKey, allowAudioDedupeBypass: true,
                     bypassDedupe: !isMedia, allowTextDedupeBypass: !isMedia, allowHistoryDedupeBypass: !isMedia });
@@ -6958,12 +6975,15 @@ router.post('/send', authMiddleware, async (req, res) => {
                     sessionId: effectiveSessionId,
                     isPtt: mediaKind !== 'audio',
                     sendMode,
+                    manualPanelMediaAuthorized,
                     allowAudioDedupeBypass,
                     allowExistingDropiOrder: sendMode === 'manual_panel',
                     country,
                     returnDetails: true
                 });
                 const sent = typeof sendResult === 'object' ? sendResult.ok !== false : Boolean(sendResult);
+                const mediaDeliveryStatus = sent && sendResult?.provider === 'zapi' ? 'provider_accepted'
+                    : sent ? 'sent' : sendResult?.ambiguous === true ? 'unconfirmed' : 'request_failed';
                 const state = await findOrCreateContactState(phone);
                 applyManualSendHold(state, { phone, user: req.user });
                 await state.save();
@@ -6976,8 +6996,10 @@ router.post('/send', authMiddleware, async (req, res) => {
                     sessionId: sendResult?.provider === 'zapi'
                         ? (zapiOperationalPanelPhone() || effectiveSessionId)
                         : effectiveSessionId,
-                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed',
-                    sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
+                    deliveryStatus: mediaDeliveryStatus,
+                    sendError: sent ? '' : sendResult?.ambiguous === true
+                        ? 'Resultado incerto: confira no celular antes de tentar novamente.'
+                        : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
                     provider: sendResult?.provider || '',
                     providerMessageId: sendResult?.providerMessageId || '',
                     providerZaapId: sendResult?.providerZaapId || '',
@@ -6992,7 +7014,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                     providerMessageId: sendResult?.providerMessageId || '',
                     providerZaapId: sendResult?.providerZaapId || '',
                     messageRecordId: messageRecord?._id || '',
-                    deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed'
+                    deliveryStatus: mediaDeliveryStatus
                 });
             }
 
@@ -7020,12 +7042,15 @@ router.post('/send', authMiddleware, async (req, res) => {
                 isMedia: true,
                 sessionId: effectiveSessionId,
                 sendMode,
+                manualPanelMediaAuthorized,
                 allowAudioDedupeBypass,
                 allowExistingDropiOrder: sendMode === 'manual_panel',
                 country,
                 returnDetails: true
             });
             const sent = typeof sendResult === 'object' ? sendResult.ok !== false : Boolean(sendResult);
+            const mediaDeliveryStatus = sent && sendResult?.provider === 'zapi' ? 'provider_accepted'
+                : sent ? 'sent' : sendResult?.ambiguous === true ? 'unconfirmed' : 'request_failed';
             const state = await findOrCreateContactState(phone);
             applyManualSendHold(state, { phone, user: req.user });
             await state.save();
@@ -7038,8 +7063,10 @@ router.post('/send', authMiddleware, async (req, res) => {
                 sessionId: sendResult?.provider === 'zapi'
                     ? (zapiOperationalPanelPhone() || effectiveSessionId)
                     : effectiveSessionId,
-                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed',
-                sendError: sent ? '' : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
+                deliveryStatus: mediaDeliveryStatus,
+                sendError: sent ? '' : sendResult?.ambiguous === true
+                    ? 'Resultado incerto: confira no celular antes de tentar novamente.'
+                    : sendResult?.error || 'WhatsApp nao retornou confirmacao da midia; conferir no aparelho.',
                 provider: sendResult?.provider || '',
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
@@ -7053,7 +7080,7 @@ router.post('/send', authMiddleware, async (req, res) => {
                 providerMessageId: sendResult?.providerMessageId || '',
                 providerZaapId: sendResult?.providerZaapId || '',
                 messageRecordId: messageRecord?._id || '',
-                deliveryStatus: sent && sendResult?.provider === 'zapi' ? 'provider_accepted' : sent ? 'sent' : 'request_failed'
+                deliveryStatus: mediaDeliveryStatus
             });
         }
 

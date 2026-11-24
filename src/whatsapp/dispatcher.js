@@ -12,6 +12,7 @@ import { transcribeInboundAudioBuffer } from '../services/inboundAudioTranscript
 import Message from '../models/Message.js';
 import ContactState from '../models/ContactState.js';
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
+import { manualUploadsDirV129 } from '../services/manualMediaStorageV129Service.js';
 
 const debugUpsert = String(process.env.WHATSAPP_DEBUG_UPSERT || '') === 'true';
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
@@ -175,7 +176,7 @@ const saveInboundMediaFile = async ({ msg, message = {}, mediaType = '', sock, e
     );
     if (!buffer?.length) return '';
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'media', 'inbound');
+    const uploadsDir = manualUploadsDirV129();
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
     const ext = mediaExtensionFromMime(payload.mimetype, mediaType === 'audio' ? 'ogg' : 'bin');
     const filename = `${Date.now()}_${crypto.randomBytes(6).toString('hex')}.${ext}`;

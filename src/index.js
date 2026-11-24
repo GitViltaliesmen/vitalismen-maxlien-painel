@@ -273,6 +273,9 @@ app.get('/funnel-metrics.html', (_req, res) => {
 app.use('/media/uploads', express.static(manualUploadsDirV129(), {
     setHeaders: (res) => res.set(noStoreHeaders)
 }));
+app.use('/media/inbound', express.static(manualUploadsDirV129(), {
+    setHeaders: (res) => res.set(noStoreHeaders)
+}));
 app.use('/media/remote-cache', express.static(remoteMediaCacheDirV129(), {
     setHeaders: (res) => res.set(noStoreHeaders)
 }));

@@ -35,7 +35,7 @@ const sendDocumentFailure = (options, payload = {}) => (
 );
 
 export const sendDocument = async (jid, filePath, fileName = '', caption = '', options = {}) => {
-    if (!ecMediaAllowedForTransport()) {
+    if (!ecMediaAllowedForTransport(process.env, options)) {
         await recordEcMediaHandoff({ jid, recipientDigits: options.recipientDigits, kind: 'documento' });
         return sendDocumentFailure(options, { reason: 'ec_baileys_text_only' });
     }
@@ -49,7 +49,7 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);
     const sendMode = options.sendMode || '';
-    const guard = canSendOutbound({ jid, text: caption || fileName || filePath, sessionId, ownDigits, kind: 'document', recipientDigits: options.recipientDigits || '' });
+    const guard = canSendOutbound({ jid, text: caption || fileName || filePath, sessionId, ownDigits, kind: 'document', recipientDigits: options.recipientDigits || '', manualPanelMediaAuthorized: options.manualPanelMediaAuthorized === true });
     if (!guard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] documento bloqueado -> ${jid} | reason=${guard.reason}`);
         return sendDocumentFailure(options, { reason: guard.reason });
@@ -127,23 +127,27 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
 
     if (caption) payload.caption = caption;
 
-    const maxAttempts = postSaleTransactionalOutbound(options) ? 1 : 2;
+    const maxAttempts = postSaleTransactionalOutbound(options) || options.manualPanelMediaAuthorized === true ? 1 : 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
             const sock = getSock(sessionId) || await waitForWhatsAppReady(12000, sessionId);
             const pacing = await applyHumanPacing({ sock, jid, kind: 'document', text: caption || fileName || filePath, sendMode });
             const result = await sock.sendMessage(jid, payload);
             console.log(`[OUTBOUND] 📎 Documento enviado -> ${jid} | Arquivo: ${filePath} | pacing=${pacing.waitedMs}ms/${pacing.presence} | tentativa=${attempt} | session=${sessionId || 'auto'}`);
-            if (result) recordOutboundSend({ sessionId, jid });
+            const providerMessageId = result?.key?.id || result?.message?.key?.id || '';
+            const confirmed = Boolean(result) && (options.manualPanelMediaAuthorized !== true || Boolean(providerMessageId));
+            if (confirmed) recordOutboundSend({ sessionId, jid });
             return options.returnDetails === true
                 ? {
-                    ok: Boolean(result),
+                    ok: confirmed,
                     provider: 'baileys',
-                    providerMessageId: result?.key?.id || result?.message?.key?.id || '',
-                    providerStatus: result ? 'sent' : 'failed',
+                    providerMessageId,
+                    providerAttempted: true,
+                    ambiguous: !confirmed && options.manualPanelMediaAuthorized === true,
+                    providerStatus: confirmed ? 'sent' : options.manualPanelMediaAuthorized === true ? 'ambiguous' : 'failed',
                     providerPayload: result || {}
                 }
-                : !!result;
+                : confirmed;
         } catch (error) {
             console.error(`[OUTBOUND-DOC-ERROR] ❌ Falha ao enviar documento para ${jid} | tentativa=${attempt}:`, error);
             if (attempt === maxAttempts) {
@@ -153,9 +157,9 @@ export const sendDocument = async (jid, filePath, fileName = '', caption = '', o
                 return sendDocumentFailure(options, {
                     provider: 'baileys',
                     providerAttempted: true,
-                    ambiguous: disposition?.ambiguous ?? false,
+                    ambiguous: options.manualPanelMediaAuthorized === true || disposition?.ambiguous === true,
                     terminalState: disposition?.terminalState || '',
-                    providerStatus: disposition?.providerStatus || 'failed',
+                    providerStatus: options.manualPanelMediaAuthorized === true ? 'ambiguous' : disposition?.providerStatus || 'failed',
                     error: error.message || 'send_document_failed'
                 });
             }

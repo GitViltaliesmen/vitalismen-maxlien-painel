@@ -10,6 +10,11 @@ test('linked-device canary scope admits only EC conversation text with current a
     assert.equal(allowed({ ...base, surface: 'baileys_dispatcher_inbound' }), true);
     assert.equal(allowed({ ...base, surface: 'outbound_guard_text' }), true);
     assert.equal(allowed({ ...base, surface: 'outbound_guard_audio' }), false);
+    assert.equal(allowed({ ...base, surface: 'manual_outbound_guard_audio' }), true);
+    assert.equal(allowed({ ...base, surface: 'manual_outbound_guard_image' }), true);
+    assert.equal(allowed({ ...base, surface: 'manual_outbound_guard_video' }), true);
+    assert.equal(allowed({ ...base, surface: 'manual_outbound_guard_document' }), true);
+    assert.equal(allowed({ ...base, surface: 'manual_outbound_guard_image', authorityCurrent: false }), false);
     assert.equal(allowed({ ...base, surface: 'automation_recipient' }), false);
     assert.equal(allowed({ ...base, phoneOrJid: '5515998038637' }), false);
     assert.equal(allowed({ ...base, phoneOrJid: '573001234567' }), false);

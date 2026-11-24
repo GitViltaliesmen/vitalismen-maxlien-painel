@@ -10,6 +10,12 @@ export const ecTransportMode = (env = process.env) => {
 
 export const ecBaileysTextMode = (env = process.env) => ecTransportMode(env) === 'baileys_text';
 
-// The first linked-device release is text only. Refuse media at the sender
-// boundary so no funnel can silently send an unreviewed asset via Baileys.
-export const ecMediaAllowedForTransport = (env = process.env) => !ecBaileysTextMode(env);
+// Linked-device media is limited to an authenticated EC manual-panel request.
+// Automatic funnels remain text only until their assets are separately approved.
+export const ecMediaAllowedForTransport = (env = process.env, options = {}) => (
+    !ecBaileysTextMode(env)
+    || (options.sendMode === 'manual_panel'
+        && options.manualPanelMediaAuthorized === true
+        && options.country === 'EC'
+        && globalThis.__VITALISMEN_EC_BAILEYS_INGRESS_V265?.isCurrent?.() === true)
+);

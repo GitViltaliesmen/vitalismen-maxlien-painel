@@ -54,10 +54,11 @@ const cleanupRecentOutbound = (now) => {
     }
 };
 
-export const canSendOutbound = ({ jid, text = '', sessionId = null, ownDigits = '', kind = 'text', recipientDigits = '', bypassDedupe = false, reserveDedupe = true }) => {
+export const canSendOutbound = ({ jid, text = '', sessionId = null, ownDigits = '', kind = 'text', recipientDigits = '', bypassDedupe = false, reserveDedupe = true, manualPanelMediaAuthorized = false }) => {
     const targetDigits = digitsOnly(recipientDigits) || digitsOnly(jid);
     const canaryDecision = evaluateCanaryV75Recipient(targetDigits, {
-        surface: `outbound_guard_${kind}`
+        surface: manualPanelMediaAuthorized && kind !== 'text'
+            ? `manual_outbound_guard_${kind}` : `outbound_guard_${kind}`
     });
     if (!canaryDecision.allowed) {
         return { allowed: false, reason: canaryDecision.reason };

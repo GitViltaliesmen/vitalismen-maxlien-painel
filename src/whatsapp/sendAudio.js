@@ -133,7 +133,7 @@ const failoverWasSent = (result) => (result === true || result?.ok === true);
  * Transmits local Voice Notes (.ogg typically) as native Push-to-Talk (PTT)
  */
 export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
-    if (!ecMediaAllowedForTransport()) {
+    if (!ecMediaAllowedForTransport(process.env, options)) {
         await recordEcMediaHandoff({ jid, recipientDigits: options.recipientDigits, kind: 'audio' });
         return false;
     }
@@ -149,7 +149,7 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
     const bypassDedupe = options.bypassDedupe === true || options.force === true;
     const bypassAudioDedupe = options.allowAudioDedupeBypass === true || bypassDedupe;
     const sendMode = options.sendMode || '';
-    const guard = canSendOutbound({ jid, text: audioPath, sessionId, ownDigits, kind: 'audio', recipientDigits: options.recipientDigits || '', bypassDedupe: bypassAudioDedupe });
+    const guard = canSendOutbound({ jid, text: audioPath, sessionId, ownDigits, kind: 'audio', recipientDigits: options.recipientDigits || '', bypassDedupe: bypassAudioDedupe, manualPanelMediaAuthorized: options.manualPanelMediaAuthorized === true });
     if (!guard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] audio bloqueado -> ${jid} | reason=${guard.reason}`);
         if (shouldTryZapiAudioFailover({ jid, options, reason: guard.reason })) {
@@ -288,7 +288,7 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
         }
     }
 
-    const maxAttempts = postSaleTransactionalOutbound(options) ? 1 : 2;
+    const maxAttempts = postSaleTransactionalOutbound(options) || options.manualPanelMediaAuthorized === true ? 1 : 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
             console.log(`[OUTBOUND-AUDIO] start -> jid=${jid} | session=${sessionId || 'auto'} | attempt=${attempt} | path=${sendPath}`);
@@ -312,19 +312,26 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
                 return { pacing, afterSendMs, result };
             }, { sendMode });
             console.log(`[OUTBOUND] 🔊 Áudio transmitido -> ${jid} | Arquivo: ${sendPath} | origem=${audioPath} | ptt=${isPtt ? 'sim' : 'nao'} | mimetype=${payload.mimetype} | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | tentativa=${attempt} | session=${sessionId || 'auto'}`);
-            const confirmed = result !== false && result !== null && result !== undefined;
+            const providerMessageId = result?.key?.id || result?.message?.key?.id || '';
+            const confirmed = result !== false && result !== null && result !== undefined
+                && (options.manualPanelMediaAuthorized !== true || Boolean(providerMessageId));
             if (confirmed) recordOutboundSend({ sessionId, jid });
             if (confirmed) await markOutboundDedupeSent({
                 key: duplicateGuard.key,
                 semanticKey: duplicateGuard.semanticKey,
                 strict: postSaleTransactionalOutbound(options)
             });
+            if (!confirmed && result) await markOutboundDedupeAmbiguous({
+                key: duplicateGuard.key,
+                semanticKey: duplicateGuard.semanticKey,
+                error: 'manual_audio_without_provider_id'
+            });
             if (options.returnDetails === true) {
                 return confirmed
                     ? {
                         ok: true,
                         provider: 'baileys',
-                        providerMessageId: result?.key?.id || result?.message?.key?.id || '',
+                        providerMessageId,
                         providerStatus: 'sent'
                     }
                     : {
@@ -357,6 +364,12 @@ export const sendAudio = async (jid, audioPath, isPtt = true, options = {}) => {
                             providerStatus: disposition.providerStatus,
                             error: disposition.reason
                         }
+                        : false;
+                }
+                if (options.manualPanelMediaAuthorized === true) {
+                    await markOutboundDedupeAmbiguous({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey, error: error.message });
+                    return options.returnDetails === true
+                        ? { ok: false, provider: 'baileys', providerAttempted: true, ambiguous: true, providerStatus: 'ambiguous', error: error.message || 'send_audio_unconfirmed' }
                         : false;
                 }
                 await markOutboundDedupeFailed({ key: duplicateGuard.key, semanticKey: duplicateGuard.semanticKey, error: error.message });

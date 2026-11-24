@@ -105,6 +105,9 @@ test('painel distingue falha HTTP, aceitação, sent, delivered e read sem promo
     assert.equal(classify({ deliveryStatus: 'provider_accepted' }).code, 'REQUEST_FAILED');
     assert.equal(classify({ deliveryStatus: 'provider_accepted', providerMessageId: 'wamid.2' }).code, 'PROVIDER_ACCEPTED');
     assert.equal(classify({ deliveryStatus: 'sent', providerMessageId: 'wamid.2' }).code, 'UNKNOWN');
+    assert.equal(classify({ deliveryStatus: 'sent', providerStatus: 'sent', providerMessageId: 'baileys-1' }).code, 'SENT');
+    assert.equal(classify({ deliveryStatus: 'sent', providerStatus: 'sent' }).code, 'UNKNOWN');
+    assert.equal(classify({ deliveryStatus: 'unconfirmed', providerStatus: 'ambiguous' }).code, 'UNCERTAIN');
     assert.equal(classify({ deliveryStatus: 'sent', providerMessageId: 'wamid.2', ack: 1 }).code, 'SENT');
     assert.equal(classify({ deliveryStatus: 'delivered', ack: 2 }).code, 'DELIVERED');
     assert.equal(classify({ deliveryStatus: 'read', ack: 3 }).code, 'READ');

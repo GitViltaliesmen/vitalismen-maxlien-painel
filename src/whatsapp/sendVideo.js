@@ -14,7 +14,7 @@ import { ecMediaAllowedForTransport } from './ecTransportMode.js';
 import { recordEcMediaHandoff } from './ecMediaHandoff.js';
 
 export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
-    if (!ecMediaAllowedForTransport()) {
+    if (!ecMediaAllowedForTransport(process.env, options)) {
         await recordEcMediaHandoff({ jid, recipientDigits: options.recipientDigits, kind: 'video' });
         return false;
     }
@@ -28,7 +28,7 @@ export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
     const sessionId = route.sessionId;
     const ownDigits = getOwnPhoneDigits(sessionId);
     const sendMode = options.sendMode || '';
-    const guard = canSendOutbound({ jid, text: caption || videoPath, sessionId, ownDigits, kind: 'video', recipientDigits: options.recipientDigits || '' });
+    const guard = canSendOutbound({ jid, text: caption || videoPath, sessionId, ownDigits, kind: 'video', recipientDigits: options.recipientDigits || '', manualPanelMediaAuthorized: options.manualPanelMediaAuthorized === true });
     if (!guard.allowed) {
         console.log(`[LOG_SEND_BLOCKED] video bloqueado -> ${jid} | reason=${guard.reason}`);
         return false;
@@ -98,7 +98,8 @@ export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
         }
     }
 
-    for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const maxAttempts = options.manualPanelMediaAuthorized === true ? 1 : 2;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
             const sock = getSock(sessionId) || await waitForWhatsAppReady(12000, sessionId);
             const payload = {
@@ -116,11 +117,19 @@ export const sendVideo = async (jid, videoPath, caption = '', options = {}) => {
             }, { sendMode });
 
             console.log(`[OUTBOUND] Video transmitido -> ${jid} | Arquivo: ${videoPath} | viewOnce=${Boolean(options.viewOnce)} | pacing=${pacing.waitedMs}ms/${pacing.presence} | after=${afterSendMs}ms | tentativa=${attempt} | session=${sessionId || 'auto'}`);
-            if (result) recordOutboundSend({ sessionId, jid });
-            return !!result;
+            const providerMessageId = result?.key?.id || result?.message?.key?.id || '';
+            const confirmed = Boolean(result) && (options.manualPanelMediaAuthorized !== true || Boolean(providerMessageId));
+            if (confirmed) recordOutboundSend({ sessionId, jid });
+            return options.returnDetails === true
+                ? confirmed
+                    ? { ok: true, provider: 'baileys', providerMessageId, providerStatus: 'sent' }
+                    : { ok: false, provider: 'baileys', providerAttempted: true, ambiguous: true, providerStatus: 'ambiguous', error: 'send_video_unconfirmed' }
+                : confirmed;
         } catch (error) {
             console.error(`[OUTBOUND-VIDEO-ERROR] Falha ao enviar video para ${jid} | tentativa=${attempt}:`, error);
-            if (attempt === 2) return false;
+            if (attempt === maxAttempts) return options.returnDetails === true
+                ? { ok: false, provider: 'baileys', providerAttempted: true, ambiguous: options.manualPanelMediaAuthorized === true, providerStatus: options.manualPanelMediaAuthorized === true ? 'ambiguous' : 'failed', error: error.message || 'send_video_failed' }
+                : false;
             await waitForWhatsAppReady(15000, sessionId).catch(() => null);
         }
     }
