@@ -1,5 +1,6 @@
 // EC transport selection is explicit during a provider cutover. An invalid
 // value must never silently restore the previous outbound provider.
+import { postSaleV270MediaAllowed } from '../services/postSaleLinkedV270Context.js';
 export const ecTransportMode = (env = process.env) => {
     const mode = String(env.EC_WHATSAPP_TRANSPORT || 'zapi').trim().toLowerCase();
     if (mode !== 'zapi' && mode !== 'baileys_text') {
@@ -18,4 +19,6 @@ export const ecMediaAllowedForTransport = (env = process.env, options = {}) => (
         && options.manualPanelMediaAuthorized === true
         && options.country === 'EC'
         && globalThis.__VITALISMEN_EC_BAILEYS_INGRESS_V265?.isCurrent?.() === true)
+    || (ecBaileysTextMode(env) && postSaleV270MediaAllowed({ env, options,
+        linkedCurrent: globalThis.__VITALISMEN_EC_BAILEYS_INGRESS_V265?.isCurrent?.() === true }))
 );

@@ -1,5 +1,6 @@
 import Shipment from '../models/Shipment.js';
 import { canaryV75SchedulerShipmentAllowed } from './canaryIsolationV75Service.js';
+import { shipmentHasAuthoritativeDropiPickupReleaseV168B } from './dropiPickupReleaseV168BService.js';
 import { POST_SALE_STAGES } from './postSaleSafetyV66Service.js';
 import {
     notifyReadyForPickup,
@@ -30,8 +31,79 @@ const deliveryAnchor = (shipment = {}) => shipment?.logistics?.canonicalEvidence
     || shipment?.automation?.deliveredConfirmedAt
     || shipment?.logistics?.lastStatusAt;
 
+const verifiedCarrierCheckAt = (shipment = {}, statuses = []) => {
+    const check = shipment?.raw?.carrierTracking || {};
+    const result = check.lastResult || {};
+    const currentStatus = clean(shipment?.logistics?.canonicalStatus);
+    const valid = statuses.includes(currentStatus)
+        && result.ok === true
+        && /^servientrega$/i.test(clean(result.carrier))
+        && clean(result.trackingNumber) === clean(shipment?.logistics?.trackingNumber)
+        && clean(result.observedGuide) === clean(shipment?.logistics?.trackingNumber)
+        && Boolean(clean(result.providerStatus))
+        && result.canonicalStatus === currentStatus;
+    const checkedAt = valid ? asDate(check.lastCheckedAt) : null;
+    // Historical catch-up is valid only while the carrier observation is fresh.
+    // A stale or future-dated result cannot reopen an old guide notification.
+    const ageMs = checkedAt ? Date.now() - checkedAt.getTime() : -1;
+    return ageMs >= 0 && ageMs <= (10 * 60 * 1000) ? checkedAt : null;
+};
+
+const verifiedDropiCheckAt = (shipment = {}, statuses = []) => {
+    const sync = shipment?.raw?.postSaleV194DropiSync || {};
+    const payload = shipment?.raw?.latestDroppiPayload || {};
+    const evidence = shipment?.logistics?.canonicalEvidence || {};
+    const guide = digitsOnly(shipment?.logistics?.trackingNumber);
+    const orderId = digitsOnly(sync.dropiOrderId);
+    const status = clean(shipment?.logistics?.canonicalStatus);
+    const current = statuses.includes(status)
+        && sync.lastState === 'TRACKING_FOUND'
+        && sync.lastReason === 'exact_dropi_order_id_tracking_found'
+        && sync.historicalNoReplay !== true
+        && clean(sync.lastDropiStatus)
+        && clean(sync.lastDropiStatus) === clean(payload.dropiStatus)
+        && clean(sync.lastDropiStatus) === clean(evidence.rawStatus)
+        && evidence.provider === 'dropi'
+        && evidence.source === 'dropi_orders_api'
+        && digitsOnly(evidence.dropiOrderId) === orderId
+        && digitsOnly(payload.dropiOrderId) === orderId
+        && digitsOnly(evidence.trackingNumber) === guide
+        && digitsOnly(payload.trackingNumber) === guide
+        && orderId.length >= 6 && /^\d{8,15}$/.test(guide);
+    if (!current) return null;
+    if (status === 'READY_FOR_PICKUP' && (
+        shipment?.logistics?.pickupReadyVerified !== true
+        || shipment?.logistics?.pickupReadyVerifiedSource !== 'dropi_orders_api'
+        || !shipmentHasAuthoritativeDropiPickupReleaseV168B(shipment)
+    )) return null;
+    const syncedAt = asDate(sync.lastSyncAt);
+    const observedAt = asDate(evidence.observedAt);
+    if (!syncedAt || !observedAt || Math.abs(syncedAt.getTime() - observedAt.getTime()) > 5_000) return null;
+    const ageMs = Date.now() - syncedAt.getTime();
+    return ageMs >= 0 && ageMs <= (10 * 60 * 1000) ? syncedAt : null;
+};
+
+const verifiedGuideCheckAt = (shipment = {}) => (
+    !shipment?.automation?.guiaNotifiedAt
+        ? verifiedCarrierCheckAt(shipment, ['GUIDE_CREATED']) || verifiedDropiCheckAt(shipment, ['GUIDE_CREATED'])
+        : null
+);
+
+const carrierStatusesForStage = (stage = '') => {
+    if (stage === POST_SALE_STAGES.GUIDE) return ['GUIDE_CREATED'];
+    if (stage === POST_SALE_STAGES.IN_TRANSIT) return [
+        'PICKED_UP_BY_CARRIER', 'IN_TRANSIT', 'LOGISTICS_CENTER', 'ENTERING_AGENCY'
+    ];
+    if (stage === POST_SALE_STAGES.RETURNED) return ['NOT_PICKED_UP', 'RETURNING', 'RETURNED'];
+    if (stage === POST_SALE_STAGES.READY_FOR_PICKUP || stage.startsWith('PICKUP_REMINDER_')
+        || stage === POST_SALE_STAGES.PICKUP_PROOF_REQUEST) return ['READY_FOR_PICKUP'];
+    return null;
+};
+
 export const postSaleV194StageAnchor = (shipment = {}, stage = '') => {
     if (stage === POST_SALE_STAGES.GUIDE) {
+        const verifiedAt = verifiedGuideCheckAt(shipment);
+        if (verifiedAt) return verifiedAt;
         return shipment?.raw?.postSaleV194DropiSync?.trackingRecoveredAt
             || shipment?.logistics?.canonicalEvidence?.observedAt
             || shipment?.logistics?.lastStatusAt
@@ -71,8 +143,13 @@ export const isPostSaleV194ForwardOnlyEligible = ({ shipment = {}, stage = '', f
         if (!carrierFinal || (!delivered && !returned)) return false;
     }
     if (shipment?.review?.manualOnly === true) return false;
+    if (stage === POST_SALE_STAGES.GUIDE && shipment?.automation?.guiaNotifiedAt) return false;
     if (!stage || !postSaleV194StageAnchor(shipment, stage)) return false;
-    if (stage === POST_SALE_STAGES.GUIDE && !afterOrEqual(shipment?.createdAt, cutoff)) return false;
+    if (!afterOrEqual(shipment?.createdAt, cutoff)) return false;
+    const carrierStatuses = carrierStatusesForStage(stage);
+    const dropiStageAllowed = stage !== POST_SALE_STAGES.RETURNED;
+    if (carrierStatuses && !verifiedCarrierCheckAt(shipment, carrierStatuses)
+        && !(dropiStageAllowed && verifiedDropiCheckAt(shipment, carrierStatuses))) return false;
     return afterOrEqual(postSaleV194StageAnchor(shipment, stage), cutoff);
 };
 
@@ -132,8 +209,10 @@ const LOGISTICS_ACTIONS = Object.freeze([
 ]);
 
 const sentByResult = (action, result) => {
-    if (action === 'guide') return result?.success === true;
-    return result === true || result?.success === true || Number(result?.sent || 0) > 0;
+    if (action === 'guide') return result?.success === true || result?.textSent === true
+        || result?.providerAttempted === true;
+    return result === true || result?.success === true || result?.providerAttempted === true
+        || Number(result?.sent || 0) > 0;
 };
 
 export const processForwardLogisticsStageV194 = async ({
@@ -141,14 +220,17 @@ export const processForwardLogisticsStageV194 = async ({
     now = new Date(),
     dryRun = true,
     shipmentModel = Shipment,
-    notifyFns = {}
+    notifyFns = {},
+    allowedActions = null
 } = {}) => {
     const cutoff = asDate(forwardOnlySince);
     if (!cutoff) throw new Error('post_sale_v194_forward_only_since_invalid');
     const candidates = [];
     for (const definition of LOGISTICS_ACTIONS) {
+        if (allowedActions && !allowedActions.includes(definition.action)) continue;
         const shipments = await shipmentModel.find({
             country: 'EC',
+            createdAt: { $gte: cutoff },
             'client.phone': { $exists: true, $ne: '' },
             'review.manualOnly': { $ne: true },
             ...definition.query
@@ -192,6 +274,10 @@ export const processForwardLogisticsStageV194 = async ({
     };
     const result = await senders[item.action](item.shipment);
     if (sentByResult(item.action, result)) report.sent = 1;
+    if (report.sent) {
+        report.provider = clean(result?.provider);
+        report.providerMessageId = clean(result?.providerMessageId);
+    }
     return report;
 };
 

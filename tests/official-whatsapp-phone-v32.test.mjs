@@ -34,7 +34,7 @@ test('V32 fixa um único número oficial válido em VSL, painel e configuração
     }
 });
 
-test('V32 autoriza somente o telefone brasileiro de QA na entrada e saída Z-API', () => {
+test('V32 mantém QA na entrada e bloqueia saída Z-API no transporte vinculado', () => {
     const env = {
         WHATSAPP_INBOUND_TEST_ONLY_RECIPIENTS: TEST_PHONE,
         WHATSAPP_TEST_ALLOWED_RECIPIENTS: TEST_PHONE
@@ -57,7 +57,7 @@ test('V32 autoriza somente o telefone brasileiro de QA na entrada e saída Z-API
         assert.equal(shouldUseZapiForOutbound({
             recipientDigits: TEST_PHONE,
             options: { provider: 'zapi', sendMode: 'manual_panel' }
-        }), true);
+        }), false);
         assert.equal(shouldUseZapiForOutbound({
             recipientDigits: '5511999999999',
             options: { provider: 'zapi', sendMode: 'manual_panel' }

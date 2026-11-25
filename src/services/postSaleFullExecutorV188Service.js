@@ -471,7 +471,9 @@ export const processDeliveredSequenceV188 = async ({
     limit = 1,
     dryRun = true,
     forwardOnlySince = null,
-    shipmentModel = Shipment
+    shipmentModel = Shipment,
+    notifyFns = {},
+    returnDetails = false
 } = {}) => {
     const plan = await planDeliveredSequenceV188({ now, forwardOnlySince, shipmentModel });
     const ready = plan.filter((item) => item.eligible).slice(0, Math.max(1, Math.min(Number(limit) || 1, 1)));
@@ -492,12 +494,22 @@ export const processDeliveredSequenceV188 = async ({
     const notifierByStage = {
         [POST_SALE_STAGES.DELIVERED_THANK_YOU]: notifyDeliveredThankYou,
         [POST_SALE_STAGES.PICKUP_BONUS]: notifyPickupBonus,
-        [POST_SALE_STAGES.PRODUCT_USAGE]: notifyProductUsage
+        [POST_SALE_STAGES.PRODUCT_USAGE]: notifyProductUsage,
+        ...notifyFns
     };
     for (const item of ready) {
         const fresh = await shipmentModel.findById(item.shipment._id);
         const notify = notifierByStage[item.stage];
-        if (fresh && notify && await notify(fresh)) report.sent += 1;
+        if (fresh && notify) {
+            const result = await notify(fresh);
+            if (returnDetails) {
+                report.sent += Number(result?.sent || 0);
+                if (report.sent) {
+                    report.provider = result?.provider || '';
+                    report.providerMessageId = result?.providerMessageId || '';
+                }
+            } else if (result) report.sent += 1;
+        }
     }
     return report;
 };
