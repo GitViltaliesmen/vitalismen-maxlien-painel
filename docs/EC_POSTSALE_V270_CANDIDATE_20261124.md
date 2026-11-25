@@ -11,7 +11,7 @@ Data: 2026-11-24. Checkout isolado autorizado `codex/ec-postsale-v270`.
 - Os notificadores de guia, trânsito e retirada expõem tentativa física mesmo quando a persistência final falha; o ciclo para nesse ponto e não parte para outra etapa com resultado incerto.
 - Preparada autenticação de requisição local por HMAC, nonce único, janela de 30 segundos e commit do sucessor selado.
 - Preparada rota interna exata no processo que detém o socket. O guard V78 exige HMAC antes da rota, concede contexto de gravação somente à chamada `run` e restringe coleções e métodos. A exceção do canário para cliente EC depende desse mesmo contexto e do commit selado.
-- Preparado controlador local que assina uma única chamada, usa somente `127.0.0.1:3000`, valida o recibo e não repete resultado incerto. Ainda falta instalá-lo como sucessor do serviço V203 com o lock e a política de parada do timer.
+- Preparado controlador local que assina uma única chamada, usa somente `127.0.0.1:3001` (porta conferida no VPS por health HTTP 200), valida o recibo e não repete resultado incerto. Ainda falta instalá-lo como sucessor do serviço V203 com o lock e a política de parada do timer.
 
 ## Testes executados
 

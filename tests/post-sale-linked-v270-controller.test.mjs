@@ -12,7 +12,7 @@ test('controller signs one local request and accepts bounded receipt', async () 
     const report = await runPostSaleLinkedV270Controller({ mode: 'dry-run', secret, nonce, now,
         request: async (url, options) => {
             calls++;
-            assert.equal(url, 'http://127.0.0.1:3000/api/shipments/internal/post-sale-v270/cycle');
+            assert.equal(url, 'http://127.0.0.1:3001/api/shipments/internal/post-sale-v270/cycle');
             const body = JSON.parse(options.body);
             const expected = crypto.createHmac('sha256', secret)
                 .update(`${now}.${nonce}.dry-run`).digest('hex');

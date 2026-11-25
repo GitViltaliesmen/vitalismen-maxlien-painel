@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
-const endpoint = 'http://127.0.0.1:3000/api/shipments/internal/post-sale-v270/cycle';
+const endpoint = 'http://127.0.0.1:3001/api/shipments/internal/post-sale-v270/cycle';
 
 export const runPostSaleLinkedV270Controller = async ({
     mode,
