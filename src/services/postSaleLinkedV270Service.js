@@ -2,6 +2,7 @@ import { getSock } from '../whatsapp/connection.js';
 import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
 import { isPostSaleV188SendWindowOpen } from './postSaleFullOperationalV188Service.js';
 import { processDropiTrackingReconciliationV194 } from './postSaleDropiTrackingReconcilerV194Service.js';
+import { fetchDroppiEcuadorOrdersApiReadOnly } from './postSaleDropiReadOnlyV210Service.js';
 import { processForwardLogisticsStageV194 } from './postSaleForwardOnlyV194Service.js';
 import { processDeliveredSequenceV188 } from './postSaleFullExecutorV188Service.js';
 import { executePostSaleLinkedV270Cycle } from './postSaleLinkedV270Cycle.js';
@@ -14,7 +15,9 @@ export const runPostSaleLinkedV270 = async ({
     now = new Date(),
     forwardOnlySince = process.env.POST_SALE_V270_FORWARD_ONLY_SINCE,
     transportReady = () => ecBaileysTextMode() && Boolean(getSock()?.user?.id),
-    dropi = processDropiTrackingReconciliationV194,
+    dropi = args => processDropiTrackingReconciliationV194({
+        ...args, fetchRowsFn: fetchDroppiEcuadorOrdersApiReadOnly
+    }),
     logistics = processForwardLogisticsStageV194,
     delivered = processDeliveredSequenceV188
 } = {}) => {
