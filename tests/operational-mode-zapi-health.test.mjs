@@ -121,7 +121,7 @@ test('health permanece GET/read-only e nao possui caminho de envio externo', () 
     assert.doesNotMatch(healthSource, forbiddenWrite);
     assert.doesNotMatch(healthSource, forbiddenSend);
     assert.doesNotMatch(healthSource, /router\.(?:post|put|patch|delete)\s*\(/);
-    assert.match(healthSource, /if \(zapi\.configured\.enabled\)/);
+    assert.match(healthSource, /if \(zapi\.configured\.enabled && !linkedDeviceSelected\)/);
     assert.doesNotMatch(healthSource, /const zapiPrimary = !whatsappConnectEnabled/);
     assert.match(healthSource, /getZapiStatus\(\)/);
 });

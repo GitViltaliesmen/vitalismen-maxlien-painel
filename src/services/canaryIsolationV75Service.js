@@ -204,12 +204,20 @@ export const buildCanaryV75RecipientQuery = (path = 'client.phone', env = proces
     return { [path]: exactFormattedPhoneRegex() };
 };
 
-export const canaryV75SchedulerShipmentAllowed = (shipment = {}, env = process.env) => (
-    evaluateCanaryV75Recipient(shipment?.client?.phone, {
-        env,
-        surface: 'scheduler_candidate'
-    })
-);
+export const canaryV75SchedulerShipmentAllowed = (shipment = {}, env = process.env) => {
+    const context = currentEcBotCoreRuntimeContextV78();
+    const phone = digitsOnly(shipment?.client?.phone);
+    if (context?.postSaleV270 === true
+        && context.path === '/api/shipments/internal/post-sale-v270/cycle'
+        && context.method === 'POST'
+        && ['dry-run', 'run'].includes(context.postSaleV270Mode)
+        && env.EC_WHATSAPP_TRANSPORT === 'baileys_text'
+        && globalThis.__VITALISMEN_SEALED_SUCCESSOR_CONTEXT?.commit === env.POST_SALE_V270_COMMIT
+        && /^593\d{9}$/.test(phone)) {
+        return { allowed: true, enforced: true, reason: 'post_sale_v270_scoped_ec', surface: 'scheduler_candidate' };
+    }
+    return evaluateCanaryV75Recipient(shipment?.client?.phone, { env, surface: 'scheduler_candidate' });
+};
 
 export const evaluateCanaryV75ExternalEffect = (effect = '', env = process.env) => {
     const configuration = resolveCanaryV75Configuration(env);

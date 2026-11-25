@@ -11,6 +11,7 @@ import { automaticDropiPolicyV252, isAutomaticDropiContextV252, processConfirmed
 import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 import { authMiddleware, adminOnly } from '../middleware/auth.js';
+import { runPostSaleLinkedV270 } from '../services/postSaleLinkedV270Service.js';
 import Shipment from '../models/Shipment.js';
 import ContactState from '../models/ContactState.js';
 import { historicalExternalPostSaleEvidenceV140 } from '../services/ecDropiStatusPostSaleV139Service.js';
@@ -100,6 +101,17 @@ import {
 } from '../services/ecDeliveredRepurchaseService.js';
 
 const router = express.Router();
+
+router.post('/internal/post-sale-v270/cycle', async (req, res) => {
+    if (req.postSaleV270Authorized !== true) return res.status(403).json({ error: 'v270_authority_required' });
+    try {
+        const report = await runPostSaleLinkedV270({ dryRun: req.body.mode === 'dry-run' });
+        return res.json({ ok: true, report });
+    } catch (error) {
+        console.error('[POST-SALE-V270] cycle blocked:', error.message);
+        return res.status(503).json({ ok: false, code: 'POST_SALE_V270_CYCLE_BLOCKED', reason: error.message });
+    }
+});
 
 router.use(authMiddleware);
 router.use(ecManualDropiHumanActionV138);

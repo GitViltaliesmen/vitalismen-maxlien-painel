@@ -6,11 +6,16 @@ import path from 'node:path';
 import test from 'node:test';
 import { normalizeZapiDeliveryStatus, zapiDeliveryStatusRank } from '../src/routes/zapi.js';
 import { sendZapiAudio } from '../src/services/zapiClient.js';
+import { ecBaileysTextMode } from '../src/whatsapp/ecTransportMode.js';
 
 const listen = (server) => new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const close = (server) => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 
-test('outbound Z-API cobre MP3, OGG/Opus, aceite, rejeição, MIME, URL e arquivo ausente', async (t) => {
+test('outbound Z-API permanece bloqueado no transporte vinculado; legado conserva contrato isolado', async (t) => {
+    if (ecBaileysTextMode()) {
+        await assert.rejects(sendZapiAudio({ phone: '593981111111', filePath: 'qa.ogg' }), /zapi_transport_retired/);
+        return;
+    }
     const requests = [];
     const server = http.createServer((req, res) => {
         const chunks = [];
