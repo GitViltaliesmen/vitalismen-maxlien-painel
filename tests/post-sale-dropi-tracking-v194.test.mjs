@@ -136,14 +136,19 @@ test('forward-only bloqueia guia histórica e entrega histórica', () => {
 });
 
 test('forward-only permite evento logístico novo e seleciona no máximo um envio físico', async () => {
+    const observedAt = new Date();
     const current = baseShipment({
         logistics: {
             status: 'EN_RUTA',
             canonicalStatus: 'IN_TRANSIT',
-            canonicalEvidence: { observedAt: new Date('2026-09-20T16:10:00.000Z') },
+            canonicalEvidence: { observedAt },
             trackingNumber: '1897000123'
         },
-        automation: { submittedToDroppiAt: cutoff, inTransitNotifiedAt: null }
+        automation: { submittedToDroppiAt: cutoff, inTransitNotifiedAt: null },
+        raw: { carrierTracking: { lastCheckedAt: observedAt, lastResult: {
+            ok: true, carrier: 'servientrega', trackingNumber: '1897000123',
+            observedGuide: '1897000123', providerStatus: 'EN_RUTA', canonicalStatus: 'IN_TRANSIT'
+        } } }
     });
     const model = {
         find: (query) => ({
@@ -164,6 +169,15 @@ test('forward-only permite evento logístico novo e seleciona no máximo um envi
     assert.equal(report.sent, 1);
     assert.equal(report.physicalSendLimit, 1);
     assert.equal(physicalSends, 1);
+});
+
+test('forward-only bloqueia trânsito sem observação atual da guia exata', () => {
+    const current = baseShipment({ logistics: {
+        status: 'EN_RUTA', canonicalStatus: 'IN_TRANSIT',
+        canonicalEvidence: { observedAt: new Date() }, trackingNumber: '1897000123'
+    } });
+    assert.equal(isPostSaleV194ForwardOnlyEligible({ shipment: current,
+        stage: POST_SALE_STAGES.IN_TRANSIT, forwardOnlySince: cutoff }), false);
 });
 
 
