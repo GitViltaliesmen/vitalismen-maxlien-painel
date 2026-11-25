@@ -11242,6 +11242,9 @@
             const missing = missingCustomerFields(draft);
             const qualityBlocked = state.customerDataResolution?.version === 28 && state.customerDataResolution.orderDataReady !== true;
             const status = normalizePanelStatus(draft.status || state.selectedChat.orderStatus || '');
+            const freshRepurchase = status === 'recompra'
+                && Boolean(state.selectedChat.customerDraft?.newCommercialCycle)
+                && /^EC-RECOMPRA-/i.test(String(draft.orderId || state.selectedChat.customerDraft?.currentNegotiationOrderId || ''));
             if (brazilTestOnly) {
                 button.textContent = 'BR teste bloqueado';
                 button.disabled = true;
@@ -11251,11 +11254,15 @@
                 return;
             }
             if (['confirmado', 'pedido_enviado', 'entregue', 'recompra'].includes(status)) {
-                button.textContent = 'Salvar dados';
+                button.textContent = freshRepurchase && !missing.length && !qualityBlocked ? 'Confirmar recompra' : 'Salvar dados';
                 button.disabled = customerFormSaveBusy();
-                stateBadge.textContent = status === 'confirmado' && (missing.length || qualityBlocked) ? 'dados bloqueados' : status === 'confirmado' ? 'confirmar pedido' : status.replace(/_/g, ' ');
-                stateBadge.className = `badge ${status === 'confirmado' && (missing.length || qualityBlocked) ? 'red' : 'green'}`;
-                hint.textContent = status === 'confirmado' && (missing.length || qualityBlocked)
+                stateBadge.textContent = freshRepurchase ? 'aguarda confirmação' : status === 'confirmado' && (missing.length || qualityBlocked) ? 'dados bloqueados' : status === 'confirmado' ? 'confirmar pedido' : status.replace(/_/g, ' ');
+                stateBadge.className = `badge ${freshRepurchase ? 'orange' : status === 'confirmado' && (missing.length || qualityBlocked) ? 'red' : 'green'}`;
+                hint.textContent = freshRepurchase
+                    ? (missing.length || qualityBlocked
+                        ? `Recompra em preparação. Complete: ${missing.map((item) => item.label).join(', ') || 'validação de qualidade'}.`
+                        : 'A oferta foi salva, mas o pedido ainda é rascunho. Confirme a recompra para entrar em Pedidos confirmados; o envio à Dropi continua manual.')
+                    : status === 'confirmado' && (missing.length || qualityBlocked)
                     ? `Nao confirma enquanto faltar: ${missing.map((item) => item.label).join(', ') || 'validacao de qualidade'}.`
                     : status === 'confirmado'
                     ? 'Ao salvar, este cliente entra automaticamente em Pedidos confirmados.'
@@ -19181,6 +19188,15 @@
         async function saveCustomerForm(event) {
             event.preventDefault();
             if (!state.selectedChat || customerFormSaveBusy()) return;
+            const draft = customerDraftFromForm();
+            if (normalizePanelStatus(draft.status) === 'recompra'
+                && state.selectedChat.customerDraft?.newCommercialCycle
+                && /^EC-RECOMPRA-/i.test(String(draft.orderId || state.selectedChat.customerDraft?.currentNegotiationOrderId || ''))
+                && !missingCustomerFields(draft).length
+                && state.customerDataResolution?.orderDataReady === true) {
+                await confirmCustomerDataFromForm();
+                return;
+            }
             if (!window.confirm('Deseja alterar os dados/status deste cliente em todos os paineis?')) return;
             state.customerFormSaveInFlight = true;
             setSaveCustomerButtonDisabled(true);
@@ -19231,6 +19247,9 @@
                 return;
             }
             const draft = customerDraftFromForm();
+            const confirmingRepurchase = normalizePanelStatus(draft.status) === 'recompra'
+                && state.selectedChat.customerDraft?.newCommercialCycle
+                && /^EC-RECOMPRA-/i.test(String(draft.orderId || state.selectedChat.customerDraft?.currentNegotiationOrderId || ''));
             const missing = missingCustomerFields(draft);
             if (missing.length) {
                 const firstInput = el(missing[0].inputId);
@@ -19239,7 +19258,9 @@
                 showToast(`Complete: ${missing.map((item) => item.label).join(', ')}.`);
                 return;
             }
-            if (!window.confirm('Confirmar os dados deste cliente e salvar em todos os paineis?')) return;
+            if (!window.confirm(confirmingRepurchase
+                ? 'Confirmar esta nova recompra e preparar o pedido para seleção manual na Dropi?'
+                : 'Confirmar os dados deste cliente e salvar em todos os paineis?')) return;
             state.customerFormSaveInFlight = true;
             const button = el('confirmCustomerDataBtn');
             const label = button.textContent;
@@ -19257,6 +19278,7 @@
                     ? `Dados confirmados. Pedido ${preparation.orderId} preparado para seleção manual no Dropi.`
                     : 'Dados do cliente confirmados.');
             } catch (error) {
+                if (confirmingRepurchase) setInputValue('customerStatusInput', 'recompra');
                 showToast(error.message);
             } finally {
                 state.customerFormSaveInFlight = false;

@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-postsale-v270-sealed-r3.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-postsale-v270-profile-r3.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-repurchase-confirm-v271-sealed-r1.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-repurchase-confirm-v271-profile-r1.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';
