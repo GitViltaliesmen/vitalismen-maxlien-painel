@@ -30,29 +30,29 @@ test.after(() => {
 
 test('signed loopback request succeeds once and replay fails', () => {
     const req = request();
-    assert.equal(authorizePostSaleLinkedV270(req, now), true);
-    assert.equal(authorizePostSaleLinkedV270(req, now), false);
+    assert.equal(authorizePostSaleLinkedV270(req, now, secret), true);
+    assert.equal(authorizePostSaleLinkedV270(req, now, secret), false);
 });
 
 test('forged or forwarded request fails', () => {
-    assert.equal(authorizePostSaleLinkedV270(request({ socket: { remoteAddress: '203.0.113.7' } }), now), false);
-    assert.equal(authorizePostSaleLinkedV270(request({ headers: { 'x-forwarded-for': '127.0.0.1' } }), now), false);
+    assert.equal(authorizePostSaleLinkedV270(request({ socket: { remoteAddress: '203.0.113.7' } }), now, secret), false);
+    assert.equal(authorizePostSaleLinkedV270(request({ headers: { 'x-forwarded-for': '127.0.0.1' } }), now, secret), false);
 });
 
 test('extra action, stale timestamp, and changed mode fail', () => {
     const extra = request();
     extra.body.force = true;
-    assert.equal(authorizePostSaleLinkedV270(extra, now), false);
+    assert.equal(authorizePostSaleLinkedV270(extra, now, secret), false);
     const stale = request();
-    assert.equal(authorizePostSaleLinkedV270(stale, now + 30_001), false);
+    assert.equal(authorizePostSaleLinkedV270(stale, now + 30_001, secret), false);
     const forged = request();
     forged.body.mode = 'run';
-    assert.equal(authorizePostSaleLinkedV270(forged, now), false);
+    assert.equal(authorizePostSaleLinkedV270(forged, now, secret), false);
 });
 
 test('seal commit mismatch fails', () => {
     const req = request();
     globalThis.__VITALISMEN_SEALED_SUCCESSOR_CONTEXT = { commit: 'c'.repeat(40) };
-    assert.equal(authorizePostSaleLinkedV270(req, now), false);
+    assert.equal(authorizePostSaleLinkedV270(req, now, secret), false);
     globalThis.__VITALISMEN_SEALED_SUCCESSOR_CONTEXT = { commit };
 });

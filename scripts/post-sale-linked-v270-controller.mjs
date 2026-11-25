@@ -1,11 +1,12 @@
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { loadPostSaleV270Secret } from '../src/services/postSaleLinkedV270Auth.js';
 
 const endpoint = 'http://127.0.0.1:3001/api/shipments/internal/post-sale-v270/cycle';
 
 export const runPostSaleLinkedV270Controller = async ({
     mode,
-    secret = process.env.POST_SALE_V270_HMAC_SECRET,
+    secret = loadPostSaleV270Secret(),
     request = fetch,
     now = Date.now(),
     nonce = crypto.randomBytes(16).toString('hex')
