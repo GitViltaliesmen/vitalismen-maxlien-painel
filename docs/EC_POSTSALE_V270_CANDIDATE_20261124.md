@@ -18,6 +18,7 @@ Data: 2026-11-24. Checkout isolado autorizado `codex/ec-postsale-v270`.
 - `node --test tests/post-sale-linked-v270-auth.test.mjs tests/post-sale-linked-v270-cycle.test.mjs tests/post-sale-linked-v270-controller.test.mjs`: 14 testes passaram. Cobrem HMAC, replay, origem, cutoff, janela, transporte, concorrência, recibo e limite de envio.
 - `node --check` dos módulos novos e `git diff --check`: passaram.
 - No release V269 ativo no VPS, 38 testes históricos passaram. Eles não executam os módulos desta candidata.
+- No checkout V270 em staging no VPS, 53 testes direcionados passaram, incluindo 14 testes novos e o caso atualizado que exige observação recente e guia exata. `npm run senior:check` falhou no guard V47 (`herança divergente em .github/workflows/ec-panel-quality.yml`); o mesmo erro ocorreu ao executar esse gate na V269 ativa. Portanto não é prova de regressão V270, mas o gate continua sem aprovação e não pode ser ignorado.
 
 ## Gates ainda não atendidos
 
