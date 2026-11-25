@@ -11,6 +11,8 @@ import { assertCanaryV75ExternalEffectBlocked } from '../src/services/canaryIsol
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ec-tracking-v210-'));
 const originalFetch = globalThis.fetch, originalFile = process.env.DROPPI_EC_STORAGE_STATE_PATH;
+const originalCapability = globalThis.__VITALISMEN_EC_POSTSALE_TRACKING_V210;
+globalThis.__VITALISMEN_EC_POSTSALE_TRACKING_V210 = Object.freeze({ isCurrent: () => true });
 process.env.DROPPI_EC_STORAGE_STATE_PATH = path.join(dir, 'session.json');
 const token = 'eyJhbGciOiJIUzI1NiJ9.' + Buffer.from(JSON.stringify({ exp: Math.floor(Date.now()/1000)+3600 })).toString('base64url') + '.test';
 const session = (overrides = {}) => {
@@ -33,7 +35,10 @@ const mock = (objects, options = {}) => {
     };
 };
 after(() => { globalThis.fetch = originalFetch; if (originalFile === undefined) delete process.env.DROPPI_EC_STORAGE_STATE_PATH;
-    else process.env.DROPPI_EC_STORAGE_STATE_PATH = originalFile; fs.rmSync(dir, { recursive: true, force: true }); });
+    else process.env.DROPPI_EC_STORAGE_STATE_PATH = originalFile;
+    if (originalCapability === undefined) delete globalThis.__VITALISMEN_EC_POSTSALE_TRACKING_V210;
+    else globalThis.__VITALISMEN_EC_POSTSALE_TRACKING_V210 = originalCapability;
+    fs.rmSync(dir, { recursive: true, force: true }); });
 
 test('V210 lê somente GET exato, sem corpo e sem redirect; preserva sessão e classifica pedido sem guia', async () => {
     mock([raw()]); const before = fs.readFileSync(process.env.DROPPI_EC_STORAGE_STATE_PATH);
@@ -45,6 +50,12 @@ test('V210 lê somente GET exato, sem corpo e sem redirect; preserva sessão e c
     assert.deepEqual(fs.readFileSync(process.env.DROPPI_EC_STORAGE_STATE_PATH), before);
     assert.equal(result.rows.length, 1); assert.equal(result.rows[0].productKey, 'vit_power_ec');
     assert.equal(classifyDropiTrackingResultV194({ shipment, rows: result.rows }).state, 'DROPI_STILL_WITHOUT_TRACKING');
+});
+test('V210 bloqueia leitura sem a capacidade selada', async () => {
+    const capability = globalThis.__VITALISMEN_EC_POSTSALE_TRACKING_V210;
+    delete globalThis.__VITALISMEN_EC_POSTSALE_TRACKING_V210;
+    try { await assert.rejects(read({ search: '7000123' }), /EC_POSTSALE_READ_CONTEXT_REQUIRED/); }
+    finally { globalThis.__VITALISMEN_EC_POSTSALE_TRACKING_V210 = capability; }
 });
 test('V210 rejeita busca ampla e ID malformado antes de qualquer rede', async () => {
     mock([]); for (const search of ['', '593999111222 OR 1=1', '../orders', '0', '-1']) {
@@ -84,13 +95,13 @@ test('V210 mantém guia oficial e não interpreta telefone do cliente como guia'
     result = classifyDropiTrackingResultV194({ shipment, rows: (await read({ search: '7000123' })).rows });
     assert.equal(result.state, 'DROPI_STILL_WITHOUT_TRACKING');
 });
-test('V210 reconciliador congelado usa leitor novo pela dependência restrita, sem injetar fetchRowsFn', async () => {
+test('V210 reconciliador usa leitor restrito quando o sucessor o injeta', async () => {
     mock([raw()]);
     const shipmentModel = { find: () => ({ sort() { return this; }, limit() {
         return [{ ...shipment, _id: 'qa-v210', country: 'EC', orderId: 'EC-QA-V210', createdAt: new Date() }];
     } }) };
     const report = await processDropiTrackingReconciliationV194({ shipmentModel, dryRun: true,
-        forwardOnlySince: '2026-11-09T04:53:50.421Z' });
+        forwardOnlySince: '2026-11-09T04:53:50.421Z', fetchRowsFn: read });
     assert.equal(report.applied, 0); assert.equal(calls.length, 1);
     assert.equal(report.items[0].state, 'DROPI_STILL_WITHOUT_TRACKING');
 });

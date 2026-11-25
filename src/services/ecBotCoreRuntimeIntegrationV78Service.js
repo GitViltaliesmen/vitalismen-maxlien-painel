@@ -6,9 +6,10 @@ import { recognizePrincipalSdrQaIngressV212, principalSdrQaPersistedRoutingV212 
 import {giraRuntimePolicy} from './gira21x/runtime-policy.mjs';
 import { prepareManualHumanRequest, manualMongoAllowed, manualExternalAllowed } from './manualHumanRuntime.js';
 import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
-import { AsyncLocalStorage } from 'node:async_hooks';
+import { ecRuntimeContextStore } from './postSaleLinkedV270Context.js';
 import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
 import { linkedDeviceOrderWriteAllowed } from './linkedDeviceOrderWritePolicy.js';
+import { authorizePostSaleLinkedV270 } from './postSaleLinkedV270Auth.js';
 import { measurementMongoAllowedV213, measurementRequestAllowedV213 } from './vitPowerMeasurementV213Application.js';
 import { createHash, randomUUID } from 'node:crypto';
 
@@ -52,6 +53,7 @@ import {
 } from './ecPanelStatusOperationsV177Service.js';
 
 export const EC_BOT_CORE_V78_OPERATION_BLOCKED = 'EC_BOT_CORE_V78_OPERATION_BLOCKED';
+const POST_SALE_V270_CYCLE_PATH = '/api/shipments/internal/post-sale-v270/cycle';
 export const EC_QA_TEST_MAX_MESSAGES_V110 = 8;
 export const EC_AUTH_LOGIN_V78_PATH = '/api/auth/login';
 export const EC_BOT_CORE_V78_MONGO_COLLECTIONS = Object.freeze(new Set([
@@ -62,7 +64,7 @@ export const EC_BOT_CORE_V78_MONGO_COLLECTIONS = Object.freeze(new Set([
     'metaattributioncorrelations'
 ]));
 
-const runtimeContext = new AsyncLocalStorage();
+const runtimeContext = ecRuntimeContextStore;
 const clean = (value = '') => String(value ?? '').trim();
 const digits = (value = '') => clean(value).replace(/\D/g, '');
 
@@ -521,6 +523,13 @@ export const ecBotCoreMutationRouteGuardV78 = async (req, res, next) => {
         qaLogV78(qaObservation, 'QA_PIPELINE_RETURN', { claimReached: false, reason: 'bot_core_invalid_fail_closed' });
         return httpBlocked(res, 'bot_core_invalid_fail_closed', method, path);
     }
+    if (method === 'POST' && path === POST_SALE_V270_CYCLE_PATH) {
+        if (!authorizePostSaleLinkedV270(req)) return httpBlocked(res, 'post_sale_v270_authority_denied', method, path);
+        req.postSaleV270Authorized = true;
+        return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path,
+            writeContext: req.body.mode === 'run', postSaleV270: true,
+            postSaleV270Mode: req.body.mode }, next);
+    }
     if (path === '/api/whatsapp/b01-v216' && ['GET', 'POST'].includes(method)) {
         return runtimeContext.run({ profile: EC_BOT_CORE_V78_MODE, method, path, writeContext: false, b01AuthenticatedCandidateV216: true }, next);
     }
@@ -741,6 +750,18 @@ export const ecBotCoreMongoMutationRecoveryV153Allowed = ({
     method = ''
 } = {}) => {
     if (context?.profile !== EC_BOT_CORE_V78_MODE || context?.writeContext !== true) return false;
+    if (context?.postSaleV270 === true && context.method === 'POST'
+        && context.path === POST_SALE_V270_CYCLE_PATH && context.postSaleV270Mode === 'run'
+        && globalThis.__VITALISMEN_SEALED_SUCCESSOR_CONTEXT?.commit === process.env.POST_SALE_V270_COMMIT) {
+        const allowed = {
+            shipments: ['updateOne', 'findOneAndUpdate'],
+            messages: ['insertOne', 'updateOne'],
+            outbounddedupes: ['insertOne', 'updateOne', 'findOneAndUpdate'],
+            post_sale_dispatch_quotas: ['insertOne', 'updateOne', 'findOneAndUpdate'],
+            contactstates: ['updateOne']
+        };
+        return Boolean(allowed[clean(collection).toLowerCase()]?.includes(clean(method)));
+    }
     if (linkedDeviceOrderWriteAllowed({ context, collection, method })) return true;
     const route = clean(context.path).split('?')[0].replace(/\/+$/, '') || '/';
     const normalizedCollection = clean(collection).toLowerCase();
