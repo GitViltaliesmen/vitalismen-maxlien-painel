@@ -6,7 +6,7 @@ import { recognizePrincipalSdrQaIngressV212, principalSdrQaPersistedRoutingV212 
 import {giraRuntimePolicy} from './gira21x/runtime-policy.mjs';
 import { prepareManualHumanRequest, manualMongoAllowed, manualExternalAllowed } from './manualHumanRuntime.js';
 import { metaLedgerWriteV148Allowed } from './metaFunnelV148ContractService.js';
-import { AsyncLocalStorage } from 'node:async_hooks';
+import { ecRuntimeContextStore } from './postSaleLinkedV270Context.js';
 import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
 import { linkedDeviceOrderWriteAllowed } from './linkedDeviceOrderWritePolicy.js';
 import { authorizePostSaleLinkedV270 } from './postSaleLinkedV270Auth.js';
@@ -64,7 +64,7 @@ export const EC_BOT_CORE_V78_MONGO_COLLECTIONS = Object.freeze(new Set([
     'metaattributioncorrelations'
 ]));
 
-const runtimeContext = new AsyncLocalStorage();
+const runtimeContext = ecRuntimeContextStore;
 const clean = (value = '') => String(value ?? '').trim();
 const digits = (value = '') => clean(value).replace(/\D/g, '');
 

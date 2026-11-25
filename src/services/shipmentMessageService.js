@@ -9,6 +9,7 @@ import { sendText } from '../whatsapp/sendText.js';
 import { sendAudio } from '../whatsapp/sendAudio.js';
 import { sendDocument } from '../whatsapp/sendDocument.js';
 import { sendImage } from '../whatsapp/sendImage.js';
+import { ecRuntimeContextStore } from './postSaleLinkedV270Context.js';
 import { toWhatsAppChatId } from '../utils/phone.js';
 import Shipment from '../models/Shipment.js';
 import Message from '../models/Message.js';
@@ -332,6 +333,9 @@ const shipmentOutboundOptions = (shipment) => ({
     allowExistingDropiOrder: true,
     outboundContext: 'shipment_status'
 });
+const linkedPostSaleMediaOptions = (event) => event?.dedupeKey
+    && ecRuntimeContextStore.getStore()?.postSaleV270 === true
+    ? { sendMode: 'post_sale_v270', postSaleEvent: event } : {};
 
 const zapiOwnerPhoneDigits = () => String(
     process.env.ZAPI_PHONE
@@ -548,6 +552,7 @@ const sendShipmentInvoicePdf = async (shipment, chatId, caption, {
         if (!await guardA07ComponentV147R6R2({ shipment, event: decision.canonicalEvent, lockToken: decision.lockToken })) return { sent: false, reason: 'stale_a07_component' };
         const sent = await sendDocumentFn(chatId, source, path.basename(String(source).split('?')[0]), caption,
             { ...shipmentOutboundOptions(shipment), outboundContext: 'shipment_invoice_pdf',
+                ...linkedPostSaleMediaOptions(decision.canonicalEvent),
                 dedupeValue: decision.idempotencyKey, returnDetails: true });
         if (sendResultOk(sent)) await persistShipmentOutboundMessage({ shipment, chatId, kind: 'shipment_invoice_pdf',
             type: 'document', body: caption, mediaPath: source, sentResult: sent, postSaleEvent: decision.canonicalEvent });
@@ -618,6 +623,7 @@ const sendShipmentInvoicePdf = async (shipment, chatId, caption, {
         {
             ...shipmentOutboundOptions(shipment),
             outboundContext: 'shipment_invoice_pdf',
+            ...linkedPostSaleMediaOptions(decision?.canonicalEvent),
             returnDetails: true
         }
     );
@@ -745,11 +751,13 @@ const sendShipmentAudioFile = async (shipment, chatId, audioPath, {
     if (beforeSend && !await beforeSend()) return false;
     const sent = await sendAudio(chatId, audioPath, true, {
         ...shipmentOutboundOptions(shipment),
+        ...linkedPostSaleMediaOptions(postSaleEvent),
         ...(dedupeValue ? { dedupeValue } : {}),
         bypassDedupe: force,
         returnDetails: true
     });
-    if (!sendResultOk(sent)) return false;
+    if (!sendResultOk(sent)) return ecRuntimeContextStore.getStore()?.postSaleV270 === true
+        ? sent || { ok: false, providerAttempted: false } : false;
     await persistShipmentOutboundMessage({
         shipment,
         chatId,
@@ -826,6 +834,7 @@ const sendShipmentAudio = async (shipment, chatId, kind, { force = false, canoni
                 ...(detail.sentDetails || []),
                 {
                     baseName,
+                    provider: sent.provider || '',
                     providerMessageId: sent.providerMessageId || '',
                     providerZaapId: sent.providerZaapId || '',
                     providerStatus: sent.providerStatus || ''
@@ -1438,6 +1447,7 @@ export const notifyGuidePrintImage = async (shipment, {
 
     const sent = await sendImageFn(chatId, image.path, '', {
         ...shipmentOutboundOptions(shipment),
+        ...linkedPostSaleMediaOptions(decision?.canonicalEvent),
         outboundContext: 'shipment_guide_print',
         returnDetails: true,
         bypassDedupe: force
@@ -1800,7 +1810,8 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
             reason: 'text_send_failed'
         });
         return { success: false, textSent: false, invoiceSent: false,
-            providerAttempted: textSent?.providerAttempted === true, reason: 'text_send_failed' };
+            providerAttempted: textSent?.providerAttempted === true,
+            provider: textSent?.provider || '', providerMessageId: textSent?.providerMessageId || '', reason: 'text_send_failed' };
     }
 
     const sentAt = new Date();
@@ -1813,7 +1824,8 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         now: sentAt
     });
     if (!finalized.completed) {
-        return { success: false, textSent: true, invoiceSent: false, reason: finalized.reason || 'guide_ledger_finalization_failed' };
+        return { success: false, textSent: true, invoiceSent: false,
+            provider: textSent?.provider || '', providerMessageId: textSent?.providerMessageId || '', reason: finalized.reason || 'guide_ledger_finalization_failed' };
     }
 
     // V29: envio/guia pode comunicar somente texto + numero. PDF, imagem e
@@ -1849,6 +1861,8 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
         invoiceReason: 'blocked_until_ready_for_pickup_verified',
         audioReason: 'blocked_until_ready_for_pickup_verified',
         partialAttachmentFailures,
+        provider: textSent?.provider || '',
+        providerMessageId: textSent?.providerMessageId || '',
         reason: 'ok'
     };
 };
@@ -1891,14 +1905,16 @@ export const notifyReadyForPickup = async (shipment, { force = false, maxCompone
                 result = { ...invoice, ok: invoice.sent };
             } else {
                 const audio = await sendShipmentAudio(shipment, chatId, 'ready_for_pickup', { canonicalDecision: decision });
-                result = { ok: audio.sentAny, providerMessageId: audio.sentDetails?.[0]?.providerMessageId || '',
+                result = { ok: audio.sentAny, provider: audio.sentDetails?.[0]?.provider || '',
+                    providerMessageId: audio.sentDetails?.[0]?.providerMessageId || '',
                     providerAttempted: !audio.failed.every((row) => ['audio_not_found', 'audio_not_approved'].includes(row.reason)) };
             }
             if (result?.providerAttempted === true || sendResultOk(result)) physicalAttempted = true;
             details[event.component] = result;
             const finalized = await finalizeA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken, result,
                 failure: result?.ok && result.providerMessageId ? '' : result?.providerAttempted === false ? 'PENDING' : 'AMBIGUOUS' });
-            if (!finalized.completed) return returnDetails ? { sent: Number(physicalAttempted), finalized: false } : sentAny;
+            if (!finalized.completed) return returnDetails ? { sent: Number(physicalAttempted), finalized: false,
+                provider: result?.provider || '', providerMessageId: result?.providerMessageId || '' } : sentAny;
             sentAny = true;
             sentComponents += 1;
         } catch (error) {
@@ -1917,7 +1933,9 @@ export const notifyReadyForPickup = async (shipment, { force = false, maxCompone
         await appendNotificationLedgerV29(shipment, { notificationType: 'ready_for_pickup', sentAt: now,
             providerMessageId: shipment.automation.postSaleSafetyLedger.READY_FOR_PICKUP.components.TEXT?.providerMessageId || '' });
     }
-    return returnDetails ? { sent: Number(physicalAttempted), finalized: sentAny } : sentAny;
+    const receipt = Object.values(details).find((result) => result?.providerMessageId);
+    return returnDetails ? { sent: Number(physicalAttempted), finalized: sentAny,
+        provider: receipt?.provider || '', providerMessageId: receipt?.providerMessageId || '' } : sentAny;
 };
 
 export const notifyShipmentInTransit = async (shipment, { returnDetails = false } = {}) => {
@@ -1959,7 +1977,8 @@ export const notifyShipmentInTransit = async (shipment, { returnDetails = false 
             reason: 'text_send_failed'
         });
         return returnDetails ? { sent: Number(sent?.providerAttempted === true), finalized: false,
-            providerAttempted: sent?.providerAttempted === true } : false;
+            providerAttempted: sent?.providerAttempted === true,
+            provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : false;
     }
 
     const now = new Date();
@@ -1971,7 +1990,8 @@ export const notifyShipmentInTransit = async (shipment, { returnDetails = false 
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now
     });
-    if (!finalized.completed) return returnDetails ? { sent: 1, finalized: false } : false;
+    if (!finalized.completed) return returnDetails ? { sent: 1, finalized: false,
+        provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : false;
     await persistAutomationUpdate(shipment._id, {
         'automation.inTransitNotifiedAt': now,
         'automation.lastReminderAt': now,
@@ -1981,7 +2001,8 @@ export const notifyShipmentInTransit = async (shipment, { returnDetails = false 
         status: shipment.logistics?.status || '',
         trackingNumber: shipment.logistics?.trackingNumber || ''
     });
-    return returnDetails ? { sent: 1, finalized: true } : true;
+    return returnDetails ? { sent: 1, finalized: true,
+        provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : true;
 };
 
 export const notifyShipmentReminder = async (shipment, kind) => {
@@ -2315,6 +2336,7 @@ export const notifyPickupProofRequest = async (shipment) => {
 };
 
 export const notifyDeliveredThankYou = async (shipment, {
+    returnDetails = false,
     decideFn = decidePostSaleNotification,
     resolveAudioFn = resolveCountryAudio,
     sendAudioFileFn = sendShipmentAudioFile,
@@ -2364,7 +2386,8 @@ export const notifyDeliveredThankYou = async (shipment, {
             sendResult: sent,
             reason: 'delivered_thank_you_audio_send_failed'
         });
-        return false;
+        return returnDetails ? { sent: Number(sent?.providerAttempted === true), finalized: false,
+            provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : false;
     }
 
     const now = new Date();
@@ -2376,16 +2399,19 @@ export const notifyDeliveredThankYou = async (shipment, {
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now
     });
-    if (!finalized.completed) return false;
+    if (!finalized.completed) return returnDetails ? { sent: 1, finalized: false,
+        provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : false;
     await appendEventFn(shipment._id, 'delivered_thank_you_notified', {
         templateId: 'P5_DELIVERED_THANKYOU_NEUTRAL',
         label: 'OBRIGADO_PAGOU',
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || ''
     });
-    return true;
+    return returnDetails ? { sent: 1, finalized: true,
+        provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : true;
 };
 
 export const notifyPickupBonus = async (shipment, {
+    returnDetails = false,
     decideFn = decidePostSaleNotification,
     sendTextFn = sendShipmentText,
     completeFn = completePostSaleNotificationStage,
@@ -2446,7 +2472,7 @@ export const notifyPickupBonus = async (shipment, {
             messageAt: existingAt || null,
             source: existingBonus.kind ? 'outbound_dedupe' : 'message'
         });
-        return true;
+        return returnDetails ? { sent: 0, finalized: true, recovered: true } : true;
     }
     if (hasAlreadySentHash(shipment, hash)) {
         await completeFn({
@@ -2478,7 +2504,8 @@ export const notifyPickupBonus = async (shipment, {
         });
     }
     if (!sent) return false;
-    if (!sendResultOk(sent)) return false;
+    if (!sendResultOk(sent)) return returnDetails ? { sent: Number(sent?.providerAttempted === true),
+        finalized: false, provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : false;
     const primarySentAt = new Date();
     const finalized = await completeFn({
         shipment,
@@ -2488,7 +2515,8 @@ export const notifyPickupBonus = async (shipment, {
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now: primarySentAt
     });
-    if (!finalized.completed) return false;
+    if (!finalized.completed) return returnDetails ? { sent: 1, finalized: false,
+        provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : false;
     await persistFn(shipment._id, {
         'automation.bonusNotifiedAt': primarySentAt,
         'automation.lastReminderAt': primarySentAt,
@@ -2498,10 +2526,12 @@ export const notifyPickupBonus = async (shipment, {
         bonusUrl: BONUS_URL,
         completionSource: 'servientrega_canonical_delivered'
     });
-    return true;
+    return returnDetails ? { sent: 1, finalized: true,
+        provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : true;
 };
 
 export const notifyProductUsage = async (shipment, {
+    returnDetails = false,
     resolveProductFn = loadPostSaleProductV147R5,
     decideFn = decidePostSaleNotification,
     resolveAudioFn = resolveCountryAudio,
@@ -2583,7 +2613,7 @@ export const notifyProductUsage = async (shipment, {
                     || '',
                 recoveredFromExistingAudio: true
             });
-            return true;
+            return returnDetails ? { sent: 0, finalized: true, recovered: true } : true;
         }
     }
 
@@ -2620,7 +2650,8 @@ export const notifyProductUsage = async (shipment, {
             sendResult: sent,
             reason: 'product_usage_audio_send_failed'
         });
-        return false;
+        return returnDetails ? { sent: Number(sent?.providerAttempted === true), finalized: false,
+            provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : false;
     }
 
     const now = new Date();
@@ -2632,7 +2663,8 @@ export const notifyProductUsage = async (shipment, {
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now
     });
-    if (!finalized.completed) return false;
+    if (!finalized.completed) return returnDetails ? { sent: 1, finalized: false,
+        provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : false;
     await registerAudioAttemptFn(shipment, {
         kind: 'product_usage',
         baseName,
@@ -2643,7 +2675,8 @@ export const notifyProductUsage = async (shipment, {
         providerMessageId: sent?.providerMessageId || '',
         providerZaapId: sent?.providerZaapId || ''
     });
-    return true;
+    return returnDetails ? { sent: 1, finalized: true,
+        provider: sent?.provider || '', providerMessageId: sent?.providerMessageId || '' } : true;
 };
 
 const phoneQueryForChatId = (chatId) => {

@@ -30,6 +30,17 @@ test('live run stops immediately after one send', async () => {
     assert.equal(second, 0);
 });
 
+test('live run stops after a selected stage with an uncertain send result', async () => {
+    let second = 0;
+    const report = await executePostSaleLinkedV270Cycle(base({ dryRun: false, stages: [
+        { name: 'guide', run: async () => ({ candidates: 1, selected: 1, sent: 0 }) },
+        { name: 'bonus', run: async () => { second++; return { sent: 1 }; } }
+    ] }));
+    assert.equal(report.selected, 'guide');
+    assert.equal(report.physicalOutboundCount, 0);
+    assert.equal(second, 0);
+});
+
 test('closed window blocks reconciliation and outbound', async () => {
     let touched = 0;
     const plan = base({ dryRun: false, open: false });

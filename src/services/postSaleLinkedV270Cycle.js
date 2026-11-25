@@ -24,7 +24,7 @@ export const executePostSaleLinkedV270Cycle = async ({
     try {
         const open = Boolean(windowOpen(now));
         const report = { mode: dryRun ? 'dry-run' : 'run', windowOpen: open,
-            physicalOutboundCount: 0, selected: '', stages: [], reconciliation: null };
+            physicalOutboundCount: 0, provider: '', providerMessageId: '', selected: '', stages: [], reconciliation: null };
         if (!dryRun && !open) return report;
         report.reconciliation = await reconcile({ now, forwardOnlySince: cutoff, dryRun });
         for (const { name, run } of stages) {
@@ -36,9 +36,13 @@ export const executePostSaleLinkedV270Cycle = async ({
             }
             report.stages.push({ name, candidates: Number(result?.candidates ?? 0),
                 ready: Number(result?.ready ?? result?.selected ?? 0), sent });
-            if (sent) {
+            // A selected notification may have reached the provider even if its
+            // local ledger write failed. Never try a second stage in that cycle.
+            if (sent || (!dryRun && Number(result?.ready ?? result?.selected ?? 0) > 0)) {
                 report.selected = name;
                 report.physicalOutboundCount = sent;
+                report.provider = String(result?.provider || '');
+                report.providerMessageId = String(result?.providerMessageId || '');
                 break;
             }
         }

@@ -38,6 +38,26 @@ test('controller rejects bad receipts and never retries', async () => {
     assert.equal(calls, 1);
 });
 
+test('controller requires a linked-device message ID for a live send', async () => {
+    let calls = 0;
+    await assert.rejects(runPostSaleLinkedV270Controller({ mode: 'run', secret, nonce, now,
+        request: async () => {
+            calls++;
+            return { ok: true, status: 200, json: async () => ({ ok: true,
+                report: { mode: 'run', physicalOutboundCount: 1, providerMessageId: '' } }) };
+        }
+    }), /cycle_rejected/);
+    assert.equal(calls, 1);
+});
+
+test('controller rejects a provider receipt from the retired transport', async () => {
+    await assert.rejects(runPostSaleLinkedV270Controller({ mode: 'run', secret, nonce, now,
+        request: async () => ({ ok: true, status: 200, json: async () => ({ ok: true,
+            report: { mode: 'run', physicalOutboundCount: 1,
+                provider: 'zapi', providerMessageId: 'legacy-id' } }) })
+    }), /cycle_rejected/);
+});
+
 test('controller refuses unknown mode or missing secret before network', async () => {
     await assert.rejects(runPostSaleLinkedV270Controller({ mode: 'force', secret }), /mode_invalid/);
     await assert.rejects(runPostSaleLinkedV270Controller({ mode: 'run', secret: '' }), /secret_missing/);

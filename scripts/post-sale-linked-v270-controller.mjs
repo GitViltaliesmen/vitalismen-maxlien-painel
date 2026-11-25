@@ -25,7 +25,10 @@ export const runPostSaleLinkedV270Controller = async ({
     if (!response.ok || payload?.ok !== true || payload?.report?.mode !== mode
         || !Number.isSafeInteger(payload.report.physicalOutboundCount)
         || payload.report.physicalOutboundCount < 0
-        || payload.report.physicalOutboundCount > 1) {
+        || payload.report.physicalOutboundCount > 1
+        || (mode === 'run' && payload.report.physicalOutboundCount === 1
+            && (payload.report.provider !== 'baileys'
+                || !String(payload.report.providerMessageId || '').trim()))) {
         throw new Error(`v270_controller_cycle_rejected:${response.status}:${payload?.code || 'invalid_receipt'}`);
     }
     return payload.report;

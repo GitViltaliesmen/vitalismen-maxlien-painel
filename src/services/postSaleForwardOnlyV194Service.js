@@ -274,6 +274,10 @@ export const processForwardLogisticsStageV194 = async ({
     };
     const result = await senders[item.action](item.shipment);
     if (sentByResult(item.action, result)) report.sent = 1;
+    if (report.sent) {
+        report.provider = clean(result?.provider);
+        report.providerMessageId = clean(result?.providerMessageId);
+    }
     return report;
 };
 
