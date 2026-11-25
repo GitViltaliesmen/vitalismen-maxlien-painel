@@ -209,8 +209,10 @@ const LOGISTICS_ACTIONS = Object.freeze([
 ]);
 
 const sentByResult = (action, result) => {
-    if (action === 'guide') return result?.success === true;
-    return result === true || result?.success === true || Number(result?.sent || 0) > 0;
+    if (action === 'guide') return result?.success === true || result?.textSent === true
+        || result?.providerAttempted === true;
+    return result === true || result?.success === true || result?.providerAttempted === true
+        || Number(result?.sent || 0) > 0;
 };
 
 export const processForwardLogisticsStageV194 = async ({

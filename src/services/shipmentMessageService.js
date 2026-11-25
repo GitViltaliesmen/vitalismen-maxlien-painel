@@ -1799,7 +1799,8 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
             sendResult: textSent,
             reason: 'text_send_failed'
         });
-        return { success: false, textSent: false, invoiceSent: false, reason: 'text_send_failed' };
+        return { success: false, textSent: false, invoiceSent: false,
+            providerAttempted: textSent?.providerAttempted === true, reason: 'text_send_failed' };
     }
 
     const sentAt = new Date();
@@ -1854,7 +1855,8 @@ export const notifyShipmentGuideGenerated = async (shipment, { force = false } =
 
 export const prepareA07InvoiceV147R6R2 = async (shipment) => ensureInvoiceAvailableLocally(await Shipment.findById(shipment._id));
 
-export const notifyReadyForPickup = async (shipment, { force = false, maxComponents = Infinity } = {}) => {
+export const notifyReadyForPickup = async (shipment, { force = false, maxComponents = Infinity,
+    allowedComponents = null, returnDetails = false } = {}) => {
     if (!logisticsCommunicationPolicy(shipment).allowPickupLanguage) {
         await appendNotificationLedgerV29(shipment, { notificationType: 'ready_for_pickup', blockedReason: 'pickup_ready_not_verified' });
         return false;
@@ -1866,8 +1868,10 @@ export const notifyReadyForPickup = async (shipment, { force = false, maxCompone
     if (!plan) return false;
     let sentAny = false;
     let sentComponents = 0;
+    let physicalAttempted = false;
     const details = {};
     for (const event of plan.components) {
+        if (allowedComponents && !allowedComponents.includes(event.component)) continue;
         if (sentComponents >= Math.max(1, Number(maxComponents) || 1)) break;
         shipment = await Shipment.findById(shipment._id);
         const decision = await decidePostSaleNotification({ shipment, kind: 'ready_for_pickup',
@@ -1890,10 +1894,11 @@ export const notifyReadyForPickup = async (shipment, { force = false, maxCompone
                 result = { ok: audio.sentAny, providerMessageId: audio.sentDetails?.[0]?.providerMessageId || '',
                     providerAttempted: !audio.failed.every((row) => ['audio_not_found', 'audio_not_approved'].includes(row.reason)) };
             }
+            if (result?.providerAttempted === true || sendResultOk(result)) physicalAttempted = true;
             details[event.component] = result;
             const finalized = await finalizeA07ComponentV147R6R2({ shipment, event, lockToken: decision.lockToken, result,
                 failure: result?.ok && result.providerMessageId ? '' : result?.providerAttempted === false ? 'PENDING' : 'AMBIGUOUS' });
-            if (!finalized.completed) return sentAny;
+            if (!finalized.completed) return returnDetails ? { sent: Number(physicalAttempted), finalized: false } : sentAny;
             sentAny = true;
             sentComponents += 1;
         } catch (error) {
@@ -1912,10 +1917,10 @@ export const notifyReadyForPickup = async (shipment, { force = false, maxCompone
         await appendNotificationLedgerV29(shipment, { notificationType: 'ready_for_pickup', sentAt: now,
             providerMessageId: shipment.automation.postSaleSafetyLedger.READY_FOR_PICKUP.components.TEXT?.providerMessageId || '' });
     }
-    return sentAny;
+    return returnDetails ? { sent: Number(physicalAttempted), finalized: sentAny } : sentAny;
 };
 
-export const notifyShipmentInTransit = async (shipment) => {
+export const notifyShipmentInTransit = async (shipment, { returnDetails = false } = {}) => {
     const chatId = resolveChatId(shipment);
     if (!chatId || shipment.automation.inTransitNotifiedAt) return false;
     const decision = await decidePostSaleNotification({
@@ -1953,7 +1958,8 @@ export const notifyShipmentInTransit = async (shipment) => {
             sendResult: sent,
             reason: 'text_send_failed'
         });
-        return false;
+        return returnDetails ? { sent: Number(sent?.providerAttempted === true), finalized: false,
+            providerAttempted: sent?.providerAttempted === true } : false;
     }
 
     const now = new Date();
@@ -1965,7 +1971,7 @@ export const notifyShipmentInTransit = async (shipment) => {
         providerMessageId: sent?.providerMessageId || sent?.providerZaapId || '',
         now
     });
-    if (!finalized.completed) return false;
+    if (!finalized.completed) return returnDetails ? { sent: 1, finalized: false } : false;
     await persistAutomationUpdate(shipment._id, {
         'automation.inTransitNotifiedAt': now,
         'automation.lastReminderAt': now,
@@ -1975,7 +1981,7 @@ export const notifyShipmentInTransit = async (shipment) => {
         status: shipment.logistics?.status || '',
         trackingNumber: shipment.logistics?.trackingNumber || ''
     });
-    return true;
+    return returnDetails ? { sent: 1, finalized: true } : true;
 };
 
 export const notifyShipmentReminder = async (shipment, kind) => {

@@ -3,11 +3,8 @@ import { ecBaileysTextMode } from '../whatsapp/ecTransportMode.js';
 import { isPostSaleV188SendWindowOpen } from './postSaleFullOperationalV188Service.js';
 import { processDropiTrackingReconciliationV194 } from './postSaleDropiTrackingReconcilerV194Service.js';
 import { processForwardLogisticsStageV194 } from './postSaleForwardOnlyV194Service.js';
-import { processDeliveredSequenceV188, processShipmentPickupRemindersV188 } from './postSaleFullExecutorV188Service.js';
-import { processPickupProofSweep } from './shipmentMessageService.js';
-import { isPostSaleV194ForwardOnlyEligible } from './postSaleForwardOnlyV194Service.js';
-import { POST_SALE_STAGES } from './postSaleSafetyV66Service.js';
 import { executePostSaleLinkedV270Cycle } from './postSaleLinkedV270Cycle.js';
+import { notifyReadyForPickup, notifyShipmentInTransit } from './shipmentMessageService.js';
 
 const ACTIONS = Object.freeze(['guide', 'in_transit', 'ready_for_pickup']);
 export const runPostSaleLinkedV270 = async ({
@@ -16,10 +13,7 @@ export const runPostSaleLinkedV270 = async ({
     forwardOnlySince = process.env.POST_SALE_V270_FORWARD_ONLY_SINCE,
     transportReady = () => ecBaileysTextMode() && Boolean(getSock()?.user?.id),
     dropi = processDropiTrackingReconciliationV194,
-    logistics = processForwardLogisticsStageV194,
-    reminders = processShipmentPickupRemindersV188,
-    proof = processPickupProofSweep,
-    delivered = processDeliveredSequenceV188
+    logistics = processForwardLogisticsStageV194
 } = {}) => {
     // The adapter cannot run live until the sealed successor explicitly enables
     // this exact operation. A green simulation must never authorize a send.
@@ -33,17 +27,10 @@ export const runPostSaleLinkedV270 = async ({
             dropi({ now: at, forwardOnlySince: cutoff, limit: 8, dryRun: simulate }),
         stages: [
             { name: 'logistics', run: ({ now: at, forwardOnlySince: cutoff, dryRun: simulate }) =>
-                logistics({ now: at, forwardOnlySince: cutoff, dryRun: simulate, allowedActions: ACTIONS }) },
-            { name: 'pickup_proof', run: ({ forwardOnlySince: cutoff, dryRun: simulate }) =>
-                proof({ limit: 1, dryRun: simulate, maxPhysicalSends: 1,
-                    eligibilityFn: ({ shipment, proof: message }) =>
-                        isPostSaleV194ForwardOnlyEligible({ shipment,
-                            stage: POST_SALE_STAGES.PICKUP_BONUS, forwardOnlySince: cutoff })
-                        && new Date(message?.createdAt || 0).getTime() >= cutoff.getTime() }) },
-            { name: 'reminders', run: ({ now: at, forwardOnlySince: cutoff, dryRun: simulate }) =>
-                reminders({ now: at, forwardOnlySince: cutoff, limit: 1, dryRun: simulate }) },
-            { name: 'delivered', run: ({ now: at, forwardOnlySince: cutoff, dryRun: simulate }) =>
-                delivered({ now: at, forwardOnlySince: cutoff, limit: 1, dryRun: simulate }) }
+                logistics({ now: at, forwardOnlySince: cutoff, dryRun: simulate, allowedActions: ACTIONS,
+                    notifyFns: { ready_for_pickup: shipment => notifyReadyForPickup(shipment,
+                        { maxComponents: 1, allowedComponents: ['TEXT'], returnDetails: true }),
+                    in_transit: shipment => notifyShipmentInTransit(shipment, { returnDetails: true }) } }) },
         ]
     });
 };
