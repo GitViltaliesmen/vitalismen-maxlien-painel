@@ -47,6 +47,8 @@ test('guarda de saida aceita cliente Ecuador e bloqueia destino externo', () => 
     const accepted = canSendOutbound({
         jid: '593997680147@s.whatsapp.net',
         recipientDigits: '593997680147',
+        sessionId: '5531971862958',
+        ownDigits: '553171862958',
         text: 'teste isolado',
         bypassDedupe: true,
         reserveDedupe: false
@@ -54,6 +56,8 @@ test('guarda de saida aceita cliente Ecuador e bloqueia destino externo', () => 
     const blocked = canSendOutbound({
         jid: '50255501234@s.whatsapp.net',
         recipientDigits: '50255501234',
+        sessionId: '5531971862958',
+        ownDigits: '553171862958',
         text: 'teste isolado',
         bypassDedupe: true,
         reserveDedupe: false
