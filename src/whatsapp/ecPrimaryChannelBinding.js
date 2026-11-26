@@ -57,7 +57,8 @@ export const ecChannelOwnerDecision = ({ sessionId, ownerPhoneDigits, peerPhoneD
     const peer = digits(peerPhoneDigits);
     const approved = binding === undefined ? readEcChannelBinding(env) : binding;
     if (!approved) {
-        if (env.EC_WHATSAPP_CHANNEL_BINDING_REQUIRED === 'true') {
+        if (env.EC_WHATSAPP_CHANNEL_BINDING_REQUIRED === 'true'
+            || (env.NODE_ENV === 'production' && env.EC_WHATSAPP_TRANSPORT === 'baileys_text')) {
             return { allowed: false, reason: 'binding_missing' };
         }
         return { allowed: ['5531971862958', '553171862958'].includes(owner),

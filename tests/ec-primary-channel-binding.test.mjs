@@ -31,6 +31,9 @@ test('sessão errada, conta antiga e arquivo obrigatório ausente falham fechado
     assert.equal(ecChannelOwnerDecision({ binding, sessionId: '5531971862958', ownerPhoneDigits: '5531971862958' }).allowed, false);
     assert.equal(ecChannelOwnerDecision({ binding: null, env: { EC_WHATSAPP_CHANNEL_BINDING_REQUIRED: 'true' },
         sessionId: '5531971862958', ownerPhoneDigits: '553171862958' }).reason, 'binding_missing');
+    assert.equal(ecChannelOwnerDecision({ binding: null,
+        env: { NODE_ENV: 'production', EC_WHATSAPP_TRANSPORT: 'baileys_text' },
+        sessionId: '5531971862958', ownerPhoneDigits: '553171862958' }).reason, 'binding_missing');
 });
 
 test('registro inválido não ganha autorização', () => {

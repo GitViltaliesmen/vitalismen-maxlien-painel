@@ -12,6 +12,8 @@ O painel V273 já avisa quando a sessão cai. Esta candidata separa o canal lóg
 - O registro de mídia inbound passa a gravar `ownerPhoneDigits` do socket real, separado do `sessionId` legado.
 - A autenticação Baileys e o diretório atual não são movidos por esta candidata. O procedimento de re-pareamento continua sendo uma operação separada com backup e QR novo.
 
+O vínculo inicial foi criado no VPS em `/opt/vitalismen-automacao/shared/runtime/whatsapp-channel/ec-primary.json` com a sessão conectada verificada. O diretório tem modo 0700, o arquivo modo 0600; a geração é 1, sem conta pendente nem histórico arquivado. A release V271 ativa ainda não lê esse arquivo.
+
 ## Contrato de troca futura
 
 1. Preservar o vínculo ativo e fazer backup do diretório de autenticação. Manter atendimento humano no celular durante a troca.
