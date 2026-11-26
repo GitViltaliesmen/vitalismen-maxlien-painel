@@ -1,5 +1,13 @@
 # EC V274 — canal estável para substituição controlada do WhatsApp
 
+## Publicação validada em 2026-11-26
+
+A V274 foi ativada no VPS oficial como `20261126T024208Z_production-20261126-4d8efd8`, commit `4d8efd8cb2464e434c43fbcfbbb145eb1555b873`, árvore `3029cfcbb0f85dc49cce952517bfec0dbe82ac64`, com autoridade sucessora `ec-primary-channel-v274-r4`. O tag Git `ec-primary-channel-v274-20261126` fixa o commit. A release V271 `20261125T040212Z_production-20261125-7020adb` permanece íntegra para rollback. O backup de ativação está em `/opt/vitalismen-automacao/backups/ec-primary-channel-v274-20261126T024208Z`, com acesso root.
+
+O `senior:check` completo no release materializado passou: baterias de 43, 482 e 22 testes, todas com zero falhas, além dos guards finais. O lint de sintaxe passou em 1.271 arquivos. A verificação estrita da cadeia selada confirmou os 12 arquivos alterados. Após a ativação, `current` e o diretório real do processo PM2 apontaram para V274; a API e o painel público responderam HTTP 200; o health informou `online` e uma sessão WhatsApp conectada. O vínculo `EC_PRIMARY` ficou na geração 1, sem conta pendente. O ciclo de pós-venda em `dry-run` teve zero envio físico, e o timer V203 permaneceu inativo.
+
+Esta publicação não prova uma mensagem nova de cliente recebida e respondida após a troca, nem um pareamento de número substituto. A futura troca de conta continua condicionada ao estágio QA e aos recibos reais de entrada e saída antes de ativar outra geração. O envio manual de mídia também continua sujeito à prova própria registrada no `AGENTS.md`. O texto abaixo preserva o histórico de preparação da candidata; as frases sobre V271 ativa descrevem o estado anterior à publicação.
+
 ## Objetivo e fonte
 
 O painel V273 já avisa quando a sessão cai. Esta candidata separa o canal lógico `EC_PRIMARY` da conta WhatsApp efetivamente vinculada, mantendo o `sessionId` legado como identificador técnico imutável para não reescrever mensagens, pedidos ou afinidade de contatos. Foi comparada com os arquivos da release V271 ativa antes da edição; os hashes de `ecBotCoreRuntimeIntegrationV78Service.js`, `connection.js`, `outboundGuard.js` e `routes/whatsapp.js` eram idênticos entre checkout e produção.
