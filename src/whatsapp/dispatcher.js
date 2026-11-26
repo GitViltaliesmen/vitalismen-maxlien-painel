@@ -184,14 +184,14 @@ const saveInboundMediaFile = async ({ msg, message = {}, mediaType = '', sock, e
     return `/media/inbound/${filename}`;
 };
 
-const recordInboundMediaMessage = async ({ remoteJid, senderPn = '', messageId = '', body = '', message = {}, mediaUrl = '', sessionId = '' }) => {
+const recordInboundMediaMessage = async ({ remoteJid, senderPn = '', messageId = '', body = '', message = {}, mediaUrl = '', sessionId = '', ownerPhoneDigits = '' }) => {
     const mediaType = getInboundMediaType(message);
     if (!mediaType || !remoteJid || !messageId) return;
     try {
         const ownerSet = sessionId
             ? {
                 sessionId,
-                ownerPhoneDigits: digitsOnly(sessionId)
+                ownerPhoneDigits: digitsOnly(ownerPhoneDigits)
             }
             : {};
         await Message.updateOne(
@@ -310,7 +310,8 @@ export const setupDispatcher = (sock, currentSocketId = 'N/A', sessionId = 'defa
                             body: effectiveText,
                             message,
                             mediaUrl: inboundMediaUrl,
-                            sessionId
+                            sessionId,
+                            ownerPhoneDigits: ownDigits
                         });
                     } catch (mediaError) {
                         console.warn(`[DISPATCHER] falha ao salvar midia inbound -> ${remoteJid}: ${mediaError.message}`);
