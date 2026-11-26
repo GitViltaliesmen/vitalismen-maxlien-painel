@@ -1,5 +1,5 @@
-import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-primary-channel-v274-sealed-r1.mjs';
-import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-primary-channel-v274-profile-r1.mjs';
+import {installSealedPreload} from '/usr/local/lib/vitalismen-deploy/ec-primary-channel-v274-sealed-r2.mjs';
+import {publishMeasurementRuntimeContextV213} from '/usr/local/lib/vitalismen-deploy/ec-primary-channel-v274-profile-r2.mjs';
 import {fileURLToPath} from 'node:url';
 import {register} from 'node:module';
 import path from 'node:path';
