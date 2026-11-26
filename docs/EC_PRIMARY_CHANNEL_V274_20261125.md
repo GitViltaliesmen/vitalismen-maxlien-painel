@@ -15,7 +15,7 @@ O painel V273 já avisa quando a sessão cai. Esta candidata separa o canal lóg
 
 O vínculo inicial foi criado no VPS em `/opt/vitalismen-automacao/shared/runtime/whatsapp-channel/ec-primary.json` com a sessão conectada verificada. O diretório tem modo 0700, o arquivo modo 0600; a geração é 1, sem conta pendente nem histórico arquivado. A release V271 ativa ainda não lê esse arquivo.
 
-Os sete testes iniciais passaram no VPS. Após acrescentar a verificação de escrita de pedidos, os oito testes direcionados passaram no Windows. O lint de sintaxe passou para 1.273 arquivos. A validação `senior:check` da cadeia selada ainda não foi concluída para a V274. A conexão e o health do V271 não constituem prova de ativação da candidata.
+Após acrescentar a verificação de escrita de pedidos, os oito testes direcionados passaram no Windows e na candidata materializada no VPS (`2e0fe686`). O lint de sintaxe passou para 1.273 arquivos. A validação `senior:check` da cadeia selada ainda não foi concluída para a V274. A conexão e o health do V271 não constituem prova de ativação da candidata.
 
 ## Contrato de troca futura
 
