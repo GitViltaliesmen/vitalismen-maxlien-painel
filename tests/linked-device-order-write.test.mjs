@@ -6,7 +6,7 @@ const context = (senderPhoneDigits = '593991234567') => ({
     profile: 'EC_BOT_CORE_OPERATIONAL', writeContext: true,
     method: 'SOCKET', path: '/internal/whatsapp/baileys-inbound',
     baileysInbound: { verified: true, sessionId: '5531971862958',
-        ownerPhoneDigits: '5531971862958', senderPhoneDigits, messageId: 'INBOUND-1' }
+        ownerPhoneDigits: '553171862958', senderPhoneDigits, messageId: 'INBOUND-1' }
 });
 
 test('linked-device order persistence requires a verified EC customer inbound', () => {
