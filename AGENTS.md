@@ -83,13 +83,13 @@ Nunca alterar apenas `WHATSAPP_FUNNEL_ENABLED`. A troca entre modos e uma mudanc
 
 Para a operacao EC publicada em 2026-11-26, o transporte oficial de entrada e saida e o dispositivo WhatsApp Business vinculado, selecionado por `EC_WHATSAPP_TRANSPORT=baileys_text`. O release V274 ativo e `20261126T024208Z_production-20261126-4d8efd8`, commit `4d8efd8cb2464e434c43fbcfbbb145eb1555b873`; V271 `20261125T040212Z_production-20261125-7020adb` permanece integro para rollback. O canal logico `EC_PRIMARY` usa o vinculo root em `/opt/vitalismen-automacao/shared/runtime/whatsapp-channel/ec-primary.json`, separado do `sessionId` tecnico historico. Conferir `current`, PM2, health, sessao e vinculo no VPS antes de qualquer trabalho novo. Nao restaurar Z-API como transporte, failover ou sessao manual por padrao. Referencias legadas a Z-API permanecem apenas como historico, compatibilidade e rollback ate serem removidas por sucessores selados especificos; sua presenca no codigo nao autoriza uso operacional. O health deve consultar o dispositivo vinculado por mecanismo somente leitura, sem enviar mensagem ou criar sessao.
 
-O envio manual de audio e imagem pelo painel ainda nao esta comprovado em producao: tres tentativas anteriores de QA em 24/11/2026 ficaram sem recibo do provedor. A V269 publicada corrige a selecao antiga de sessao `zapi` no modo vinculado e a excecao de pais exclusivamente para o telefone de QA. Nao repetir os arquivos de resultado incerto. Exigir novos recibos reais de audio e imagem, persistencia apos recarga e confirmacao no telefone de QA antes de declarar essa funcao operacional. Se a prova falhar, restaurar V268.
+O envio manual de audio e imagem pelo painel ainda nao esta comprovado de ponta a ponta em producao: tres tentativas anteriores de QA em 24/11/2026 ficaram sem recibo do provedor. A V269 corrigiu a selecao antiga de sessao `zapi` no modo vinculado e a excecao de pais exclusivamente para o telefone de QA. Nao repetir arquivos de resultado incerto. Exigir novos recibos reais de audio e imagem, persistencia apos recarga e confirmacao no telefone de QA antes de declarar essa funcao operacional. Se a prova falhar, interromper novos envios e avaliar rollback para V271, predecessor direto da V274 ativa; nao restaurar V268 automaticamente.
 
 ### Canal logico e troca futura de celular EC
 
-A candidata V274 em `docs/EC_PRIMARY_CHANNEL_V274_20261125.md` separa o canal logico `EC_PRIMARY` do numero efetivamente conectado. O `sessionId` legado permanece apenas como ID tecnico para manter afinidade e historico no painel; nunca serve como prova de que a conta conectada esta aprovada. Entrada, saida e escrita de pedidos devem verificar a mesma geracao ativa do vinculo root em `shared/runtime/whatsapp-channel/ec-primary.json`. Uma conta substituta em preparo so pode trocar mensagens com `5515998038637` ate haver prova de entrada, recibo de saida e ativacao expressa da geracao. Falta ou corrupcao do vinculo em producao bloqueia o transporte. Nao ativar automaticamente numero novo, nao reenviar mensagens de resultado incerto e nao apagar historico anterior.
+A V274 publicada, documentada em `docs/EC_PRIMARY_CHANNEL_V274_20261125.md`, separa o canal logico `EC_PRIMARY` do numero efetivamente conectado. O `sessionId` legado permanece apenas como ID tecnico para manter afinidade e historico no painel; nunca serve como prova de que a conta conectada esta aprovada. Entrada, saida e escrita de pedidos devem verificar a mesma geracao ativa do vinculo root em `shared/runtime/whatsapp-channel/ec-primary.json`. Uma conta substituta em preparo so pode trocar mensagens com `5515998038637` ate haver prova de entrada, recibo de saida e ativacao expressa da geracao. Falta ou corrupcao do vinculo no transporte vinculado bloqueia o transporte. Nao ativar automaticamente numero novo, nao reenviar mensagens de resultado incerto e nao apagar historico anterior.
 
-Esta e uma candidata de codigo, nao uma liberacao em producao: o runtime ativo V271 ainda nao le o vinculo. Para publicar, criar autoridade selada sucessora com commit, arvore e hashes proprios, validar release materializada e comprovar o caminho autenticado. O QR de pareamento e especifico da conta; trocar a conta conectada nao atualiza automaticamente o numero publico da CTA/VSL. Toda eventual mudanca no destino publico exige autorizacao e teste separados, preservando player, pagina e funil.
+O runtime V274 ja le o vinculo; a autoridade sucessora, release e tag estao registrados no documento V274. Uma futura troca de conta exige stage, prova QA de entrada e saida, ativacao da nova geracao e validacao autenticada. O QR de pareamento e especifico da conta; trocar a conta conectada nao atualiza automaticamente o numero publico da CTA/VSL. Toda eventual mudanca no destino publico exige autorizacao e teste separados, preservando player, pagina e funil.
 
 ## Congelamento total atual
 
@@ -120,6 +120,16 @@ O caminho oficial no VPS e:
 ```sh
 /opt/vitalismen-automacao/current
 ```
+
+Para continuar o trabalho V274, o operador autorizou o checkout isolado
+`C:\Users\Wolfe\.codex\worktrees\ec-whatsapp-web-cutover\Vitalismen Automacao`.
+Ele compartilha o Git oficial da pasta local acima, mas tem branch e arquivos de
+trabalho separados. Em 26/11/2026, este checkout estava limpo na linha V274;
+a pasta local principal estava na branch V195, com alteracoes rastreadas e
+nao rastreadas ainda nao inventariadas. Nao copiar, mesclar, apagar ou fazer
+`git reset`/`git clean` na pasta principal para reconciliar as duas. Antes de
+qualquer mudanca, conferir `git rev-parse --show-toplevel`, branch, status,
+marcador oficial e release ativo no VPS.
 
 Antes de trabalhar, conferir o marcador `.vitalismen-official-root` e rodar `npm run official:path` quando houver qualquer duvida de contexto.
 
