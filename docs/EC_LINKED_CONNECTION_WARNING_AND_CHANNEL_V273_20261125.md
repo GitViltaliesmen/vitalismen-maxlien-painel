@@ -10,6 +10,8 @@ A página do painel agora consulta o status da sessão vinculada a cada 15 segun
 
 O aviso funciona enquanto o painel estiver aberto; não é um monitor externo nem envia mensagem quando a conexão cai.
 
+Para cobrir o painel fechado, foi criada no Codex a automação `monitorar-conex-o-whatsapp-vitalismen-ec`, ativa a cada 15 minutos. Ela lê somente `/api/health/`, exige duas verificações consecutivas antes de avisar sobre queda ou falha de acesso e avisa também na recuperação. A URL pública respondeu HTTP 200 com `whatsapp.ready=true`, `state=connected` e uma sessão conectada na criação. Esse monitor não faz teste de entrega de mensagem.
+
 - Página anterior: `/var/www/vitalismen-panel-qr-v272-r1/qr.html`, SHA-256 `1cd09d09a87283a161bd14deb592db1dfe542679a1c40f0a88583df72c0cc6e3`.
 - Backup anterior e da configuração Nginx: `/opt/vitalismen-automacao/backups/ec-connection-warning-v273-20261126T011154Z/`.
 - Página atual: `/var/www/vitalismen-panel-qr-v273-r1/qr.html`, SHA-256 `6ff275245f1f205061b61585bc7aacff846cb1294e48bd3993819fc46ac1eee9`.
