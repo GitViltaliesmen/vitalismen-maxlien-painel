@@ -202,6 +202,19 @@
             flex: 0 0 auto;
         }
 
+        .linked-connection-warning {
+            display: block;
+            width: 100%;
+            border: 0;
+            border-bottom: 2px solid #9f1239;
+            background: #fff1f2;
+            color: #881337;
+            padding: 10px 18px;
+            text-align: left;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
         .country-switch {
             display: inline-flex;
             align-items: center;
@@ -7717,6 +7730,8 @@
             </div>
         </header>
 
+        <button id="linkedConnectionWarning" class="linked-connection-warning hidden" type="button" role="alert" aria-live="assertive">WhatsApp desconectado. Abra Conexões para verificar o QR.</button>
+
         <section id="loginPanel" class="panel login-panel">
             <div class="panel-head">
                 <h2>Entrar no painel</h2>
@@ -9991,8 +10006,39 @@
 
         const zapiStatusGraceMs = 120000;
 
+        const linkedConnectionAlertState = { failures: 0, warned: false, seenConnected: false };
+
+        const updateLinkedConnectionWarning = (condition, session = {}) => {
+            const warning = el('linkedConnectionWarning');
+            if (!warning) return;
+            if (condition === 'connected') {
+                linkedConnectionAlertState.failures = 0;
+                linkedConnectionAlertState.warned = false;
+                linkedConnectionAlertState.seenConnected = true;
+                warning.classList.add('hidden');
+                return;
+            }
+            linkedConnectionAlertState.failures += 1;
+            if (linkedConnectionAlertState.failures < 2) return;
+            const unreadable = condition === 'unknown';
+            warning.textContent = unreadable
+                ? 'Não foi possível verificar a conexão do WhatsApp. Abra Conexões e confira o celular.'
+                : session.status === 'scanning'
+                    ? 'WhatsApp aguardando leitura do QR. O bot não está recebendo mensagens; abra Conexões.'
+                    : 'WhatsApp desconectado. O bot não está recebendo mensagens; abra Conexões e atenda pelo celular.';
+            warning.classList.remove('hidden');
+            if (!linkedConnectionAlertState.warned && linkedConnectionAlertState.seenConnected) {
+                linkedConnectionAlertState.warned = true;
+                showToast(warning.textContent);
+                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                    try { new Notification('Vitalismen EC: conexão WhatsApp', { body: warning.textContent }); } catch { /* aviso visual permanece */ }
+                }
+            }
+        };
+
         async function checkStatus() {
             if (!state.token) {
+                el('linkedConnectionWarning').classList.add('hidden');
                 setSignedOutZapiState();
                 renderOperationalAlerts();
                 return;
@@ -10005,6 +10051,7 @@
                     const sessions = Array.isArray(whatsappStatus.sessions) ? whatsappStatus.sessions : [];
                     const session = sessions.find(item => item.sessionId === whatsappStatus.defaultSessionId) || sessions[0] || {};
                     const connected = session.isReady === true && session.status === 'connected';
+                    updateLinkedConnectionWarning(connected ? 'connected' : 'disconnected', session);
                     const status = connected ? 'connected' : (session.status || 'disconnected');
                     state.zapiDevice = { ok: connected, transport: 'baileys_text', device: { phone: session.ownPhoneDigits || '' } };
                     document.body.classList.toggle('zapi-offline', !connected);
@@ -10059,6 +10106,7 @@
                 setZapiLoginState({ status: el('loginStatusText'), image: el('loginQrcode'), help: el('loginQrHelp') }, zapi);
             } catch (error) {
                 if (state.activeTransportMode === 'baileys_text') {
+                    updateLinkedConnectionWarning('unknown');
                     document.body.classList.add('zapi-offline');
                     el('waBadge').textContent = 'ERRO';
                     el('waBadge').className = 'badge red';
@@ -20964,6 +21012,10 @@
                 button.disabled = false;
             }
         });
+        el('linkedConnectionWarning').addEventListener('click', () => {
+            setActiveModule('connections');
+            loadConnections().catch((error) => showToast(error.message));
+        });
         el('connectionCountryTabs').addEventListener('click', async (event) => {
             const button = event.target.closest('[data-connection-country]');
             if (!button) return;
@@ -21815,6 +21867,9 @@
 
         setInterval(refreshSelectedConversationFast, 1200);
         setInterval(refreshLivePanel, 5000);
+        setInterval(() => {
+            if (state.token && state.activeModule !== 'connections') checkStatus().catch(() => null);
+        }, 15000);
         setInterval(() => {
             if (state.token && !document.hidden && !state.chatsLoading) loadChats().catch(() => null);
         }, 3500);
