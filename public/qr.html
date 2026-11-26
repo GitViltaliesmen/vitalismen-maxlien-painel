@@ -665,6 +665,18 @@
             box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
         }
 
+        .connection-qr-image {
+            display: block;
+            width: min(320px, 100%);
+            aspect-ratio: 1;
+            object-fit: contain;
+            justify-self: center;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            background: #fff;
+        }
+
         .connection-card-head {
             display: flex;
             align-items: center;
@@ -10464,6 +10476,8 @@
             if (state.activeTransportMode === 'baileys_text') {
                 const linked = sessions.find((session) => isVisibleConnectionSession(session)) || sessions[0] || {};
                 const connected = linked.isReady === true && linked.status === 'connected';
+                const qrCode = !connected && /^data:image\/png;base64,[a-z0-9+/=]+$/i.test(String(linked.qrCode || ''))
+                    ? linked.qrCode : '';
                 if (el('connectionSourceNote')) el('connectionSourceNote').textContent =
                     'Dispositivo vinculado no numero oficial. Entrada e resposta automatica dependem de sessao conectada e autorizacao do runtime.';
                 el('connectionList').innerHTML = `<article class="connection-card">
@@ -10471,7 +10485,9 @@
                     <span class="badge ${badgeClass(connected ? 'connected' : 'disconnected')}">${connected ? 'CONECTADO' : 'AGUARDANDO CONEXAO'}</span></div>
                     <div class="meta">provider=WHATSAPP_WEB · phone=${escapeHtml(linked.ownPhoneDigits || 'nao vinculado')}</div>
                     <div class="meta">session=${escapeHtml(linked.sessionId || 'nao iniciada')} · status=${escapeHtml(linked.status || 'desconhecido')}</div>
-                    <div class="meta">O QR da sessao aparece na area de status quando disponivel.</div>
+                    ${qrCode
+                        ? `<img class="connection-qr-image" src="${escapeHtml(qrCode)}" alt="QR para vincular WhatsApp Business"><div class="meta">Leia este QR em WhatsApp Business → Aparelhos conectados. Se expirar, clique Atualizar.</div>`
+                        : '<div class="meta">Aguardando um QR novo da sessao. Clique Atualizar em alguns segundos.</div>'}
                 </article>`;
                 el('connectionsUpdatedAt').textContent = `atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
                 return;
