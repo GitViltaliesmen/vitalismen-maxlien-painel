@@ -1,4 +1,6 @@
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
+import { ecBaileysTextMode } from './ecTransportMode.js';
+import { ecChannelOwnerDecision } from './ecPrimaryChannelBinding.js';
 
 const DEFAULT_BLOCKED_SESSIONS = ['5515996218208'];
 const DEFAULT_BLOCKED_RECIPIENTS = ['5515996218208'];
@@ -83,6 +85,16 @@ export const canSendOutbound = ({ jid, text = '', sessionId = null, ownDigits = 
     const isRealCustomerCountry = targetDigits.startsWith('593');
     if (ecOnlyOutboundEnabled() && targetDigits && !isRealCustomerCountry && !isExplicitAllowedRecipient) {
         return { allowed: false, reason: `non_ec_recipient:${targetDigits}` };
+    }
+
+    if (ecBaileysTextMode()) {
+        try {
+            const channel = ecChannelOwnerDecision({ sessionId, ownerPhoneDigits: ownDigits,
+                peerPhoneDigits: targetDigits });
+            if (!channel.allowed) return { allowed: false, reason: `ec_channel_${channel.reason}` };
+        } catch {
+            return { allowed: false, reason: 'ec_channel_binding_invalid' };
+        }
     }
 
     if (normalizedSessionId && blockedSessions.some((blocked) => isSamePhone(normalizedSessionId, blocked))) {
