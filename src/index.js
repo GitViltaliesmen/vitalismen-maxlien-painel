@@ -361,7 +361,11 @@ app.use('/api/automation', automationRoutes);
 app.use('/api/meta-events', metaEventsRoutes);
 app.use('/api/web-chat/vitpower', vitPowerWebChatV220Routes);
 app.use('/api/web-chat-admin/vitpower', vitPowerWebDashboardV222Routes);
-app.use('/api/zapi', zapiRoutes);
+if (ecBaileysTextMode()) {
+    app.use('/api/zapi', (_req, res) => res.status(410).json({ error: 'legacy_transport_disabled' }));
+} else {
+    app.use('/api/zapi', zapiRoutes);
+}
 app.use('/api/observation', observationRoutes);
 app.use('/api/integrations', integrationsRoutes);
 app.use('/api/funnel-metrics', funnelMetricsRoutes);

@@ -3,6 +3,9 @@
 import { postSaleV270MediaAllowed } from '../services/postSaleLinkedV270Context.js';
 export const ecTransportMode = (env = process.env) => {
     const mode = String(env.EC_WHATSAPP_TRANSPORT || 'zapi').trim().toLowerCase();
+    if (env.NODE_ENV === 'production' && mode !== 'baileys_text') {
+        throw new Error('ec_legacy_transport_disabled_in_production');
+    }
     if (mode !== 'zapi' && mode !== 'baileys_text') {
         throw new Error('ec_whatsapp_transport_invalid');
     }

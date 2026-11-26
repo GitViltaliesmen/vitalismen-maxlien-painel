@@ -4929,7 +4929,7 @@
         }
 
         .message-status-provider {
-            color: #0f766e;
+            color: #667781;
             font-weight: 900;
         }
 
@@ -4945,7 +4945,7 @@
         }
 
         .message-status-read {
-            color: #00a884;
+            color: #0277bd;
             font-weight: 900;
             letter-spacing: 0;
         }
@@ -8153,7 +8153,7 @@
                     <div id="connectionCountryTabs" class="connection-country-tabs" aria-label="Operacao por pais">
                         <button data-connection-country="EC" class="active" type="button">Equador</button>
                     </div>
-                    <div id="connectionSourceNote" class="connection-source-note">V152-B shadow sucessor V152-C0 sem telefone real. Z-API principal permanece ativa e sem mudanca.</div>
+                    <div id="connectionSourceNote" class="connection-source-note">Conexão do WhatsApp Business oficial em verificação.</div>
                     <form id="connectionForm" class="connection-form">
                         <input id="connectionSessionInput" autocomplete="off" placeholder="channelId do rascunho" aria-label="channelId do novo canal">
                         <button class="primary" type="submit" disabled title="V152-C0 sem telefone de teste">Adicionar canal</button>
@@ -8655,7 +8655,7 @@
                     <div class="custom-funnel-settings-grid">
                         <div class="custom-funnel-setting-card">
                             <strong>Audio gravado na hora</strong>
-                            <span>Audios MP3/OGG enviados pelo bloco usam gravacao simulada no provedor Z-API antes do disparo.</span>
+                            <span>Áudios MP3/OGG enviados pelo bloco exigem confirmação do dispositivo vinculado.</span>
                         </div>
                         <div class="custom-funnel-setting-card">
                             <strong>Texto com simulacao</strong>
@@ -9988,7 +9988,8 @@
             try {
                 const ts = Date.now();
                 const whatsappStatus = await fetchPanelJson(`/api/whatsapp/status?_=${ts}`, { label: 'WhatsApp status' });
-                state.activeTransportMode = whatsappStatus.transportMode || 'zapi';
+                state.activeTransportMode = whatsappStatus.transportMode || 'baileys_text';
+                if (state.activeTransportMode !== 'baileys_text') throw new Error('Transporte oficial indisponível');
                 if (state.activeTransportMode === 'baileys_text') {
                     const sessions = Array.isArray(whatsappStatus.sessions) ? whatsappStatus.sessions : [];
                     const session = sessions.find(item => item.sessionId === whatsappStatus.defaultSessionId) || sessions[0] || {};
@@ -10530,11 +10531,10 @@
                 state.token
                     ? api(`/api/whatsapp/connection-workload?country=${encodeURIComponent(country || 'EC')}`).catch(() => ({ sessions: [] }))
                     : Promise.resolve({ sessions: [] }),
-                state.activeTransportMode === 'baileys_text'
-                    ? Promise.resolve(null)
-                    : fetchPanelJson(`/api/zapi/device?_=${Date.now()}`, { label: 'Z-API device' }).catch((error) => ({ ok: false, error: error.message }))
+                Promise.resolve(null)
             ]);
-            state.activeTransportMode = payload.transportMode || state.activeTransportMode || 'zapi';
+            state.activeTransportMode = payload.transportMode || state.activeTransportMode || 'baileys_text';
+            if (state.activeTransportMode !== 'baileys_text') throw new Error('Transporte oficial indisponível');
             state.whatsappSessions = normalizeSessionsPayload(payload);
             state.connectionWorkload = workload || { sessions: [] };
             state.zapiDevice = zapiDevice || null;
@@ -11493,7 +11493,6 @@
                         body: JSON.stringify({
                             phone: currentChatPhone(),
                             message,
-                            sessionId: 'zapi',
                             sendMode: 'manual_panel',
                             delayTypingSeconds: 0,
                             country: state.country || 'EC'
@@ -13015,7 +13014,7 @@
                         providerZaapId: providerZaapId || message.providerZaapId || '',
                         deliveryStatus,
                         sendError: deliveryStatus === 'request_failed'
-                            ? (result.error || 'A Z-API não retornou um ID válido; envio não confirmado.')
+                            ? (result.error || 'O dispositivo não retornou um ID válido; envio não confirmado.')
                             : ''
                     }
                     : message
@@ -13775,11 +13774,12 @@
             return Number.isFinite(fallback) ? fallback : 0;
         };
         const outboundEditAvailability = (message = {}) => {
+            if (state.activeTransportMode === 'baileys_text') return { show: false, allowed: false, reason: '' };
             if (!message?.isFromMe || message?.isBot || !['chat', 'text'].includes(String(message.type || '').toLowerCase())) {
                 return { show: false, allowed: false, reason: '' };
             }
             if (String(message.provider || '').toLowerCase() !== 'zapi' || !String(message.providerMessageId || message.providerPayload?.messageId || message.providerPayload?.id || '').trim()) {
-                return { show: true, allowed: false, reason: 'Esta mensagem nao possui ID editavel da Z-API.' };
+                return { show: false, allowed: false, reason: '' };
             }
             const sentAtMs = messageTimestampMs(message);
             if (!sentAtMs || Date.now() - sentAtMs > WHATSAPP_EDIT_WINDOW_MS) {
@@ -13870,12 +13870,12 @@
                 showToast('Só apago mensagens do bot/atendente no painel');
                 return;
             }
-            const ok = window.confirm('Apagar esta mensagem? O sistema vai tentar apagar tambem no WhatsApp do cliente quando a Z-API permitir. Se nao permitir, ela sai do painel e fica registrada em auditoria.');
+            const ok = window.confirm('Remover esta mensagem do painel? A remoção no WhatsApp do cliente não está disponível neste transporte.');
             if (!ok) return;
             try {
                 const result = await api(`/api/whatsapp/messages/${encodeURIComponent(currentChatPhone())}/delete`, {
                     method: 'POST',
-                    body: JSON.stringify({ messageId, deleteFromWhatsApp: true })
+                    body: JSON.stringify({ messageId, deleteFromWhatsApp: false })
                 });
                 if (!result?.success) throw new Error(result?.error || 'Nao consegui apagar a mensagem.');
                 state.currentMessages = (state.currentMessages || []).filter((item) => String(item._id || '') !== String(messageId));
@@ -13886,9 +13886,9 @@
                 if (zapi.ok) {
                     showToast('Mensagem removida do WhatsApp e do painel');
                 } else if (zapi.skipped === 'provider_message_id_missing') {
-                    showToast('Mensagem removida do painel. Z-API nao retornou ID para apagar no WhatsApp.');
+                    showToast('Mensagem removida do painel. A cópia no WhatsApp permanece.');
                 } else if (zapi.attempted) {
-                    showToast(`Mensagem removida do painel. WhatsApp nao confirmou apagamento: ${zapi.error || 'erro Z-API'}`);
+                    showToast('Mensagem removida do painel. A cópia no WhatsApp permanece.');
                 } else {
                     showToast('Mensagem removida do painel');
                 }
@@ -14057,7 +14057,7 @@
                     <button data-actionable-discard="${escapeHtml(item._id)}" type="button">Descartar</button>
                 `;
                 const warningActions = `
-                    <button class="primary" data-actionable-apply="${escapeHtml(item._id)}" type="button">Aplicar via Z-API</button>
+                    <button class="primary" type="button" disabled title="Revise a sugestão e envie manualmente pelo chat">Revisar no chat</button>
                     <button data-actionable-feedback="${escapeHtml(item._id)}" type="button">Dica errada</button>
                     <button data-actionable-discard="${escapeHtml(item._id)}" type="button">Descartar</button>
                 `;
@@ -14302,6 +14302,10 @@
 
         async function handleActionableAction(kind, actionableId) {
             if (!actionableId || state.busy) return;
+            if (kind === 'apply' && state.activeTransportMode === 'baileys_text') {
+                showToast('Revise o texto e envie manualmente pelo chat.');
+                return;
+            }
             let feedbackReason = '';
             if (kind === 'feedback') {
                 feedbackReason = window.prompt('O que esta errado nesta dica? Escreva a decisao correta para o Observador aprender.') || '';
@@ -14958,14 +14962,14 @@
                 sendError
             }) || { code: 'UNKNOWN', detail: '' };
             const detail = escapeHtml(stateInfo.detail || '');
-            if (stateInfo.code === 'REQUEST_FAILED') return ` · <span class="message-status-failed" title="${detail}">não enviado</span>`;
+            if (stateInfo.code === 'REQUEST_FAILED') return ` · <span class="message-status-local" title="${detail}">envio não confirmado</span>`;
             if (stateInfo.code === 'UNCERTAIN') return ` · <span class="message-status-local" title="${detail}">sem confirmação</span>`;
             if (stateInfo.code === 'FAILED') return ` · <span class="message-status-failed" title="${detail}">falhou no WhatsApp</span>`;
             if (stateInfo.code === 'LOCAL_ONLY') return ` · <span class="message-status-local">${detail}</span>`;
             if (stateInfo.code === 'READ') return ` · <span class="message-status-read" title="${detail}">&#10003;&#10003; lido</span>`;
             if (stateInfo.code === 'DELIVERED') return ` · <span class="message-status-delivered" title="${detail}">&#10003;&#10003; entregue</span>`;
-            if (stateInfo.code === 'SENT') return ` · <span class="message-status-provider" title="${detail}">&#10003; enviado</span>`;
-            if (stateInfo.code === 'PROVIDER_ACCEPTED') return ` · <span class="message-status-provider" title="${detail}">aceito pela Z-API</span>`;
+            if (stateInfo.code === 'SENT') return ` · <span class="message-status-provider" title="${detail}">&#10003; aceito · aguardando entrega</span>`;
+            if (stateInfo.code === 'PROVIDER_ACCEPTED') return ` · <span class="message-status-provider" title="${detail}">&#10003; aceito · entrega não comprovada</span>`;
             if (stateInfo.code === 'SENDING') return ' · <span class="message-status-local">enviando…</span>';
             return '';
         };

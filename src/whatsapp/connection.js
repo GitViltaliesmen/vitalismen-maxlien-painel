@@ -15,6 +15,8 @@ import {
 } from '../services/callAutoReplySafetyService.js';
 import { evaluateCanaryV75Recipient } from '../services/canaryIsolationV75Service.js';
 import { ecBaileysTextMode } from './ecTransportMode.js';
+import { applyLinkedDeliveryReceipt } from './linkedDeliveryReceipts.js';
+import { loadLinkedRetryMessage, pruneLinkedRetryMessages, saveLinkedRetryMessage } from './linkedRetryMessageStore.js';
 
 const DEFAULT_SESSION_ID = process.env.WHATSAPP_DEFAULT_SESSION_ID || 'default';
 const AUTH_BASE_DIR = process.env.WHATSAPP_AUTH_BASE_DIR
@@ -222,6 +224,8 @@ export const startWhatsApp = async (sessionId = DEFAULT_SESSION_ID) => {
         console.log(`[RUNNER] node (via terminal oficial)`);
 
         const authDir = ensureAuthDir(session.sessionId);
+        await pruneLinkedRetryMessages(authDir).catch((error) =>
+            console.warn(`[WHATSAPP-RETRY] limpeza do cache falhou | session=${session.sessionId}: ${error.message}`));
         const { state, saveCreds } = await useMultiFileAuthState(authDir);
         const { version, isLatest } = await fetchLatestBaileysVersion();
 
@@ -244,10 +248,38 @@ export const startWhatsApp = async (sessionId = DEFAULT_SESSION_ID) => {
             auth: state,
             printQRInTerminal: false,
             logger: pino({ level: 'error' }),
+            getMessage: (key) => loadLinkedRetryMessage(authDir, key),
             browser: ['Enterprise Funnel Bot', `Session ${session.sessionId}`, '1.0.0']
         });
 
+        const originalSendMessage = session.sock.sendMessage.bind(session.sock);
+        session.sock.sendMessage = async (...args) => {
+            const response = await originalSendMessage(...args);
+            if (response?.key?.fromMe && response?.key?.id && response?.message) {
+                await saveLinkedRetryMessage(authDir, response).catch((error) =>
+                    console.error(`[WHATSAPP-RETRY] armazenamento falhou | session=${session.sessionId}: ${error.message}`));
+            }
+            return response;
+        };
+
         session.sock.ev.on('creds.update', saveCreds);
+
+        // Provider acknowledgement is not proof of delivery or reading.
+        // Persist only real receipts for outbound messages with the same provider ID.
+        const persistReceipts = (entries, field) => {
+            for (const entry of entries || []) {
+                const event = { key: entry.key, [field]: entry[field] };
+                applyLinkedDeliveryReceipt(event).then((result) => {
+                    // The send record may be committed just after the socket emits its ack.
+                    if (result.reason === 'message_missing_or_not_newer') {
+                        setTimeout(() => applyLinkedDeliveryReceipt(event).catch((error) =>
+                            console.error(`[WHATSAPP-RECEIPT] nova tentativa falhou | session=${session.sessionId}: ${error.message}`)), 3000);
+                    }
+                }).catch((error) => console.error(`[WHATSAPP-RECEIPT] persistencia falhou | session=${session.sessionId}: ${error.message}`));
+            }
+        };
+        session.sock.ev.on('messages.update', (entries) => persistReceipts(entries, 'update'));
+        session.sock.ev.on('message-receipt.update', (entries) => persistReceipts(entries, 'receipt'));
 
         session.sock.ev.on('call', async (calls) => {
             for (const call of calls || []) {

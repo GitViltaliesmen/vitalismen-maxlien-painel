@@ -27,6 +27,11 @@ export const zapiConfig = () => {
 };
 
 const endpoint = (path) => {
+    if (ecBaileysTextMode()) {
+        const error = new Error('legacy_transport_disabled');
+        error.statusCode = 410;
+        throw error;
+    }
     const cfg = zapiConfig();
     if (!cfg.enabled) {
         const error = new Error('zapi_not_configured');
