@@ -15,7 +15,7 @@ O painel V273 já avisa quando a sessão cai. Esta candidata separa o canal lóg
 
 O vínculo inicial foi criado no VPS em `/opt/vitalismen-automacao/shared/runtime/whatsapp-channel/ec-primary.json` com a sessão conectada verificada. O diretório tem modo 0700, o arquivo modo 0600; a geração é 1, sem conta pendente nem histórico arquivado. A release V271 ativa ainda não lê esse arquivo.
 
-Após acrescentar a verificação de escrita de pedidos, os oito testes direcionados passaram no Windows e na candidata materializada no VPS (`2e0fe686`). O lint de sintaxe passou para 1.273 arquivos. A validação `senior:check` da cadeia selada ainda não foi concluída para a V274. A conexão e o health do V271 não constituem prova de ativação da candidata.
+Após acrescentar a verificação de escrita de pedidos, os oito testes direcionados passaram no Windows e na candidata materializada no VPS (`2e0fe686`). O lint de sintaxe passou para 1.273 arquivos. `npm run senior:check` na candidata falhou em `ecRepurchaseSqliteSerializationFreezeRuntimeGuardV47.js` com `herança divergente em .github/workflows/ec-panel-quality.yml` antes de executar o restante da suíte. A autoridade V271 ativa ainda vincula commit, árvore, hashes e release antigos; suas capacidades Tex também contêm números de identidade fixos. A V274 precisa de sucessor selado que preserve a cadeia histórica e aceite explicitamente o novo vínculo de canal. A conexão e o health do V271 não constituem prova de ativação da candidata.
 
 ## Contrato de troca futura
 
