@@ -8,11 +8,14 @@ O painel V273 já avisa quando a sessão cai. Esta candidata separa o canal lóg
 
 - `src/whatsapp/ecPrimaryChannelBinding.js` lê um vínculo persistido fora dos releases. Exige arquivo regular, root, modo 0600, tamanho limitado e contrato válido. O vínculo guarda canal, ID técnico legado, geração ativa, número real aprovado, possível número pendente e gerações anteriores.
 - Entrada e saída verificam a conta real conectada contra a geração ativa. Uma conta pendente pode conversar somente com o telefone QA `5515998038637`; clientes reais ficam bloqueados até a ativação. A ausência ou corrupção do vínculo, quando exigido, falha fechada.
+- A autorização de escrita de pedidos pelo inbound do dispositivo vinculado usa a mesma geração ativa. A conta pendente, a conta antiga e uma conta não aprovada não ganham permissão de escrita.
 - `scripts/ec-primary-channel.mjs` oferece `show`, `init`, `stage`, `activate` e `abort`. `stage` lê a sessão conectada e exige o número esperado; `activate` exige a mesma conta e prova de inbound e outbound QA persistidos no Mongo depois do estágio. A troca é registrada como nova geração; o histórico anterior permanece.
 - O registro de mídia inbound passa a gravar `ownerPhoneDigits` do socket real, separado do `sessionId` legado.
 - A autenticação Baileys e o diretório atual não são movidos por esta candidata. O procedimento de re-pareamento continua sendo uma operação separada com backup e QR novo.
 
 O vínculo inicial foi criado no VPS em `/opt/vitalismen-automacao/shared/runtime/whatsapp-channel/ec-primary.json` com a sessão conectada verificada. O diretório tem modo 0700, o arquivo modo 0600; a geração é 1, sem conta pendente nem histórico arquivado. A release V271 ativa ainda não lê esse arquivo.
+
+Os sete testes iniciais passaram no VPS. Após acrescentar a verificação de escrita de pedidos, os oito testes direcionados passaram no Windows. O lint de sintaxe passou para 1.273 arquivos. A validação `senior:check` da cadeia selada ainda não foi concluída para a V274. A conexão e o health do V271 não constituem prova de ativação da candidata.
 
 ## Contrato de troca futura
 

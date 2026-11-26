@@ -85,6 +85,12 @@ Para a operacao EC publicada em 2026-11-24, o transporte oficial de entrada e sa
 
 O envio manual de audio e imagem pelo painel ainda nao esta comprovado em producao: tres tentativas anteriores de QA em 24/11/2026 ficaram sem recibo do provedor. A V269 publicada corrige a selecao antiga de sessao `zapi` no modo vinculado e a excecao de pais exclusivamente para o telefone de QA. Nao repetir os arquivos de resultado incerto. Exigir novos recibos reais de audio e imagem, persistencia apos recarga e confirmacao no telefone de QA antes de declarar essa funcao operacional. Se a prova falhar, restaurar V268.
 
+### Canal logico e troca futura de celular EC
+
+A candidata V274 em `docs/EC_PRIMARY_CHANNEL_V274_20261125.md` separa o canal logico `EC_PRIMARY` do numero efetivamente conectado. O `sessionId` legado permanece apenas como ID tecnico para manter afinidade e historico no painel; nunca serve como prova de que a conta conectada esta aprovada. Entrada, saida e escrita de pedidos devem verificar a mesma geracao ativa do vinculo root em `shared/runtime/whatsapp-channel/ec-primary.json`. Uma conta substituta em preparo so pode trocar mensagens com `5515998038637` ate haver prova de entrada, recibo de saida e ativacao expressa da geracao. Falta ou corrupcao do vinculo em producao bloqueia o transporte. Nao ativar automaticamente numero novo, nao reenviar mensagens de resultado incerto e nao apagar historico anterior.
+
+Esta e uma candidata de codigo, nao uma liberacao em producao: o runtime ativo V271 ainda nao le o vinculo. Para publicar, criar autoridade selada sucessora com commit, arvore e hashes proprios, validar release materializada e comprovar o caminho autenticado. O QR de pareamento e especifico da conta; trocar a conta conectada nao atualiza automaticamente o numero publico da CTA/VSL. Toda eventual mudanca no destino publico exige autorizacao e teste separados, preservando player, pagina e funil.
+
 ## Congelamento total atual
 
 O estado aprovado em 2026-05-17 esta congelado em:

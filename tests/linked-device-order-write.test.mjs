@@ -17,3 +17,16 @@ test('linked-device order persistence requires a verified EC customer inbound', 
     assert.equal(linkedDeviceOrderWriteAllowed({ context: context(), collection: 'messages', method: 'insertOne' }), false);
     assert.equal(linkedDeviceOrderWriteAllowed({ context: { ...context(), writeContext: false }, collection: 'orders', method: 'insertOne' }), false);
 });
+
+test('order write follows the approved phone generation and excludes a pending replacement', () => {
+    const binding = { version: 1, channelId: 'EC_PRIMARY', legacySessionId: '5531971862958',
+        generation: 2, active: { ownerPhoneDigits: '593991111111', approvedAt: new Date().toISOString() },
+        pending: { ownerPhoneDigits: '593992222222', stagedAt: new Date().toISOString() }, history: [] };
+    const approved = context();
+    approved.baileysInbound.ownerPhoneDigits = binding.active.ownerPhoneDigits;
+    const staged = context();
+    staged.baileysInbound.ownerPhoneDigits = binding.pending.ownerPhoneDigits;
+    assert.equal(linkedDeviceOrderWriteAllowed({ context: approved, collection: 'orders', method: 'insertOne', binding }), true);
+    assert.equal(linkedDeviceOrderWriteAllowed({ context: staged, collection: 'orders', method: 'insertOne', binding }), false);
+    assert.equal(linkedDeviceOrderWriteAllowed({ context: context(), collection: 'orders', method: 'insertOne', binding }), false);
+});
