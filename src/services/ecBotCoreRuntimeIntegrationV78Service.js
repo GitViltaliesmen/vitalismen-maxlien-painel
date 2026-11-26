@@ -403,9 +403,12 @@ export const runVerifiedBaileysInboundV265 = async ({ socket, sessionId, message
     const status = getStatus(sessionId);
     const actualOwner = digits(status.ownPhoneDigits);
     const sender = digits(senderPhoneDigits);
+    const { ecChannelOwnerDecision } = await import('../whatsapp/ecPrimaryChannelBinding.js');
+    const ownerDecision = ecChannelOwnerDecision({ sessionId, ownerPhoneDigits: actualOwner,
+        peerPhoneDigits: sender });
     if (!(/^593\d{9}$/.test(sender) || sender === EC_QA_TEST_PHONE_V78)
         || status.isReady !== true || status.status !== 'connected'
-        || getSock(sessionId) !== socket || !['5531971862958', '553171862958'].includes(actualOwner)
+        || getSock(sessionId) !== socket || ownerDecision.allowed !== true
         || actualOwner !== digits(ownerPhoneDigits)) {
         throw new Error('baileys_inbound_socket_not_verified');
     }
